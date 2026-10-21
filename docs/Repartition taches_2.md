@@ -4,16 +4,20 @@
 > **Règle** : une tâche n'est « Validée » qu'après exécution, vérification et relecture croisée. Chaque tâche ci-dessous a un critère d'acceptation vérifiable.
 > Notes actuelles : Ibrahima 7,5/10 · Pathé 6/10. Objectif : 10/10 pour chacun.
 
-## Décisions à obtenir avant de coder (bloquantes)
+## Décisions officielles actées par Lansana Coly (Lead Technique) — 21/10/2026
 
-| # | Décision | Qui tranche | Bloque |
-|---|---|---|---|
-| X1 | Menu : 32 ou 43 articles (11 « Tacos simples » n°8–18 du docx) | Lansana | P11 |
-| X2 | Suivi de commande client : endpoint public minimal (statut, articles, total, sans données personnelles) | Ibrahima + El Hadji | I13 |
-| X3 | Longueur de la référence `BMC-XXXX` (10 000 valeurs seulement) | Ibrahima + Lansana | I12 |
-| X4 | Commande annulée déjà payée : que faire ? | Lansana | I14 |
-| X5 | Confirmer D3, D4, D5, D7, D14 (prises par Pathé seul) | Lansana | P16 |
-| X6 | Méthode du jeton côté admin (écran de connexion recommandé, pas de clé `VITE_*`) | Ibrahima + El Hadji | I16 |
+> [!IMPORTANT]
+> **Toutes les décisions bloquantes X1 à X6 sont officiellement tranchées et validées par Lansana Coly.**  
+> Le **Jalon J1 est franchi**. Ibrahima et Pathé ont le feu vert complet pour exécuter leurs tâches restantes (I10–I22 et P10–P20).
+
+| # | Décision | Arbitrage officiel de Lansana Coly (Lead Technique) | Statut | Débloque |
+|---|---|---|---|---|
+| **X1** | **Menu : 32 ou 43 articles** | **43 ARTICLES VALIDÉS**. Le catalogue doit être 100% fidèle au document Word officiel (`Menu_BMC_FOOD_Noms_et_Prix.docx`), incluant l'ensemble des 19 « Tacos simples » (n°1 à 19). Aucun plat réel ne doit être tronqué. | **Tranché (43)** | P11, P17 |
+| **X2** | **Suivi de commande client** | **ENDPOINT PUBLIC ALLÉGÉ VALIDÉ** (`GET /api/orders/track/<ref>/`). Il renvoie le statut de la commande, les articles commandés et le montant total. **Exclusion stricte de toute donnée personnelle** (ni nom, ni téléphone, ni adresse) pour garantir la confidentialité et la conformité RGPD. Protégé par limitation de débit anti-énumération. | **Tranché (Validé)** | I13 |
+| **X3** | **Longueur de la référence `BMC-XXXX`** | **PASSAGE À 6 CHIFFRES VALIDÉ (`BMC-XXXXXX`)**. `ORDER_REF_DIGITS = 6`, offrant 1 000 000 de combinaisons. Cela élimine définitivement les risques de collision mathématique tout en restant parfaitement lisible en cuisine et en livraison. | **Tranché (6 chiffres)** | I12 |
+| **X4** | **Commande annulée déjà payée** | **STATUT `refund_pending` + VERROUILLAGE**. Si une commande avec `payment_status = 'paid'` passe à `status = 'cancelled'`, son statut de paiement bascule à `refund_pending`. Le remboursement physique est effectué manuellement par le restaurateur via son compte Wave/OM marchand. Une commande annulée ne peut plus subir de transition ultérieure. | **Tranché (Règle actée)** | I14 |
+| **X5** | **Confirmation des choix D3, D4, D5, D7, D14** | **CONFIRMATION FORMELLE DE LANSANA COLY** :<br>- **D3 (Sauces)** : Gérées dans le champ texte `notes` pour le MVP (« Sauce Algérienne, sans oignons ») sans alourdir les modèles.<br>- **D4 (Base SQLite)** : Confirmé, exclue de Git (`.gitignore`), générée localement par `migrate` et `seed_bmc`.<br>- **D5 (Plat du Jour)** : **1 seul plat actif à la fois** (`is_daily_special = True`). Repli automatique sur le best-seller par défaut si aucun n'est activé.<br>- **D7 (Source menu)** : `Menu_BMC_FOOD_Noms_et_Prix.docx` est l'unique source de vérité officielle.<br>- **D14 (Acquittement)** : Un appel sans références acquitte l'ensemble des commandes en attente pour couper la sonnerie cuisine en 1 clic. | **Tranché (Confirmé)** | P16 |
+| **X6** | **Jeton côté admin** | **ÉCRAN DE LOGIN AVEC TOKEN EN MÉMOIRE DE SESSION**. Pas de clé API statique en clair dans les variables `VITE_*` du frontend. Formulaire de connexion appelant `POST /api-token-auth/`, token conservé en mémoire pour la session. | **Tranché (Validé)** | I16, I21 |
 
 ---
 
@@ -67,9 +71,9 @@
 
 ## Jalons communs
 
-| Jalon | Contenu | Condition de sortie |
-|---|---|---|
-| J1 | X1 à X6 tranchées | Décisions consignées |
-| J2 | Ibrahima I10–I17 et Pathé P10–P15 faits | `manage.py test api` vert, schéma sans erreur |
-| J3 | PR ouverte (I22), relue (P18) | Approbation de Lansana |
-| J4 | Frontend admin avec jeton (I21) | Sonnerie fonctionnelle de bout en bout |
+| Jalon | Contenu | Condition de sortie | État |
+|---|---|---|---|
+| J1 | X1 à X6 tranchées | Décisions consignées | **Validé (21/10/2026 par Lansana Coly)** |
+| J2 | Ibrahima I10–I17 et Pathé P10–P15 faits | `manage.py test api` vert, schéma sans erreur | En cours |
+| J3 | PR ouverte (I22), relue (P18) | Approbation de Lansana | À venir |
+| J4 | Frontend admin avec jeton (I21) | Sonnerie fonctionnelle de bout en bout | À venir |
