@@ -1,90 +1,51 @@
-# BMC FOOD — Prototype Web Fonctionnel MVP
+# BMC FOOD — Solution Digitale de Commande & Administration
 
 > Développé par **Teranga Labs**  
+> **Dépôt GitHub** : [https://github.com/lansanacoly7/BMC_FOOD](https://github.com/lansanacoly7/BMC_FOOD)  
 > **Sponsor** : Pape Aliou Sène (Directeur Général)  
 > **Chef de Projet & Lead Technique** : Lansana Coly  
-> **Architecture & Développement** : Antigravity (IA) en synergie avec l'équipe projet
+> **Documentation pour l'équipe** : [Guide de Collaboration GitHub](docs/guide_collaboration_github.md)
 
 ---
 
-## 🌟 Aperçu du Projet
+## 🌟 Présentation du Projet
 
-Ce prototype permet de faire une démonstration interactive de 5 à 8 minutes auprès du client BMC FOOD afin de valider le parcours complet de commande en ligne :
-1. **Découverte du catalogue** : 32 produits réels répartis en 7 catégories (Tacos panés, Burgers, Tacos simples, Sauces...) avec prix officiels en F CFA.
-2. **Panier dynamique** : Ajout/retrait d'articles, calcul en temps réel et persistance dans le navigateur.
-3. **Passage de commande** : Formulaire coordonnées, bouton de géolocalisation GPS assistée, et choix du paiement (**Espèces à la livraison** ou **Orange Money**).
-4. **Sécurité & Intégrité** : Recalcul automatique et obligatoire de tous les montants côté serveur (Express + SQLite).
-5. **Dashboard Administrateur Démo** : Visualisation en direct des commandes entrantes, consultation des articles et changement d'état (En cuisine, En livraison, Livrée).
+BMC FOOD est une solution numérique moderne conçue pour digitaliser l'expérience de commande et de gestion du restaurant BMC Food à Dakar.
 
----
-
-## 🚀 Démarrage Rapide
-
-### Prérequis
-- [Node.js](https://nodejs.org/) (v18+)
-
-### 1. Lancer l'API Back-end
-```bash
-cd server
-npm install
-npm run dev
-```
-> Le serveur démarre sur **http://localhost:5000** et initialise automatiquement la base SQLite (`data/bmc_orders.db`) avec le catalogue officiel.
-
-### 2. Lancer l'Interface Client Front-end
-```bash
-cd client
-npm install
-npm run dev
-```
-> L'application est accessible sur **http://localhost:5173**.
+Le projet se compose de deux volets distincts :
+1. **Le Site Web Client (Mobile-First)** : Interface responsive ultra-rapide pour smartphone, mettant en valeur le **Plat du Jour**, les spécialités de tacos panés et burgers, avec paiement au choix par **Espèces**, **Wave** et **Orange Money**.
+2. **L'Application Web Admin Restaurateur** : Outil de pilotage pour la caisse et la cuisine, équipé d'une **alerte sonore automatique (sonnerie/bip)** et de **notifications push** pour traiter les commandes sans délai.
 
 ---
 
-## 🧭 Scénario de Démonstration Client (5 à 8 min)
-
-1. **Page d'accueil & Branding (1 min)** :
-   - Ouvrir `http://localhost:5173` sur un mobile ou en mode émulation mobile (F12).
-   - Mettre en valeur l'univers BMC FOOD, les horaires (11h00 — 02h00) et les numéros de commande (`77 856 13 13` / `77 106 75 75`).
-2. **Choix des plats (2 min)** :
-   - Filtrer par catégorie (ex: *Burgers* ou *Tacos panés*).
-   - Ajouter un *Tacos viande pané* (3 500 F CFA) et un *Burger complet* (2 000 F CFA).
-3. **Validation & Choix du Paiement (2 min)** :
-   - Ouvrir le panier, vérifier le total (5 500 F CFA).
-   - Cliquer sur « Valider la commande », renseigner le nom et le téléphone.
-   - Cliquer sur « 📍 Me localiser (GPS) » pour illustrer la détection automatique.
-   - Choisir *Espèces à la livraison* ou tester la simulation *Orange Money*.
-   - Cliquer sur « Confirmer ».
-4. **Écran de Confirmation (1 min)** :
-   - Montrer la référence unique générée (`BMC-XXXX`).
-5. **Tableau de Bord Admin (2 min)** :
-   - Cliquer sur « Voir en Admin » (ou le bouton en haut à droite).
-   - Montrer au client que sa commande vient d'apparaître instantanément dans le tableau de bord avec tous ses articles et le montant recalculé.
-   - Changer le statut en *« En cuisine »* puis *« En livraison »*.
-
----
-
-## 🛠️ Architecture Technique
+## 📂 Organisation du Dépôt & Rôles des Équipes
 
 ```text
-Projet BMC/
-├── client/                     # Front-end React + Vite
-│   ├── public/images/          # Photos réelles & flyers du restaurant
-│   └── src/
-│       ├── components/         # Header, Hero, MenuSection, CartDrawer, CheckoutModal, AdminDashboard
-│       ├── context/            # CartContext (gestion d'état panier + localStorage)
-│       └── services/api.js     # Client API REST
-├── server/                     # API REST Node.js & Express
-│   ├── data/                   # bmc_orders.db (SQLite)
-│   └── src/
-│       ├── db/                 # Connexion et script de seed (db.js, seed.js)
-│       ├── controllers/        # Logique métier & recalcul serveur (ordersController.js, menuController.js)
-│       └── app.js              # Configuration Express et routes
-└── docs/                       # Dossier de cadrage et plan d'exécution
+BMC_FOOD/
+├── backend/                  # [Ibrahima & Pathé] Django REST Framework, SQLite, moteur de prix
+├── client_website/           # [El Hadji, Maimouna, Pape Aliou] Site Web Client Mobile-First (React + Vite + TS + Motion)
+├── admin_app/                # [El Hadji & Maimouna] Application Web Admin avec alertes sonores & push
+├── docs/                     # Guides de collaboration et feuilles de route
+│   ├── guide_collaboration_github.md       <-- À LIRE PAR TOUTE L'ÉQUIPE
+│   ├── feuille_de_route_frontend_design.md <-- Équipe Frontend & Design
+│   ├── feuille_de_route_backend.md         <-- Équipe Backend & API
+│   └── pilotage_et_audits_lead_technique.md<-- Lead Technique
+└── README.md
 ```
+
+---
+
+## 🚀 Guides & Feuilles de Route
+
+Chaque membre de l'équipe doit se référer au document correspondant à sa faction :
+
+- 📖 **Guide GitHub & Règles de Commit** : [docs/guide_collaboration_github.md](docs/guide_collaboration_github.md)
+- 🎨 **Feuille de Route Frontend & Design** : [docs/feuille_de_route_frontend_design.md](docs/feuille_de_route_frontend_design.md)
+- ⚙️ **Feuille de Route Backend & API** : [docs/feuille_de_route_backend.md](docs/feuille_de_route_backend.md)
+- 🛡️ **Pilotage & Critères de Qualité** : [docs/pilotage_et_audits_lead_technique.md](docs/pilotage_et_audits_lead_technique.md)
 
 ---
 
 ## 📞 Contacts Utiles (BMC FOOD)
-- **Téléphones** : 77 856 13 13 / 77 106 75 75
+- **Commandes** : 77 856 13 13 / 77 106 75 75
 - **Localisation** : Dakar, Sénégal
