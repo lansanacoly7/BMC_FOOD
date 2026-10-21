@@ -1,0 +1,31 @@
+@import 'tailwindcss';
+
+/*
+ * Charte BMC Food (Tailwind v4 : la configuration du thème vit ici, plus dans tailwind.config.js).
+ * Chaque couleur génère ses utilitaires : bg-bmc-orange, text-bmc-gold, border-bmc-charcoal, etc.
+ */
+@theme {
+  /* Orange braise : accent chaud, boutons d'action (texte anthracite dessus, jamais blanc : contraste insuffisant). */
+  --color-bmc-orange: #F97316;
+  /* Orange profond : variante lisible pour du texte orange sur fond clair (contraste AA 5.2:1). */
+  --color-bmc-orange-deep: #C2410C;
+  /* Jaune moutarde doré : badges, prix, mise en valeur. */
+  --color-bmc-gold: #F59E0B;
+  /* Noir charbon : textes, fonds sombres de l'admin cuisine. */
+  --color-bmc-charcoal: #18181B;
+  /* Blanc cassé : fond épuré du site client. */
+  --color-bmc-offwhite: #FAFAFA;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-bmc-offwhite font-sans text-bmc-charcoal antialiased;
+  }
+}
