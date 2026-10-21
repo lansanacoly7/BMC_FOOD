@@ -1,9 +1,10 @@
 from django.core.management.base import BaseCommand
+from django.db import transaction
 from django.utils.text import slugify
 from api.models import Category, MenuItem
 
 class Command(BaseCommand):
-    help = "Charge le menu complet et authentique de BMC FOOD avec le Plat du Jour."
+    help = "Charge le menu complet et authentique de BMC FOOD avec le Plat du Jour de façon idempotente."
 
     def handle(self, *args, **options):
         self.stdout.write("Initialisation des catégories et du menu BMC FOOD...")
@@ -92,29 +93,51 @@ class Command(BaseCommand):
             }
         ]
 
-        total_created = 0
-        for group in catalog:
-            category, _ = Category.objects.get_or_create(
-                name=group["category"],
-                defaults={
-                    "slug": slugify(group["category"]),
-                    "icon": group.get("icon", "Utensils")
-                }
-            )
+        cats_created = 0
+        cats_updated = 0
+        items_created = 0
+        items_updated = 0
 
-            for item_data in group["items"]:
-                item, created = MenuItem.objects.update_or_create(
-                    code=item_data["code"],
+        with transaction.atomic():
+            for group in catalog:
+                category, cat_created = Category.objects.update_or_create(
+                    name=group["category"],
                     defaults={
-                        "category": category,
-                        "name": item_data["name"],
-                        "price": item_data["price"],
-                        "description": item_data["desc"],
-                        "popular": item_data["popular"],
-                        "is_daily_special": item_data["special"],
-                        "is_available": True
+                        "slug": slugify(group["category"]),
+                        "icon": group.get("icon", "Utensils")
                     }
                 )
-                total_created += 1
+                if cat_created:
+                    cats_created += 1
+                else:
+                    cats_updated += 1
 
-        self.stdout.write(self.style.SUCCESS(f"Succès : {total_created} articles importés dans la base Django avec le Plat du Jour configuré."))
+                for item_data in group["items"]:
+                    item, itm_created = MenuItem.objects.update_or_create(
+                        code=item_data["code"],
+                        defaults={
+                            "category": category,
+                            "name": item_data["name"],
+                            "price": item_data["price"],
+                            "description": item_data["desc"],
+                            "popular": item_data["popular"],
+                            "is_daily_special": item_data["special"],
+                            "is_available": True
+                        }
+                    )
+                    if itm_created:
+                        items_created += 1
+                    else:
+                        items_updated += 1
+
+        total_categories = Category.objects.count()
+        total_items = MenuItem.objects.count()
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Succès : Seed idempotent terminé. "
+                f"Catégories (créées: {cats_created}, màj: {cats_updated}, total: {total_categories}) | "
+                f"Articles (créés: {items_created}, màj: {items_updated}, total: {total_items}). "
+                f"Plat du Jour: trp-3 configuré."
+            )
+        )
