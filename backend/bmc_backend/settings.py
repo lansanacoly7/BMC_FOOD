@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     # Third party apps
     'rest_framework',
     'corsheaders',
+    'drf_spectacular',
     
     # Local apps
     'api.apps.ApiConfig',
@@ -91,5 +92,16 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
     ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DATETIME_FORMAT': '%Y-%m-%dT%H:%M:%SZ',
 }
+
+# OpenAPI & Swagger (drf-spectacular)
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'BMC Food API',
+    'DESCRIPTION': 'API REST pour le restaurant BMC FOOD (menu officiel, commandes, alertes temps réel et Plat du Jour)',
+    'VERSION': '2.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+}
+

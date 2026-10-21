@@ -1,4 +1,5 @@
 from django.urls import path
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from .views import (
     HealthCheckView,
     MenuView,
@@ -11,6 +12,11 @@ from .views import (
 )
 
 urlpatterns = [
+    # OpenAPI Schema & Swagger UI
+    path('schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+
+    # Endpoints B4
     path('health/', HealthCheckView.as_view(), name='health-check'),
     path('menu/', MenuView.as_view(), name='menu-list'),
     path('daily-special/', DailySpecialView.as_view(), name='daily-special'),
