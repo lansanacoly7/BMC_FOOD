@@ -1,8 +1,8 @@
 import { createContext } from 'react'
 import type { CartItem, Product } from '../types'
 
-/** Quantité maximale d'un même plat dans le panier. */
-export const MAX_ITEM_QUANTITY = 99
+/** Quantité maximale d'un même plat, alignée sur le backend (order_rules.MAX_QUANTITY_PER_LINE). */
+export const MAX_ITEM_QUANTITY = 20
 
 export interface CartContextValue {
   items: CartItem[]

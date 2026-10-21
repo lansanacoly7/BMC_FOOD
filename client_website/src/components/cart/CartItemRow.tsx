@@ -1,9 +1,8 @@
 import { Minus, Plus, Trash2, UtensilsCrossed } from 'lucide-react'
 import { motion } from 'motion/react'
+import { MAX_ITEM_QUANTITY } from '../../context/cart'
 import { formatFcfa } from '../../lib/format'
 import type { CartItem } from '../../types'
-
-const tapBounce = { scale: 0.95 }
 
 interface CartItemRowProps {
   item: CartItem
@@ -11,10 +10,13 @@ interface CartItemRowProps {
   onRemove: (code: string) => void
 }
 
+const tapBounce = { scale: 0.9 }
+
 export function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowProps) {
   const { product, quantity } = item
   // aria-disabled plutôt que disabled : le bouton garde le focus clavier quand la quantité redescend à 1.
   const canDecrement = quantity > 1
+  const canIncrement = quantity < MAX_ITEM_QUANTITY
 
   return (
     <motion.li
@@ -28,7 +30,7 @@ export function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowPro
         {product.image_url ? (
           <img
             src={product.image_url}
-            alt=""
+            alt={product.name}
             width={64}
             height={64}
             loading="lazy"
@@ -57,7 +59,7 @@ export function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowPro
             whileTap={tapBounce}
             onClick={() => onRemove(product.code)}
             aria-label={`Retirer ${product.name} du panier`}
-            className="-mr-1 -mt-1 grid size-9 shrink-0 place-items-center rounded-full text-zinc-400 transition-colors hover:bg-red-950/40 hover:text-red-400 hover:border hover:border-red-500/30 focus-visible:outline-2 focus-visible:outline-red-500"
+            className="-mr-1 -mt-1 grid size-9 shrink-0 place-items-center rounded-full text-zinc-400 transition-colors hover:bg-red-950/40 hover:text-red-400 hover:border hover:border-red-500/30 focus-visible:outline-2 focus-visible:outline-red-500 cursor-pointer"
           >
             <Trash2 className="size-4.5" aria-hidden="true" />
           </motion.button>
@@ -78,7 +80,7 @@ export function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowPro
                 if (canDecrement) onUpdateQuantity(product.code, quantity - 1)
               }}
               aria-label={`Diminuer la quantité de ${product.name}`}
-              className="grid size-8 sm:size-9 place-items-center rounded-full bg-zinc-800 text-zinc-200 border border-white/10 shadow-sm transition-all hover:bg-zinc-700 hover:text-white focus-visible:outline-2 focus-visible:outline-bmc-gold aria-disabled:cursor-not-allowed aria-disabled:opacity-30 aria-disabled:text-zinc-600 aria-disabled:border-transparent aria-disabled:shadow-none"
+              className="grid size-8 sm:size-9 place-items-center rounded-full bg-zinc-800 text-zinc-200 border border-white/10 shadow-sm transition-all hover:bg-zinc-700 hover:text-white focus-visible:outline-2 focus-visible:outline-bmc-gold aria-disabled:cursor-not-allowed aria-disabled:opacity-30 aria-disabled:text-zinc-600 aria-disabled:border-transparent aria-disabled:shadow-none cursor-pointer"
             >
               <Minus className="size-3.5 sm:size-4 stroke-[2.5]" aria-hidden="true" />
             </motion.button>
@@ -92,10 +94,13 @@ export function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowPro
             </motion.span>
             <motion.button
               type="button"
-              whileTap={tapBounce}
-              onClick={() => onUpdateQuantity(product.code, quantity + 1)}
+              whileTap={canIncrement ? tapBounce : undefined}
+              aria-disabled={!canIncrement}
+              onClick={() => {
+                if (canIncrement) onUpdateQuantity(product.code, quantity + 1)
+              }}
               aria-label={`Augmenter la quantité de ${product.name}`}
-              className="grid size-8 sm:size-9 place-items-center rounded-full bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 text-black shadow-md shadow-bmc-gold/20 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold cursor-pointer"
+              className="grid size-8 sm:size-9 place-items-center rounded-full bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 text-black shadow-md shadow-bmc-gold/20 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold cursor-pointer aria-disabled:cursor-not-allowed aria-disabled:opacity-35"
             >
               <Plus className="size-3.5 sm:size-4 stroke-[3]" aria-hidden="true" />
             </motion.button>

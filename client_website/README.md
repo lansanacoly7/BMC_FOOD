@@ -32,6 +32,8 @@ src/
 │   └── cart/            # Panier : Cart, CartDrawer, CartItemRow, CartBar, CartButton
 ├── context/             # CartProvider (état du panier sauvegardé dans le navigateur)
 ├── hooks/useCart.ts     # Accès au panier depuis n'importe quel composant
+├── hooks/useOrderSubmission.ts  # Envoi de la commande : chargement, erreurs, confirmation
+├── services/orders.ts   # POST /api/orders/ et traduction des erreurs du serveur
 ├── lib/format.ts        # formatFcfa() : 3500 → « 3 500 F CFA »
 ├── services/api.ts      # apiRequest<T>() et ApiError : client HTTP commun vers l'API Django
 ├── types/index.ts       # Modèles TypeScript, miroir exact des sérialiseurs Django
@@ -84,7 +86,7 @@ const { items, itemCount, subtotal, addToCart, removeFromCart, updateQuantity, c
 
 addToCart(product)          // bouton « + » d'une carte produit (quantité +1 si déjà au panier)
 addToCart(product, 2)       // ajout de plusieurs exemplaires
-updateQuantity('tp-1', 3)   // la quantité reste toujours entre 1 et 99
+updateQuantity('tp-1', 3)   // la quantité reste toujours entre 1 et 20 (limite du serveur)
 removeFromCart('tp-1')
 clearCart()                 // après une commande réussie
 ```
@@ -102,6 +104,35 @@ clearCart()                 // après une commande réussie
 - Laisser environ 112 px de marge en bas des pages (`pb-28`) pour que la barre flottante ne cache pas le contenu.
 
 Le sous-total est indicatif : le serveur recalcule toujours le montant réel de la commande.
+
+## Envoyer la commande
+
+`useOrderSubmission()` envoie le panier à `POST /api/orders/` avec les informations du checkout.
+
+```tsx
+const { submit, isSubmitting, order, error, clearError, reset } = useOrderSubmission()
+
+// À la validation du formulaire (champs déjà vérifiés côté navigateur)
+await submit({ customer_name, phone, address, notes, payment_method })
+
+{isSubmitting && …}                  // pendant l'envoi : utiliser <OrderSubmitButton isSubmitting amount={subtotal} />
+{order && <Confirmation order={order} />}   // uniquement après la réponse réussie du serveur
+{error?.fieldErrors.phone}           // message du serveur à afficher sous le champ Téléphone
+{error?.itemErrors}                  // problèmes de plats (indisponible, quantité > 20)
+{error?.message}                     // message général (réseau coupé, serveur indisponible…)
+```
+
+| Situation | Comportement |
+| :--- | :--- |
+| Envoi en cours | Bouton « Envoi… » de même largeur, désactivé ; un double appui n'envoie qu'une commande. |
+| Réussite | `order` contient la référence `BMC-XXXX` et le montant recalculé ; le panier est vidé. |
+| Champ refusé par le serveur | `error.fieldErrors` par champ ; panier et saisie conservés. |
+| Plat indisponible ou introuvable | `error.itemErrors` ; le panier n'est pas modifié. |
+| Réseau coupé ou serveur muet après 20 s | Message « Connexion au serveur impossible… » ; rien n'est effacé, le client renvoie. |
+
+Le navigateur n'envoie jamais de prix : uniquement `{ id: code, quantity }` par plat.
+
+> **Provisoire** : `components/checkout/ProvisionalCheckout.tsx` permet de tester ce parcours en attendant le checkout de Maimouna. Elle reprend `useOrderSubmission()` et `OrderSubmitButton` dans son formulaire, puis supprime ce fichier.
 
 ## Avant d'ouvrir une Pull Request
 
