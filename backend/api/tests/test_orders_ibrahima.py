@@ -204,6 +204,7 @@ class AccessTests(BaseCase):
         r = self.admin.get("/api/orders/BMC-0000/")
         self.assertEqual(r.status_code, 404)
         self.assertEqual(r.json()["code"], "not_found")
+        self.assertEqual(r.json()["errors"]["detail"], [r.json()["error"]])
         self.assertEqual(self.admin.get("/api/orders/?status=pending").status_code, 200)
         r = self.admin.get("/api/orders/?status=nimportequoi")
         self.assertEqual(r.status_code, 400)

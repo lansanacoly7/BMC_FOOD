@@ -6,7 +6,7 @@ Contrat d'erreur (toutes les erreurs 4xx/5xx gérées par DRF) :
     {
       "success": false,
       "error": "<message lisible>",
-      "errors": { "<champ>": ["<message>", ...] },   # uniquement pour les erreurs de validation (400)
+      "errors": { "<champ>": ["<message>", ...] },   # validation (400) ; { "detail": ["<message>"] } sinon
       "code": "<code machine>"                       # uniquement pour les erreurs hors validation
     }
 
@@ -56,8 +56,7 @@ def first_message(data):
 def error_response(message, errors=None, status_code=status.HTTP_400_BAD_REQUEST, code=None):
     """Construit une réponse d'erreur conforme au contrat ci-dessus."""
     body = {'success': False, 'error': message}
-    if errors is not None:
-        body['errors'] = errors
+    body['errors'] = errors if errors is not None else {'detail': [message]}
     if code is not None:
         body['code'] = code
     return Response(body, status=status_code)
@@ -81,9 +80,11 @@ def bmc_exception_handler(exc, context):
 
     detail = response.data.get('detail') if isinstance(response.data, dict) else response.data
     code = getattr(getattr(exc, 'detail', None), 'code', None) or _DEFAULT_CODES.get(response.status_code, 'error')
+    message = first_message(detail) or 'Erreur.'
     response.data = {
         'success': False,
-        'error': first_message(detail) or 'Erreur.',
+        'error': message,
+        'errors': {'detail': [message]},
         'code': code,
     }
     return response
