@@ -4,6 +4,8 @@
 > **Contributeur** : Pathé Fall (Assistance Backend)  
 > **Supervision & Audit** : Lansana Coly (Lead Technique)  
 > **Dépôt Git** : `BMC_FOOD` | **Branches de travail** : `feature/backend/*`
+>
+> **Répartition et suivi des tâches** : voir [repartition_taches_backend.md](repartition_taches_backend.md) (I1–I9 / P1–P9, dépendances, critères d'acceptation, décisions à prendre). Ce document reste la **référence des spécifications métier** (B1–B4).
 
 ---
 
