@@ -29,7 +29,9 @@ Pour changer d'adresse, copier `.env.example` en `.env.local` et modifier `VITE_
 ```text
 src/
 ├── components/
-│   └── cart/            # Module C2 : CartDrawer (tiroir bottom-sheet) et CartItemRow
+│   └── cart/            # Panier : Cart, CartDrawer, CartItemRow, CartBar, CartButton
+├── context/             # CartProvider (état du panier sauvegardé dans le navigateur)
+├── hooks/useCart.ts     # Accès au panier depuis n'importe quel composant
 ├── lib/format.ts        # formatFcfa() : 3500 → « 3 500 F CFA »
 ├── services/api.ts      # apiRequest<T>() et ApiError : client HTTP commun vers l'API Django
 ├── types/index.ts       # Modèles TypeScript, miroir exact des sérialiseurs Django
@@ -45,9 +47,10 @@ Tailwind v4 se configure dans `src/index.css` (bloc `@theme`) et non plus dans `
 
 | Classe Tailwind (`bg-`, `text-`, `border-`…) | Couleur   | Usage                                                   |
 | :------------------------------------------- | :-------- | :------------------------------------------------------ |
-| `bmc-orange`                                 | `#F97316` | Boutons d'action. **Texte anthracite dessus, jamais blanc** (contraste 2,8:1 insuffisant). |
+| `bmc-braise`                                 | `#CF4A08` | Bouton d'action principal (charte v1.1). **Texte blanc dessus** (4,5:1). Appuyé : `bmc-braise-press`. |
+| `bmc-orange`                                 | `#F97316` | Ancien orange d'action, encore utilisé par le bandeau Plat du Jour. Jamais de texte blanc dessus (2,8:1). |
 | `bmc-orange-deep`                            | `#C2410C` | Texte orange sur fond clair (contraste AA).             |
-| `bmc-gold`                                   | `#F59E0B` | Badges, prix, mise en valeur.                           |
+| `bmc-gold`                                   | `#FCB800` | Or du logo (charte v1.1) : badges, prix, bouton d'ajout. Texte charbon dessus. |
 | `bmc-charcoal`                               | `#18181B` | Textes, fonds sombres.                                  |
 | `bmc-offwhite`                               | `#FAFAFA` | Fond du site.                                           |
 
@@ -70,22 +73,35 @@ Micro-feedback des boutons : `whileTap={{ scale: 0.95 }}`.
 - **Le navigateur n'envoie jamais de prix** : uniquement `{ id: code, quantity }`. Le serveur recalcule le total.
 - Afficher les montants avec `formatFcfa()`.
 
-## Brancher le panier (module C2)
+## Le panier
 
-`CartDrawer` est un composant de présentation : il reçoit les articles et les actions en props, ce qui permet de le brancher directement sur le `CartContext`.
+Le panier est un état global, fourni par `<CartProvider>` dans `src/main.tsx`. Il est **sauvegardé dans le navigateur** : il survit à la navigation, au rechargement de la page, et se synchronise entre onglets.
+
+### Lire ou modifier le panier depuis une page
 
 ```tsx
-<CartDrawer
-  isOpen={isCartOpen}
-  onClose={() => setIsCartOpen(false)}
-  items={items}                       // CartItem[]
-  onUpdateQuantity={updateQuantity}   // (code, quantité) => void
-  onRemove={removeFromCart}           // (code) => void
-  onCheckout={openCheckout}
-/>
+const { items, itemCount, subtotal, addToCart, removeFromCart, updateQuantity, clearCart, openCart } = useCart()
+
+addToCart(product)          // bouton « + » d'une carte produit (quantité +1 si déjà au panier)
+addToCart(product, 2)       // ajout de plusieurs exemplaires
+updateQuantity('tp-1', 3)   // la quantité reste toujours entre 1 et 99
+removeFromCart('tp-1')
+clearCart()                 // après une commande réussie
 ```
 
-Fermeture : bouton ✕, touche Échap, clic sur le fond assombri ou glissement de la poignée vers le bas.
+### Afficher le panier
+
+| Composant | Où le placer |
+| :--- | :--- |
+| `<Cart onCheckout={ouvrirCheckout} />` | **Une seule fois** dans l'application : barre flottante + tiroir, déjà branchés sur le panier. |
+| `<CartButton tone="dark" />` | Dans l'en-tête : icône panier avec pastille braise du nombre d'articles. `tone="light"` sur fond clair. |
+
+- **Barre flottante** (`CartBar`) : visible dès le premier article, cachée quand le tiroir est ouvert. Nombre d'articles, sous-total, « Voir le panier ».
+- **Tiroir** (`CartDrawer`) : quantité avec compteur charbon et « + » or, jamais sous 1 (le « − » se désactive), suppression par la corbeille, sous-total, bouton braise « Valider la commande ». Fermeture : ✕, Échap, clic sur le fond ou glissement vers le bas.
+- **Photos** : une photo absente ou introuvable (`image_url` du backend) est remplacée par une icône, jamais par une image cassée.
+- Laisser environ 112 px de marge en bas des pages (`pb-28`) pour que la barre flottante ne cache pas le contenu.
+
+Le sous-total est indicatif : le serveur recalcule toujours le montant réel de la commande.
 
 ## Avant d'ouvrir une Pull Request
 

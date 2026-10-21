@@ -7,46 +7,31 @@ import { CategoryPills } from './components/home/CategoryPills'
 import { FeaturedGrid } from './components/home/FeaturedGrid'
 import { StickyCartBar } from './components/home/StickyCartBar'
 import { NavMenuDrawer } from './components/home/NavMenuDrawer'
+import { ProvisionalCheckout } from './components/checkout/ProvisionalCheckout'
 import { useDailySpecials } from './hooks/useDailySpecials'
 import { useMenu } from './hooks/useMenu'
-import type { CartItem, Product } from './types'
+import { useCart } from './hooks/useCart'
 
 export default function App() {
-  const [items, setItems] = useState<CartItem[]>([])
-  const [isCartOpen, setIsCartOpen] = useState(false)
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState('all')
-  const [searchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isCheckingOut, setIsCheckingOut] = useState(false)
+
+  // Gestion centralisée du panier BMC Food (Pape Aliou)
+  const { items, itemCount, subtotal, isCartOpen, openCart, closeCart, addToCart, updateQuantity, removeFromCart, clearCart } = useCart()
 
   // Hooks de données officiels BMC Food (avec support fallback)
   const { specials, isLoading: isSpecialsLoading } = useDailySpecials()
   const { items: menuProducts, isLoading: isMenuLoading } = useMenu()
 
-  const itemCount = items.reduce((count, item) => count + item.quantity, 0)
-  const totalAmount = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
-
-  const addToCart = (product: Product) => {
-    setItems((current) =>
-      current.some((item) => item.product.code === product.code)
-        ? current.map((item) =>
-            item.product.code === product.code
-              ? { ...item, quantity: item.quantity + 1 }
-              : item
-          )
-        : [...current, { product, quantity: 1 }]
+  if (isCheckingOut) {
+    return (
+      <ProvisionalCheckout
+        onBack={() => setIsCheckingOut(false)}
+        onNewOrder={() => setIsCheckingOut(false)}
+      />
     )
-  }
-
-  const updateQuantity = (code: string, quantity: number) => {
-    setItems((current) =>
-      current.map((item) =>
-        item.product.code === code ? { ...item, quantity } : item
-      )
-    )
-  }
-
-  const removeFromCart = (code: string) => {
-    setItems((current) => current.filter((item) => item.product.code !== code))
   }
 
   return (
@@ -57,7 +42,7 @@ export default function App() {
       */}
       <TopHeader
         cartItemCount={itemCount}
-        onOpenCart={() => setIsCartOpen(true)}
+        onOpenCart={openCart}
         onToggleMenu={() => setIsNavMenuOpen(true)}
         onSelectCategory={setActiveCategory}
       />
@@ -117,22 +102,25 @@ export default function App() {
       */}
       <StickyCartBar
         itemCount={itemCount}
-        totalAmount={totalAmount}
-        onOpenCart={() => setIsCartOpen(true)}
+        totalAmount={subtotal}
+        onOpenCart={openCart}
         isVisible={!isCartOpen}
       />
 
-      {/* 7. TIROIR PANIER COULISSANT */}
+      {/* 7. TIROIR PANIER COULISSANT DARK LUXURY */}
       <CartDrawer
         isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
+        onClose={closeCart}
         items={items}
         onUpdateQuantity={updateQuantity}
         onRemove={removeFromCart}
-        onCheckout={() => setIsCartOpen(false)}
+        onCheckout={() => {
+          closeCart()
+          setIsCheckingOut(true)
+        }}
         onClearCart={() => {
-          setItems([])
-          setIsCartOpen(false)
+          clearCart()
+          closeCart()
         }}
       />
 
