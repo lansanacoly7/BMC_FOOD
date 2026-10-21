@@ -4,7 +4,7 @@
 > **Auteur & Responsable Faction** : El Hadji Massogui Diop  
 > **Contributeurs** : Maimouna Sall, Pape Aliou Sène  
 > **Supervision & Validation Lead Tech** : Lansana Coly  
-> **Version** : 1.0 — Document Opérationnel de Référence  
+> **Version** : 1.1 — Document Opérationnel de Référence (mis à jour le 21/10/2026 après la livraison des tâches EH-1 à EH-4)  
 > **Dépôt Git** : `lansanacoly7/BMC_FOOD` | **Branches cibles** : `feature/frontend/*`
 
 ---
@@ -22,18 +22,22 @@ Toutes les interfaces doivent être testées et optimisées pour les résolution
 ## 2. Standards Techniques Communs & Conventions
 
 - **Framework & Bundler** : React 18/19 + TypeScript + Vite
-- **Styles & Design System** : Tailwind CSS
-  - *Orange braise BMC* : `#F97316` (accent chaud)
-  - *Jaune moutarde doré* : `#F59E0B` (badges, prix, mise en valeur)
-  - *Fond sombre / Noir charbon* : `#18181B` (contraste élevé, lisibilité cuisine)
-  - *Blanc cassé* : `#FAFAFA` (fond épuré client)
-- **Animations** : Framer Motion (`motion.div`, `AnimatePresence`)
+- **Styles & Design System** : Tailwind CSS v4 — la charte est déclarée dans `src/index.css` (bloc `@theme`), il n'y a plus de `tailwind.config.js`
+  - *Orange braise BMC* : `#F97316` (accent chaud) → `bg-bmc-orange`. **Texte anthracite dessus, jamais blanc** (contraste 2,8:1 insuffisant).
+  - *Orange profond* : `#C2410C` → `text-bmc-orange-deep` pour du texte orange sur fond clair (contraste AA).
+  - *Jaune moutarde doré* : `#F59E0B` (badges, prix, mise en valeur) → `bg-bmc-gold`, `text-bmc-gold`
+  - *Fond sombre / Noir charbon* : `#18181B` (contraste élevé, lisibilité cuisine) → `bg-bmc-charcoal`
+  - *Blanc cassé* : `#FAFAFA` (fond épuré client) → `bg-bmc-offwhite`
+  - Polices : `font-display` (Bricolage Grotesque) pour les titres et les prix, `font-sans` (Inter) pour le texte.
+- **Animations** : Framer Motion (`motion.div`, `AnimatePresence`), importé depuis `motion/react` (paquet officiel `motion`)
 - **Icônes** : `lucide-react`
 - **Audio & Push** : Web Audio API native (synthèse d'ondes sonores) + HTML5 Notification API
 - **Structure des branches Git** :
   - Branche principale frontend : `feature/frontend/client-website`
   - Branche admin : `feature/frontend/admin-app`
   - Branches individuelles : `feature/frontend/[prenom]-[module]` (ex: `feature/frontend/elhadji-motion`, `feature/frontend/maimouna-cart`)
+- **Emplacement des fichiers** (guide de collaboration GitHub) : tout le code du site client va dans `client_website/`, tout le code de l'admin dans `admin_app/`. Les chemins `src/...` des fiches ci-dessous sont relatifs à ces dossiers.
+- **Données & API** : les modèles TypeScript de `src/types/index.ts` reprennent exactement les champs JSON de Django (`snake_case`). Ce fichier est identique dans les deux applications : toute modification doit être reportée dans les deux. Appels HTTP via `apiRequest<T>()` (`src/services/api.ts`), montants affichés avec `formatFcfa()` (`src/lib/format.ts`).
 
 ---
 
@@ -76,19 +80,21 @@ graph TD
 
 #### 📌 Tâche EH-1 : Initialisation du Socle Technique & Design System
 * **Objectif** : Mettre en place l'environnement de développement, configurer Tailwind CSS avec la charte BMC Food, les polices Google Fonts et les types TypeScript partagés.
-* **Fichiers impactés** :
-  - `package.json`, `tsconfig.json`, `vite.config.ts`, `tailwind.config.js`
+* **Fichiers impactés** (dans `client_website/` et dans `admin_app/`) :
+  - `package.json`, `tsconfig.json`, `vite.config.ts` (ports fixes : client 5173, admin 5174)
   - `src/types/index.ts` (modèles `Product`, `Category`, `Order`, `OrderItem`, `PaymentMethod`, `OrderStatus`)
-  - `src/index.css` (tokens de couleurs, styles de base)
+  - `src/index.css` (charte Tailwind v4 `@theme` : tokens de couleurs, polices, styles de base)
+  - `src/services/api.ts` (`apiRequest<T>()`, `ApiError`, URL configurable via `VITE_API_BASE_URL`), `src/lib/format.ts` (`formatFcfa()`)
 * **Critères d'Acceptation (DoD)** :
   - Le projet compile avec `npm run dev` et `npm run build` sans avertissement TypeScript.
   - La palette BMC Food est disponible via classes Tailwind (`bg-bmc-orange`, `text-bmc-gold`, etc.).
+* **Statut** : ✅ Livré (branches `feature/frontend/client-website` et `feature/frontend/admin-app`).
 
 #### 📌 Tâche EH-2 : Module C2 — Tiroir Panier Animé (*Bottom-Sheet* Framer Motion)
 * **Objectif** : Créer l'expérience du panier coulissant depuis le bas de l'écran, optimisé pour une manipulation à une main sur smartphone.
 * **Fichiers impactés** :
-  - `src/components/cart/CartDrawer.tsx`
-  - `src/components/cart/CartItemRow.tsx`
+  - `client_website/src/components/cart/CartDrawer.tsx`
+  - `client_website/src/components/cart/CartItemRow.tsx`
 * **Spécifications d'Animation** :
   - Apparition fluide par glissement vertical (`initial={{ y: "100%" }} animate={{ y: 0 }}`).
   - Fermeture soit par clic sur le fond assombri (*backdrop backdrop-blur-sm*), soit par glissement vers le bas (*drag="y" dragConstraints={{ top: 0 }}*).
@@ -96,22 +102,29 @@ graph TD
 * **Critères d'Acceptation (DoD)** :
   - Gestuelle tactile 60 FPS sur mobile.
   - Affichage instantané du récapitulatif des articles et du bouton d'action vers le formulaire.
+* **Statut** : ✅ Livré sur `feature/frontend/client-website`. Fermeture par ✕, Échap, clic sur le fond ou glissement de la poignée ; recette 360/390/414 px validée.
+* **Branchement** : composant de présentation piloté par props (`isOpen`, `onClose`, `items`, `onUpdateQuantity(code, quantité)`, `onRemove(code)`, `onCheckout`), à relier au `CartContext` (MS-1) et au `CheckoutModal` (MS-3).
 
 #### 📌 Tâche EH-3 : Module A2 — Système d'Alertes Actives Cuisine (Sonnerie Web Audio & Push)
 * **Objectif** : Créer le mécanisme d'alerte pour l'application admin garantissant qu'aucune commande entrante ne passe inaperçue en cuisine.
 * **Fichiers impactés** :
-  - `src/services/audioAlertService.ts`
-  - `src/services/notificationService.ts`
-  - `src/components/admin/AlertModal.tsx`
+  - `admin_app/src/services/audioAlertService.ts`
+  - `admin_app/src/services/notificationService.ts`
+  - `admin_app/src/components/admin/AlertModal.tsx`
+  - `admin_app/src/components/admin/AlertActivationPrompt.tsx` (écran « Démarrer le service »)
+  - `admin_app/src/hooks/useNewOrderAlerts.ts` (interrogation de l'API, sonnerie, notifications, acquittement)
 * **Spécifications Techniques** :
   - **Synthèse Sonore Web Audio** : Générer une mélodie à deux tons (ex: 880 Hz puis 1174 Hz) via un `AudioContext` natif, répétée toutes les 3 secondes tant que la commande n'a pas été acquittée par un clic sur « Prendre en charge ». Pas de dépendance de fichier MP3 externe pour éviter les erreurs de chargement réseau.
   - **Notification API** : Demander la permission à l'ouverture de l'admin. Envoyer la notification navigateur avec le titre *« 🔔 Nouvelle commande BMC-XXXX »* et le corps *« Montant : X XXX F CFA »*.
 * **Critères d'Acceptation (DoD)** :
   - La sonnerie démarre dès qu'une commande `is_notified_to_admin === false` est reçue.
   - L'acquittement stoppe le son immédiatement et marque l'alerte comme traitée.
+* **Statut** : ✅ Livré sur `feature/frontend/admin-app`, testé de bout en bout contre le backend Django.
+* **À savoir pour la démo** : les navigateurs bloquent le son tant que personne n'a cliqué sur la page. À l'ouverture, l'admin affiche donc l'écran « Démarrer le service » : un clic sur « Activer les alertes » débloque la sonnerie et demande l'autorisation des notifications. Le bouton « Tester la sonnerie » permet de vérifier le son avant le service.
 
 #### 📌 Tâche EH-4 : Revue de Code, Contrôle Qualité & Clôture de Branche
 * **Objectif** : Vérifier le respect des standards, l'absence d'erreurs en console, et préparer les Pull Requests pour validation par Lansana Coly.
+* **Statut** : ✅ Livré pour EH-1 à EH-3 (build et lint sans erreur ni avertissement, recettes automatisées dans Chrome). Les PR vers `develop` sont prêtes. La revue des modules de Maimouna et Pape Aliou se fera à leur livraison.
 
 ---
 
@@ -122,20 +135,24 @@ graph TD
 #### 📌 Tâche MS-1 : Gestionnaire d'État Global du Panier (`CartContext`)
 * **Objectif** : Développer le contexte React permettant d'ajouter, soustraire, supprimer des articles, calculer le montant total et synchroniser les données dans le `localStorage`.
 * **Fichiers impactés** :
-  - `src/context/CartContext.tsx`
-  - `src/hooks/useCart.ts`
+  - `client_website/src/context/CartContext.tsx`
+  - `client_website/src/hooks/useCart.ts`
 * **Critères d'Acceptation (DoD)** :
   - Les articles restent enregistrés dans le panier même après un rechargement de la page (F5).
   - Le calcul du sous-total gère correctement les centimes et l'arrondi en Francs CFA.
   - Fournit les méthodes `addToCart()`, `removeFromCart()`, `updateQuantity()`, `clearCart()`.
+* **Contrat avec le tiroir panier (EH-2)** :
+  - Stocker des `CartItem` (`{ product: Product; quantity: number }`, déjà défini dans `src/types/index.ts`).
+  - Identifier les plats par `product.code` (ex. `tp-1`) : `removeFromCart(code)` et `updateQuantity(code, quantité)` se branchent alors directement sur `onRemove` et `onUpdateQuantity` du `CartDrawer`.
+  - Remplacer l'état local provisoire de `client_website/src/App.tsx` par le contexte.
 
 #### 📌 Tâche MS-2 : Module C1 — En-tête, Défilement des Catégories & Grille des 32 Plats
 * **Objectif** : Intégrer la page d'accueil du site client avec tous les produits réels de BMC Food.
 * **Fichiers impactés** :
-  - `src/components/client/Header.tsx` (Logo BMC, horaires 11h-02h, téléphones 77 856 13 13 / 77 106 75 75)
-  - `src/components/client/DailySpecialBanner.tsx` (Mise en valeur animée du Plat du Jour)
-  - `src/components/client/CategoryScroll.tsx` (Barre de défilement horizontal tactile des 7 catégories)
-  - `src/components/client/ProductCard.tsx` (Carte avec photo optimisée, prix en F CFA, badge catégorie, bouton d'ajout)
+  - `client_website/src/components/client/Header.tsx` (Logo BMC, horaires 11h-02h, téléphones 77 856 13 13 / 77 106 75 75)
+  - `client_website/src/components/client/DailySpecialBanner.tsx` (Mise en valeur animée du Plat du Jour)
+  - `client_website/src/components/client/CategoryScroll.tsx` (Barre de défilement horizontal tactile des 7 catégories)
+  - `client_website/src/components/client/ProductCard.tsx` (Carte avec photo optimisée, prix en F CFA, badge catégorie, bouton d'ajout)
 * **Critères d'Acceptation (DoD)** :
   - Filtrage instantané des produits lors du clic sur une catégorie sans rechargement.
   - L'ajout d'un plat au panier déclenche un micro-feedback visuel (badge compteur qui s'anime).
@@ -143,13 +160,13 @@ graph TD
 #### 📌 Tâche MS-3 : Module C3 — Formulaire de Commande, Géolocalisation GPS & Soumission
 * **Objectif** : Construire le parcours de validation de commande jusqu'à l'écran de confirmation final.
 * **Fichiers impactés** :
-  - `src/components/checkout/CheckoutModal.tsx`
-  - `src/components/checkout/GPSLocator.tsx`
-  - `src/components/checkout/OrderConfirmation.tsx`
+  - `client_website/src/components/checkout/CheckoutModal.tsx`
+  - `client_website/src/components/checkout/GPSLocator.tsx`
+  - `client_website/src/components/checkout/OrderConfirmation.tsx`
 * **Spécifications Métier** :
   - Champs requis : Nom & Prénom, Téléphone (validation format Sénégal +221 ou 9 chiffres), Adresse ou point de repère.
   - Bouton « 📍 Me localiser (GPS) » utilisant `navigator.geolocation.getCurrentPosition()`. Si accordé, convertir les coordonnées en texte de repère géographique ou latitude/longitude, avec champ de précision manuelle en repli.
-  - Envoi de la commande vers l'API backend (`POST /api/orders/`).
+  - Envoi de la commande vers l'API backend (`POST /api/orders/`) avec `apiRequest<OrderResponse>()`. Le corps (`OrderCreatePayload`) ne contient jamais de prix : uniquement `{ id: code, quantity }` par article, le serveur recalcule le total. En cas d'erreur 400, les messages de validation DRF sont dans `ApiError.payload.errors`.
   - Écran de succès affichant le numéro de suivi officiel : `BMC-XXXX`.
 * **Critères d'Acceptation (DoD)** :
   - Validation client stricte des champs avant soumission.
@@ -158,9 +175,9 @@ graph TD
 #### 📌 Tâche MS-4 : Module A1 — Tableau de Bord Cuisine & Gestion du Cycle de Vie
 * **Objectif** : Développer l'interface de visualisation et de gestion des commandes pour le restaurateur.
 * **Fichiers impactés** :
-  - `src/components/admin/AdminDashboard.tsx`
-  - `src/components/admin/OrderCard.tsx`
-  - `src/components/admin/StatusBadge.tsx`
+  - `admin_app/src/components/admin/AdminDashboard.tsx`
+  - `admin_app/src/components/admin/OrderCard.tsx`
+  - `admin_app/src/components/admin/StatusBadge.tsx`
 * **Spécifications Fonctionnelles** :
   - Affichage en colonnes Kanban ou liste contrastée selon les 4 états officiels :
     `En attente (pending)` $\rightarrow$ `En cuisine (preparing)` $\rightarrow$ `En livraison (delivering)` $\rightarrow$ `Livrée (delivered)`.
@@ -169,6 +186,10 @@ graph TD
 * **Critères d'Acceptation (DoD)** :
   - La progression du statut met à jour visuellement la commande sans latence.
   - Le montant recalculé par le serveur est clairement mis en valeur.
+* **Intégration avec les alertes (EH-3)** :
+  - Le tableau de bord prend place dans le `<main>` de `admin_app/src/App.tsx` (emplacement commenté).
+  - La sonnerie et les notifications sont déjà gérées par `useNewOrderAlerts` : le tableau de bord n'a rien à faire pour elles.
+  - Réutiliser `apiRequest<T>()`, `formatFcfa()`, `formatTime()` et `PAYMENT_METHOD_LABELS` (`src/lib/labels.ts`).
 
 ---
 
@@ -179,19 +200,20 @@ graph TD
 #### 📌 Tâche PA-1 : Traitement & Optimisation WebP des Photos Réelles BMC
 * **Objectif** : Préparer tous les visuels du dossier [`Projet BMC/`](file:///c:/Users/DELL/OneDrive/Images/Документы/cours/BMC/Projet%20BMC) pour garantir un affichage instantané sur les téléphones mobiles 3G/4G à Dakar.
 * **Livrables attendus** :
-  - Dossier `client/public/images/products/`
+  - Dossier `client_website/public/images/products/` (le champ `image_url` des plats pointera vers `/images/products/<fichier>.webp`).
   - Conversion des fichiers haute définition (ex: `099D05B3-D5DE-4DBB-B6C7-9B32B9411FC7.png`, 2.4 Mo) au format `.webp`.
   - Poids unitaire strict inférieur à **150 Ko** par image.
   - Nommage standardisé cohérent avec le seed du backend (ex: `tacos-viande-pane.webp`, `burger-complet.webp`).
+  - Logo officiel BMC Food (fond noir, toque dorée) en WebP pour l'en-tête du site (MS-2) et l'icône des applications.
 * **Critères d'Acceptation (DoD)** :
   - Temps de chargement global du catalogue inférieur à 1,5 seconde sur mobile.
 
 #### 📌 Tâche PA-2 : Module C3 (Partie Paiements) — Conception Visuelle Wave, OM et Espèces
 * **Objectif** : Concevoir les interfaces de choix du moyen de paiement adaptées aux habitudes d'achat sénégalaises.
 * **Fichiers impactés** :
-  - `src/components/checkout/PaymentSelector.tsx`
-  - `src/components/checkout/WavePaymentModal.tsx`
-  - `src/components/checkout/OrangeMoneyModal.tsx`
+  - `client_website/src/components/checkout/PaymentSelector.tsx`
+  - `client_website/src/components/checkout/WavePaymentModal.tsx`
+  - `client_website/src/components/checkout/OrangeMoneyModal.tsx`
 * **Spécifications des 3 Modes de Paiement** :
   1. 💵 **Espèces à la livraison** : Option par défaut. Message clair : *« Préparez l'appoint pour le livreur »*.
   2. 🌊 **Wave** : Badge bleu officiel Wave, affichage du QR Code Marchand et lien de paiement direct Wave deep-link.
@@ -214,6 +236,10 @@ graph TD
   - **Min 3 - 4** : Paiement Wave / Espèces, validation et génération référence `BMC-XXXX`.
   - **Min 4 - 6** : **Effet Wow** : Bascule sur l'admin cuisine, **la sonnerie carillon retentit**, notification push, prise en charge et passage en cuisine.
   - **Min 6 - 8** : Conclusion commerciale et recueil des retours.
+* **Préparation technique avant la démo** :
+  - Le port 8000 doit être libre pour l'API Django : arrêter tout autre service qui l'occupe.
+  - Ouvrir l'admin (`http://localhost:5174`), cliquer sur « Activer les alertes », accepter les notifications et cliquer sur « Tester la sonnerie », volume de l'ordinateur monté.
+  - Garder l'onglet admin ouvert pendant toute la démo.
 
 ---
 
