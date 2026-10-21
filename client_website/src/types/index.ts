@@ -2,7 +2,8 @@
  * Modèles partagés du frontend BMC Food.
  * Miroir exact du contrat de l'API Django REST (backend/api/serializers.py et views.py) :
  * les noms de champs restent en snake_case pour être utilisés tels quels, sans couche de conversion.
- * Ce fichier est dupliqué à l'identique dans admin_app/src/types/index.ts : les garder synchronisés.
+ * Ce fichier existe à l'identique dans client_website/ et admin_app/ (src/types/index.ts) :
+ * toute modification doit être reportée dans les deux applications.
  */
 
 /** Moyens de paiement acceptés par le backend. */
@@ -152,4 +153,10 @@ export interface UnnotifiedOrdersResponse {
 /** Corps de POST /api/orders/events/unnotified/. Sans `order_refs`, le serveur acquitte TOUT. */
 export interface AcknowledgeOrdersPayload {
   order_refs: string[]
+}
+
+/** Réponse de POST /api/orders/events/unnotified/. */
+export interface AcknowledgeOrdersResponse {
+  success: boolean
+  message: string
 }
