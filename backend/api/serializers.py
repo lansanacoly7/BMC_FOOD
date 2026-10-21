@@ -206,3 +206,108 @@ class OrderCreateSerializer(serializers.Serializer):
             OrderItem.objects.bulk_create([OrderItem(order=order, **line) for line in lines])
 
         return order
+
+
+# ============================================================================
+# Sérialiseurs de documentation et de schéma OpenAPI (Tâche P7)
+# ============================================================================
+
+class HealthCheckResponseSerializer(serializers.Serializer):
+    status = serializers.CharField(default='ok')
+    service = serializers.CharField(default='BMC Food Django REST API')
+    version = serializers.CharField(default='2.0.0')
+    server_time = serializers.DateTimeField()
+
+
+class CategoryWithItemsSerializer(serializers.ModelSerializer):
+    items_count = serializers.IntegerField()
+    items = MenuItemSerializer(many=True)
+
+    class Meta:
+        model = Category
+        fields = ['id', 'name', 'slug', 'icon', 'items_count', 'items']
+
+
+class MenuResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField(default=True)
+    total_items = serializers.IntegerField()
+    categories = CategoryWithItemsSerializer(many=True)
+    items = MenuItemSerializer(many=True)
+
+
+class DailySpecialResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField(default=True)
+    count = serializers.IntegerField()
+    daily_specials = MenuItemSerializer(many=True)
+
+
+class ToggleDailySpecialInputSerializer(serializers.Serializer):
+    is_daily_special = serializers.BooleanField(
+        required=False,
+        help_text="Nouvel état du Plat du Jour (true pour activer, false pour désactiver). Optionnel : bascule l'état actuel si omis."
+    )
+
+
+class ToggleDailySpecialResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField(default=True)
+    message = serializers.CharField()
+    item = MenuItemSerializer()
+
+
+class OrderListResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField(default=True)
+    count = serializers.IntegerField()
+    orders = OrderSerializer(many=True)
+
+
+class OrderCreatedResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField(default=True)
+    message = serializers.CharField(default='Commande créée avec succès !')
+    order = OrderSerializer()
+
+
+class OrderStatusUpdateInputSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(
+        choices=[choice[0] for choice in Order.STATUS_CHOICES],
+        required=False,
+        help_text="Nouveau statut de la commande"
+    )
+    payment_status = serializers.ChoiceField(
+        choices=['unpaid', 'pending', 'paid'],
+        required=False,
+        help_text="Nouveau statut de paiement (unpaid, pending, paid)"
+    )
+
+
+class OrderStatusUpdateResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField(default=True)
+    message = serializers.CharField()
+    order = OrderSerializer()
+
+
+class OrderUnnotifiedGetResponseSerializer(serializers.Serializer):
+    has_new_orders = serializers.BooleanField()
+    count = serializers.IntegerField()
+    new_orders = OrderSerializer(many=True)
+
+
+class OrderAcknowledgeInputSerializer(serializers.Serializer):
+    order_refs = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        default=list,
+        help_text="Liste des références de commandes à acquitter (ex: ['BMC-1234']). Obligatoire et non vide (D14) : seules les commandes affichées à l'admin doivent être acquittées."
+    )
+
+
+class OrderAcknowledgeResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField(default=True)
+    message = serializers.CharField()
+    updated_count = serializers.IntegerField()
+
+
+class ErrorResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField(default=False)
+    error = serializers.CharField(required=False)
+    errors = serializers.DictField(required=False)
+
