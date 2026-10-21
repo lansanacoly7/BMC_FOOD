@@ -14,11 +14,14 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 
+from datetime import timedelta
+from django.utils import timezone
 from .api_schemas import AuthTokenRequestSerializer, AuthTokenResponseSerializer, ErrorEnvelopeSerializer
+from .authentication import get_token_ttl_seconds
 
 
 class StaffTokenView(ObtainAuthToken):
-    """Échange identifiant + mot de passe d'un compte staff contre un jeton d'API."""
+    """Échange identifiant + mot de passe d'un compte staff contre un jeton d'API (I7, I16)."""
     authentication_classes = []
     permission_classes = [AllowAny]
     throttle_classes = [ScopedRateThrottle]
@@ -39,5 +42,13 @@ class StaffTokenView(ObtainAuthToken):
         user = serializer.validated_data['user']
         if not user.is_staff:
             raise PermissionDenied("Ce compte n'a pas accès à l'administration.")
-        token, _ = Token.objects.get_or_create(user=user)
+
+        token, created = Token.objects.get_or_create(user=user)
+        ttl = get_token_ttl_seconds()
+        if not created and ttl > 0:
+            if token.created < timezone.now() - timedelta(seconds=ttl):
+                token.delete()
+                token = Token.objects.create(user=user)
+
         return Response({'success': True, 'token': token.key, 'username': user.get_username()})
+

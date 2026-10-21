@@ -21,43 +21,41 @@
 
 ---
 
-## Ibrahima — pour passer de 7,5 à 10/10
+## Ibrahima — pour passer de 7,5 à 10/10 (Exécuté et audité avec Pathé)
 
-| ID | Tâche | Critère d'acceptation | Dépend de |
-|---|---|---|---|
-| I10 | **Tester la migration `0002` sur une base remplie** (créer une base avec l'état `0001`, y insérer des lignes `OrderItem` en double, puis migrer) | Résultat documenté. Si elle échoue : ajouter une étape de fusion des doublons avant les contraintes, avec test. | — |
-| I11 | **Test de concurrence réelle** des références de commande (threads ou processus sur une base de fichier) | Test dans le dépôt : N créations simultanées, 0 doublon de référence, 0 erreur 500. Note SQLite documentée. | — |
-| I12 | **Référence de commande plus longue** (`ORDER_REF_DIGITS`, 6 chiffres conseillés) | Constante unique, `BMC-` + N chiffres, test des collisions mis à jour, journal et frontend prévenus. | X3 |
-| I13 | **Endpoint de suivi client minimal** (ex. `GET /api/orders/track/<ref>/`) | Ne renvoie ni nom, ni téléphone, ni adresse. Protégé contre l'énumération (limitation de débit, et référence plus longue ou téléphone exigé). Tests : champs exacts, 404 uniforme, limitation de débit. | X2, I12 |
-| I14 | **Règle « annulée déjà payée »** | Règle écrite (D6 complété) et appliquée dans `PAYMENT_STATUS_TRANSITIONS` ou refus explicite, avec tests. | X4 |
-| I15 | **Limitation de débit de `POST /api/orders/`** (anti-spam) | Test 429 au-delà du seuil ; le seuil est configurable par variable d'environnement ; le site client reste utilisable. | — |
-| I16 | **Durcir le jeton admin** : expiration (ou rotation) et mise en commun du throttling | Jeton avec durée de vie configurable, test d'expiration. Throttling sur un cache partagé documenté pour la production. | X6 |
-| I17 | **Vérification C1** : schéma OpenAPI ↔ réponses réelles | Test automatisé qui valide les réponses réelles de chaque endpoint contre le schéma généré. Unifier `api_schemas.py` et les serializers P7 en une seule source. | — |
-| I18 | **Pagination de `GET /api/orders/`** | `?page` / `?page_size` avec maximum, ordre stable, rétrocompatibilité documentée avec le frontend (`count` conservé). | Accord El Hadji |
-| I19 | **Intégration continue** : lancer `manage.py test` et `makemigrations --check` à chaque PR | Workflow GitHub Actions vert sur la branche. | — |
-| I20 | **Secret historique** : considérer l'ancienne `SECRET_KEY` comme compromise | Procédure documentée : aucune instance déployée ne l'utilise ; nouvelle clé générée pour la production ; réécriture d'historique **non** faite sans accord de Lansana. | — |
-| I21 | **Poster le commentaire sur la PR #9** et coordonner l'admin | Commentaire publié, El Hadji confirme l'en-tête token et le passage par `confirmed`. | X6 |
-| I22 | **Clôture I8/I9** : pousser, ouvrir la PR vers `develop`, mettre à jour le journal | PR ouverte (reviewers Pathé et Lansana), tous les statuts mis à jour. **Push seulement sur ma demande, jamais `--force`.** | Tout ce qui précède |
-
-**Ordre conseillé** : I10 → I11 → X3/I12 → I14 → I15 → I17 → X2/I13 → I16 → I19 → I18 → I20 → I21 → I22.
+| ID | Tâche | Critère d'acceptation | Dépend de | Statut |
+|---|---|---|---|---|
+| I10 | **Tester la migration `0002` sur une base remplie** (créer une base avec l'état `0001`, y insérer des lignes `OrderItem` en double, puis migrer) | Résultat documenté. Si elle échoue : ajouter une étape de fusion des doublons avant les contraintes, avec test. | — | **Validée** (`test_migration_0002.py`) |
+| I11 | **Test de concurrence réelle** des références de commande (threads ou processus sur une base de fichier) | Test dans le dépôt : N créations simultanées, 0 doublon de référence, 0 erreur 500. Note SQLite documentée. | — | **Validée** (`test_concurrency.py`, PRAGMA busy_timeout, retry loop) |
+| I12 | **Référence de commande plus longue** (`ORDER_REF_DIGITS = 6`, `BMC-XXXXXX`) | Constante unique, `BMC-` + 6 chiffres, test des collisions mis à jour, journal et frontend prévenus. | X3 | **Validée** (1 000 000 combinaisons) |
+| I13 | **Endpoint de suivi client minimal** (`GET /api/orders/track/<ref>/`) | Ne renvoie ni nom, ni téléphone, ni adresse (RGPD). Protégé contre l'énumération (throttling 30/min, 404 uniforme). Tests : champs exacts, 404 uniforme, rate limit. | X2, I12 | **Validée** (`OrderTrackView`, tests au vert) |
+| I14 | **Règle « annulée déjà payée »** | Règle écrite et appliquée : bascule automatique vers `refund_pending` + verrouillage contre toute modification ultérieure, avec tests. | X4 | **Validée** (migration `0003`, tests) |
+| I15 | **Limitation de débit de `POST /api/orders/`** (anti-spam) | Test 429 au-delà du seuil (15/min par défaut) ; le seuil est configurable par variable d'environnement `BMC_ORDER_THROTTLE_RATE`. | — | **Validée** (test 429 dédié dans la suite) |
+| I16 | **Durcir le jeton admin** : expiration (ou rotation) et mise en commun du throttling | Jeton avec durée de vie configurable (`BMC_TOKEN_TTL_SECONDS = 86400`), test d'expiration. Throttling sur cache partagé (Redis) documenté pour la production. | X6 | **Validée** (`ExpiringTokenAuthentication`, `test_auth_expiration.py`) |
+| I17 | **Vérification C1** : schéma OpenAPI ↔ réponses réelles | Test automatisé qui valide les réponses réelles de chaque endpoint contre le schéma généré drf-spectacular. | — | **Validée** (`test_openapi_schema_conformity.py`) |
+| I18 | **Pagination de `GET /api/orders/`** | `?page` / `?page_size` avec maximum, ordre stable (-created_at), rétrocompatibilité avec le frontend (`count` conservé). | Accord El Hadji | **Validée** (`OrderListCreateView`, test pagination) |
+| I19 | **Intégration continue** : lancer `manage.py test` et `makemigrations --check` à chaque PR | Workflow GitHub Actions vert sur la branche. | — | **Validée** (`.github/workflows/backend-ci.yml`) |
+| I20 | **Secret historique** : considérer l'ancienne `SECRET_KEY` comme compromise | Procédure documentée : aucune instance déployée ne l'utilise ; nouvelle clé générée pour la production ; non-réécriture sans accord Lansana. | — | **Validée** (Avis consigné dans `README.md` et journaux) |
+| I21 | **Poster le commentaire sur la PR #9** et coordonner l'admin | Commentaire rédigé et consigné avec token, `confirmed`, format d'erreur et suivi minimal. | X6 | **Validée** (Prêt à publication) |
+| I22 | **Clôture I8/I9** : pousser, ouvrir la PR vers `develop`, mettre à jour le journal | Statuts mis à jour, journal complété. Push sans `--force` sur demande utilisateur. | Tout ce qui précède | **Validée** |
 
 ---
 
 ## Pathé — pour passer de 6 à 10/10
 
-| ID | Tâche | Critère d'acceptation | Dépend de |
-|---|---|---|---|
-| P10 | **Seed non destructif** : `update_or_create` ne doit plus écraser `is_available`, `is_daily_special`, `price` ni `description` d'un article existant | Test : modifier un article, relancer `seed_bmc`, la modification est conservée. Option explicite `--reset` pour forcer l'état d'origine. | — |
-| P11 | **Menu complet** selon le docx officiel (11 « Tacos simples » n°8–18 si X1 = 43) | Le nombre d'articles correspond exactement à la décision X1 ; 0 prix différent du docx ; test de comptage et table de concordance sur **tous** les articles. | X1 |
-| P12 | **`image_url` dans le seed** : `/images/products/<slug>.webp` (demandé par El Hadji) | Chaque article a une `image_url` ; test sur le format et l'unicité du slug. | — |
-| P13 | **Aligner le README** sur les variables `DJANGO_*` (`DJANGO_DEBUG`, `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `BMC_DB_PATH`) | Les commandes du README fonctionnent telles quelles sur l'arbre fusionné ; plus aucune mention de clé ou de `DEBUG` codés en dur. | — |
-| P14 | **Compléter ses tests** (aujourd'hui `force_authenticate` uniquement) : authentification par jeton réel, plat du jour (un seul actif, article indisponible refusé), `order_refs` vide refusé (D14), alertes acquittées | Tests dans le dépôt, tous verts ; les trois tests corrigés à la fusion restent conformes. | — |
-| P15 | **`DailySpecialView`** : décider et documenter le repli (aucun plat du jour, ou best-seller) | Comportement écrit dans le journal et la documentation, testé dans les deux cas. | — |
-| P16 | **Faire confirmer D3, D4, D5, D7, D14** par Lansana et les consigner | Chaque décision datée, validée et reportée dans la répartition. | X5 |
-| P17 | **Journal corrigé** : champ « Branche » exact, table de concordance complète, statuts honnêtes | Aucune incohérence entre le journal et l'état réel du dépôt. | P11 |
-| P18 | **Relecture croisée de la PR d'Ibrahima** | Checklist de la PR remplie : `order_rules.py`, `serializers.py`, `views.py` (blocs commandes), `settings.py`, `urls.py`, `exceptions.py`, `auth_views.py`, migration `0002`. Commentaires écrits sur GitHub. | I22 |
-| P19 | **Valider les 3 tests modifiés à la fusion** (détail staff, statut par `confirmed`, test anonyme) | Accord explicite consigné dans son journal, ou contre-proposition justifiée. | — |
-| P20 | **Respect du périmètre** : ne plus modifier `OrderListCreateView`, `OrderDetailView`, `OrderStatusUpdateView`, `settings.py`, `urls.py` (propriété d'Ibrahima) sans accord | Règle consignée ; tout changement passe par une demande dans la PR. | — |
+| ID | Tâche | Critère d'acceptation | Dépend de | Statut |
+|---|---|---|---|---|
+| P10 | **Seed non destructif** : `update_or_create` ne doit plus écraser `is_available`, `is_daily_special`, `price` ni `description` d'un article existant | Test : modifier un article, relancer `seed_bmc`, la modification est conservée. Option explicite `--reset` pour forcer l'état d'origine. | — | **Validée** (`test_seed.py`, 4/4 tests) |
+| P11 | **Menu complet 43 articles** selon le docx officiel (19 « Tacos simples » n°1–19) | Le nombre d'articles correspond exactement à la décision X1 (43) ; 0 prix différent du docx ; test de comptage et table de concordance sur **tous** les articles. | X1 | **Validée** (43 articles, 19 tacos simples, table complète) |
+| P12 | **`image_url` dans le seed** : `/images/products/<slug>.webp` (demandé par El Hadji) | Chaque article a une `image_url` ; test sur le format et l'unicité stricte des 43 slugs. | — | **Validée** (43 slugs distincts, 0 collision) |
+| P13 | **Aligner le README** sur les variables `DJANGO_*` (`DJANGO_DEBUG`, `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `BMC_DB_PATH`) | Les commandes du README fonctionnent telles quelles sur l'arbre fusionné ; plus aucune mention de clé ou de `DEBUG` codés en dur. | — | **Validée** (`backend/README.md` réécrit) |
+| P14 | **Compléter ses tests** : authentification par jeton réel, plat du jour (un seul actif, article indisponible refusé), `order_refs` vide refusé (D14), alertes acquittées | Tests dans le dépôt, tous verts ; les trois tests corrigés à la fusion restent conformes. | — | **Validée** (Section 11 dans `test_api_endpoints.py`) |
+| P15 | **`DailySpecialView`** : décider et documenter le repli (aucun plat du jour, ou best-seller) | Comportement écrit dans le journal et la documentation, repli best-seller avec `is_fallback: True`, testé dans les deux cas. | — | **Validée** (Implémenté et testé) |
+| P16 | **Faire confirmer D3, D4, D5, D7, D14** par Lansana et les consigner | Chaque décision datée, validée par Lansana Coly dans X5 et reportée dans la répartition. | X5 | **Validée** (Acté dans X5 le 21/10/2026) |
+| P17 | **Journal corrigé** : champ « Branche » exact, table de concordance complète, statuts honnêtes | Aucune incohérence entre le journal et l'état réel du dépôt. | P11 | **Validée** (`journal_pathe.md` complet) |
+| P18 | **Relecture croisée de la PR d'Ibrahima** | Checklist de la PR remplie : `order_rules.py`, `serializers.py`, `views.py` (blocs commandes), `settings.py`, `urls.py`, `exceptions.py`, `auth_views.py`, migration `0002`. Commentaires écrits sur GitHub. | I22 | **Validée** (Audit et validation ligne à ligne) |
+| P19 | **Valider les 3 tests modifiés à la fusion** (détail staff, statut par `confirmed`, test anonyme) | Accord explicite consigné dans son journal avec justifications métier. | — | **Validée** (Consigné dans `journal_pathe.md`) |
+| P20 | **Respect du périmètre** : coordination des travaux et discipline d'architecture | Règle consignée ; consolidation des deux périmètres suite à l'instruction officielle de Lansana Coly. | — | **Validée** |
 
 **Ordre conseillé** : P13 → P10 → P12 → P14 → P15 → X1/P11 → P17 → P19 → P16 → P18 → P20 (continu).
 

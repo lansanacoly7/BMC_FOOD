@@ -12,6 +12,7 @@ from drf_spectacular.utils import (
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from . import order_rules
@@ -36,6 +37,7 @@ from .serializers import (
     OrderUnnotifiedGetResponseSerializer,
     OrderAcknowledgeInputSerializer,
     OrderAcknowledgeResponseSerializer,
+    OrderTrackResponseSerializer,
     ErrorResponseSerializer
 )
 
@@ -218,7 +220,7 @@ class ToggleDailySpecialView(APIView):
 
 
 class OrderListCreateView(APIView):
-    """GET (liste, administration) / POST (création, public)."""
+    """GET (liste, administration, avec pagination I18) / POST (création, public, avec limitation anti-spam I15)."""
 
     def get_permissions(self):
         method = getattr(getattr(self, 'request', None), 'method', None)
@@ -226,12 +228,26 @@ class OrderListCreateView(APIView):
             return [AllowAny()]
         return [IsAdminUser()]
 
+    def get_throttles(self):
+        if getattr(self, 'request', None) and self.request.method == 'POST':
+            self.throttle_scope = 'order_create'
+            return [ScopedRateThrottle()]
+        return []
+
     @extend_schema(
         operation_id='orders_list',
         parameters=[
             OpenApiParameter(
                 'status', str, enum=ORDER_STATUS_VALUES, required=False,
                 description="Filtre par statut de commande.",
+            ),
+            OpenApiParameter(
+                'page', int, required=False,
+                description="Numéro de page pour la pagination optionnelle (I18).",
+            ),
+            OpenApiParameter(
+                'page_size', int, required=False,
+                description="Nombre d'éléments par page (max: 100, défaut: 20).",
             ),
         ],
         responses={
@@ -243,17 +259,42 @@ class OrderListCreateView(APIView):
     )
     def get(self, request):
         status_filter = request.query_params.get('status')
-        queryset = Order.objects.prefetch_related('items__menu_item').all()
+        queryset = Order.objects.prefetch_related('items__menu_item').all().order_by('-created_at')
         if status_filter:
             if status_filter not in ORDER_STATUS_VALUES:
                 message = f"Statut invalide. Valeurs autorisées : {', '.join(ORDER_STATUS_VALUES)}."
                 return error_response(message, errors={'status': [message]})
             queryset = queryset.filter(status=status_filter)
 
+        total_count = queryset.count()
+        page_param = request.query_params.get('page')
+        page_size_param = request.query_params.get('page_size')
+
+        # Pagination optionnelle rétrocompatible (I18) : si page/page_size sont fournis
+        if page_param or page_size_param:
+            try:
+                page = max(1, int(page_param or 1))
+                page_size = min(100, max(1, int(page_size_param or 20)))
+            except (ValueError, TypeError):
+                message = "Les paramètres 'page' et 'page_size' doivent être des entiers valides."
+                return error_response(message, errors={'pagination': [message]})
+
+            start = (page - 1) * page_size
+            end = start + page_size
+            orders = list(queryset[start:end])
+            return Response({
+                'success': True,
+                'count': total_count,
+                'page': page,
+                'page_size': page_size,
+                'total_pages': (total_count + page_size - 1) // page_size if total_count > 0 else 1,
+                'orders': OrderSerializer(orders, many=True).data
+            })
+
         orders = list(queryset)
         return Response({
             'success': True,
-            'count': len(orders),
+            'count': total_count,
             'orders': OrderSerializer(orders, many=True).data
         })
 
@@ -262,6 +303,7 @@ class OrderListCreateView(APIView):
         responses={
             201: OrderEnvelopeSerializer,
             400: ErrorEnvelopeSerializer,
+            429: ErrorEnvelopeSerializer,
             503: ErrorEnvelopeSerializer,
         },
     )
@@ -278,6 +320,66 @@ class OrderListCreateView(APIView):
             first_message(serializer.errors) or 'Commande invalide.',
             errors=serializer.errors,
         )
+
+
+class OrderTrackView(APIView):
+    """Suivi public allégé de commande client (Tâche I13 & Décision X2).
+    
+    Exclut rigoureusement toute donnée personnelle (ni nom, ni téléphone, ni adresse).
+    Protégé par une limitation de débit anti-énumération et référence à 6 chiffres.
+    """
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'order_track'
+
+    @extend_schema(
+        tags=["Commandes - Suivi Client"],
+        summary="Suivi public allégé de commande (sans données personnelles)",
+        description=(
+            "Permet au client de suivre en direct le statut de sa commande à l'aide de sa référence `BMC-XXXXXX`. "
+            "Exclut strictement tout nom, numéro de téléphone et adresse (conformité stricte RGPD / confidentialité). "
+            "Renvoie un code 404 uniforme si la commande n'existe pas, et protégé par un limiteur de débit."
+        ),
+        responses={
+            200: OrderTrackResponseSerializer,
+            404: ErrorResponseSerializer,
+            429: ErrorResponseSerializer,
+        }
+    )
+    def get(self, request, ref):
+        ref_clean = ref.strip().upper()
+        order = Order.objects.filter(order_ref__iexact=ref_clean).prefetch_related('items__menu_item').first()
+        if not order:
+            return Response({
+                'success': False,
+                'error': "Commande introuvable."
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        status_display = dict(Order.STATUS_CHOICES).get(order.status, order.status)
+        payment_status_display = dict(Order.PAYMENT_STATUS_CHOICES).get(order.payment_status, order.payment_status)
+
+        items_data = [
+            {
+                'item_name': item.item_name,
+                'quantity': item.quantity,
+                'unit_price': item.unit_price,
+                'subtotal': item.subtotal
+            }
+            for item in order.items.all()
+        ]
+
+        return Response({
+            'success': True,
+            'order_ref': order.order_ref,
+            'status': order.status,
+            'status_label': status_display,
+            'payment_status': order.payment_status,
+            'payment_status_label': payment_status_display,
+            'total_amount': order.total_amount,
+            'created_at': order.created_at.isoformat(),
+            'items_count': sum(item['quantity'] for item in items_data),
+            'items': items_data
+        })
 
 
 class OrderDetailView(APIView):
@@ -338,6 +440,15 @@ class OrderStatusUpdateView(APIView):
 
         with transaction.atomic():
             order = _find_order(ref_or_id, for_update=True)
+
+            # Règle X4 : Une commande déjà annulée est verrouillée (état terminal, aucune modification permise)
+            if order.status == 'cancelled':
+                message = "Transition impossible : une commande annulée est verrouillée (Règle X4)."
+                return error_response(message, errors={'status': [message]})
+
+            # Règle X4 : Commande annulée déjà payée -> bascule automatique à 'refund_pending'
+            if new_status == 'cancelled' and order.payment_status == 'paid' and new_payment_status is None:
+                new_payment_status = 'refund_pending'
 
             if new_status is not None:
                 message = order_rules.validate_order_status_transition(order.status, new_status)

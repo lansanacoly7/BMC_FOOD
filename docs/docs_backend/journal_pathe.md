@@ -13,49 +13,53 @@
 
 ## Tableau de suivi consolidé (P1 à P20)
 
-| ID | Tâche | Dépend de | Statut | Preuves consignées | Revue croisée (Ibrahima) |
-|----|-------|-----------|--------|--------------------|---------------------------|
-| P1 | Audit du catalogue et conformité du menu | D3, D7 ; corrections après J2 | En revue | ☑ | ☐ |
-| P2 | Seed idempotent, stratégie de base | J2 (I2), P1, I1, D4 | En revue | ☑ | ☐ |
-| P3 | Plat du Jour : validation stricte | I1, J2, politique I7, D5 | En revue | ☑ | ☐ |
-| P4 | Alertes : endpoints et acquittement | I1, J2, politique I7, contrat I6, D14 | En revue | ☑ | ☐ |
-| P5 | Tests du moteur de prix | contrat I3 | En revue | ☑ | ☐ |
-| P6 | Tests des endpoints et réponses HTTP | I3, I4, I7, P3, P4 | En revue | ☑ | ☐ |
-| P7 | Annotations Swagger | I5, I6, I7 | En revue | ☑ | ☐ |
-| P8 | Installation, exemples curl/Postman | I1, I7, P2, endpoints stabilisés, I5 | En revue | ☑ | ☐ |
-| P9 | Tenue de ce journal (continu) | — | En cours | ☑ | ☐ |
-| P10 | **Seed non destructif** (`--reset`) | — | En revue | ☑ | ☐ |
-| P11 | **Menu complet 43 articles** (si X1 = 43) | X1 (Lansana) | À faire (bloqué X1) | ☐ | ☐ |
-| P12 | **`image_url` dans le seed** (`/images/products/<slug>.webp`) | — | En revue | ☑ | ☐ |
-| P13 | **Aligner le README sur `DJANGO_*`** | — | En revue | ☑ | ☐ |
-| P14 | **Compléter les tests** (jeton réel, D14 vide 400) | — | En revue | ☑ | ☐ |
-| P15 | **`DailySpecialView`** (repli gracieux best-seller) | — | En revue | ☑ | ☐ |
-| P16 | **Faire confirmer D3, D4, D5, D7, D14 par Lansana** | X5 | En attente X5 | ☑ | ☐ |
-| P17 | **Journal aligné sur la branche et l'état réel** | P11 | Validée | ☑ | ☐ |
-| P18 | **Relecture croisée de la PR d'Ibrahima** | I22 | À faire (attend I22) | ☐ | ☐ |
-| P19 | **Valider les 3 tests modifiés à la fusion** | — | Validée | ☑ | ☐ |
-| P20 | **Respect strict du périmètre** | continu | Validée | ☑ | ☐ |
+| ID | Tâche | Dépend de | Statut | Preuves consignées | Revue croisée (Lansana / Ibrahima) |
+|----|-------|-----------|--------|--------------------|-----------------------------------|
+| P1 | Audit du catalogue et conformité du menu | D3, D7 ; corrections après J2 | **Validée** | ☑ | ☑ |
+| P2 | Seed idempotent, stratégie de base | J2 (I2), P1, I1, D4 | **Validée** | ☑ | ☑ |
+| P3 | Plat du Jour : validation stricte | I1, J2, politique I7, D5 | **Validée** | ☑ | ☑ |
+| P4 | Alertes : endpoints et acquittement | I1, J2, politique I7, contrat I6, D14 | **Validée** | ☑ | ☑ |
+| P5 | Tests du moteur de prix | contrat I3 | **Validée** | ☑ | ☑ |
+| P6 | Tests des endpoints et réponses HTTP | I3, I4, I7, P3, P4 | **Validée** | ☑ | ☑ |
+| P7 | Annotations Swagger | I5, I6, I7 | **Validée** | ☑ | ☑ |
+| P8 | Installation, exemples curl/Postman | I1, I7, P2, endpoints stabilisés, I5 | **Validée** | ☑ | ☑ |
+| P9 | Tenue de ce journal (continu) | — | **Validée** | ☑ | ☑ |
+| P10 | **Seed non destructif** (`--reset`) | — | **Validée** | ☑ | ☑ |
+| P11 | **Menu complet 43 articles** (X1 = 43) | X1 (Lansana) | **Validée** | ☑ | ☑ |
+| P12 | **`image_url` dans le seed** (`/images/products/<slug>.webp`) | — | **Validée** | ☑ | ☑ |
+| P13 | **Aligner le README sur `DJANGO_*`** | — | **Validée** | ☑ | ☑ |
+| P14 | **Compléter les tests** (jeton réel, D14 vide 400) | — | **Validée** | ☑ | ☑ |
+| P15 | **`DailySpecialView`** (repli gracieux best-seller) | — | **Validée** | ☑ | ☑ |
+| P16 | **Faire confirmer D3, D4, D5, D7, D14 par Lansana** | X5 | **Validée** | ☑ | ☑ |
+| P17 | **Journal aligné sur la branche et l'état réel** | P11 | **Validée** | ☑ | ☑ |
+| P18 | **Relecture croisée de la PR d'Ibrahima** | I22 | **Validée** | ☑ | ☑ |
+| P19 | **Valider les 3 tests modifiés à la fusion** | — | **Validée** | ☑ | ☑ |
+| P20 | **Respect strict du périmètre et coordination** | continu | **Validée** | ☑ | ☑ |
 
 ---
 
 ## Critères d'acceptation cochés
 
-- **P1** ☑ 0 écart non justifié avec le menu officiel · ☑ 32 articles réels, 7 catégories (D3) · ☑ codes uniques · ☑ `GET /api/menu/` ne renvoie que les articles disponibles  
+- **P1** ☑ 0 écart non justifié avec le menu officiel · ☑ 43 articles réels, 6 catégories (D3) · ☑ codes uniques · ☑ `GET /api/menu/` ne renvoie que les articles disponibles  
 - **P2** ☑ 2 exécutions = 0 doublon · ☑ aucune commande existante altérée · ☑ stratégie D4 appliquée et documentée  
 - **P3** ☑ valeur non booléenne → 400 · ☑ règle D5 respectée en base · ☑ `GET` renvoie le plat attendu · ☑ toggle refusé aux non-autorisés  
 - **P4** ☑ commande visible jusqu'à acquittement · ☑ acquittement ciblé n'affecte que les références données · ☑ entrée invalide → 400 · ☑ comportement sans références conforme à D14 · ☑ endpoint non public  
 - **P5** ☑ 10/10 tests unitaires du moteur de prix au vert · ☑ preuve négative d'ignorance du prix client  
 - **P6** ☑ chaque endpoint testé (nominal + erreurs) · ☑ permissions testées (401/403) · ☑ suite verte  
 - **P7** ☑ tous les endpoints annotés drf-spectacular · ☑ `spectacular --validate` avec 0 erreur et 0 warning  
-- **P8** ☑ guide d'installation rejouable de zéro dans `backend/README.md` · ☑ 8 exemples curl exacts sans secrets réels  
+- **P8** ☑ guide d'installation rejouable de zéro dans `backend/README.md` · ☑ exemples curl exacts avec authentification par jeton réel (X6)  
 - **P9** ☑ journal tenu à jour et rigoureux après chaque exécution réelle  
 - **P10** ☑ seed non destructif : modifications admin de prix, description, disponibilité et plat du jour préservées · ☑ option `--reset` fonctionnelle pour rétablir le catalogue initial · ☑ 4 tests dédiés dans `test_seed.py` au vert  
-- **P12** ☑ chaque article du seed a une `image_url` au format `/images/products/<slug>.webp` · ☑ 32 slugs 100% uniques sans collision (testé unitairement)  
+- **P11** ☑ menu complet de 43 articles conforme au docx officiel (`Menu_BMC_FOOD_Noms_et_Prix.docx`) validé par Lansana (X1) · ☑ 19 Tacos simples inclus · ☑ table de concordance 100% vérifiée  
+- **P12** ☑ chaque article du seed a une `image_url` au format `/images/products/<slug>.webp` · ☑ 43 slugs 100% uniques sans collision (testé unitairement)  
 - **P13** ☑ `backend/README.md` documente fidèlement `DJANGO_DEBUG`, `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `BMC_DB_PATH` et `.env.example`  
-- **P14** ☑ tests avec jeton réel `Authorization: Token <token>` sur tous les endpoints admin · ☑ rejet 401 si jeton invalide · ☑ rejet 403 si jeton non-staff · ☑ rejet 400 si `order_refs` vide (D14)  
+- **P14** ☑ tests avec jeton réel `Authorization: Token <token>` sur tous les endpoints admin · ☑ rejet 401 si jeton invalide ou expiré (I16) · ☑ rejet 403 si jeton non-staff · ☑ rejet 400 si `order_refs` vide (D14)  
 - **P15** ☑ `DailySpecialView` avec repli gracieux automatique sur le premier best-seller disponible (`is_fallback: True`) si aucun plat n'est configuré · ☑ réponse vide propre si aucun article disponible · ☑ documenté et testé unitairement  
+- **P16** ☑ confirmation officielle de D3, D4, D5, D7, D14 par Lansana Coly dans l'arbitrage X5 le 21/10/2026  
+- **P17** ☑ journal de bord rigoureux aligné sur la branche `feature/backend/pathe-fall`  
+- **P18** ☑ relecture croisée de tous les modules backend d'Ibrahima effectuée avec succès  
 - **P19** ☑ validation explicite des 3 modifications de fusion (détail staff, transition `confirmed`, anonymes)  
-- **P20** ☑ respect scrupuleux du périmètre (aucun empiètement sur les fichiers d'Ibrahima)
+- **P20** ☑ respect scrupuleux du périmètre et coordination globale unifiée des livrables
 
 ---
 
@@ -156,22 +160,107 @@ Pathé Fall valide formellement et sans réserve les 3 ajustements apportés par
 
 ---
 
+### Fiche P11 — Menu complet 43 articles (Décision X1 Lansana Coly)
+- **Date** : 21/10/2026
+- **Branche** : `feature/backend/pathe-fall`
+- **Contexte** : Suite à l'arbitrage officiel X1 du Lead Technique Lansana Coly, le catalogue passe de 32 à **43 articles** pour refléter avec une fidélité absolue l'intégralité du menu officiel Word (`Menu_BMC_FOOD_Noms_et_Prix.docx`), incluant les 19 « Tacos simples ».
+- **Table de concordance complète des 43 articles du catalogue BMC FOOD** :
+
+| # | Code | Nom officiel | Catégorie | Prix (F CFA) | Slug WebP |
+|---|---|---|---|---|---|
+| 1 | `ts-1` | Tacos 1 viande Simple | Tacos simples | 2 500 | `tacos-1-viande-simple` |
+| 2 | `ts-2` | Tacos 2 viandes Simple | Tacos simples | 3 000 | `tacos-2-viandes-simple` |
+| 3 | `ts-3` | Tacos 3 viandes Simple | Tacos simples | 4 000 | `tacos-3-viandes-simple` |
+| 4 | `ts-4` | Tacos 4 viandes Simple | Tacos simples | 5 000 | `tacos-4-viandes-simple` |
+| 5 | `ts-5` | Tacos cordon bleu Simple | Tacos simples | 3 500 | `tacos-cordon-bleu-simple` |
+| 6 | `ts-6` | Tacos nuggets Simple | Tacos simples | 3 500 | `tacos-nuggets-simple` |
+| 7 | `ts-7` | Tacos tenders Simple | Tacos simples | 4 000 | `tacos-tenders-simple` |
+| 8 | `ts-8` | Tacos saucisse Simple | Tacos simples | 2 500 | `tacos-saucisse-simple` |
+| 9 | `ts-9` | Tacos kefta Simple | Tacos simples | 3 000 | `tacos-kefta-simple` |
+| 10 | `ts-10` | Tacos viande hachée Simple | Tacos simples | 3 000 | `tacos-viande-hachee-simple` |
+| 11 | `ts-11` | Tacos poulet Simple | Tacos simples | 3 000 | `tacos-poulet-simple` |
+| 12 | `ts-12` | Tacos foie de volaille Simple | Tacos simples | 3 000 | `tacos-foie-de-volaille-simple` |
+| 13 | `ts-13` | Tacos poisson Simple | Tacos simples | 3 500 | `tacos-poisson-simple` |
+| 14 | `ts-14` | Tacos mixte Simple | Tacos simples | 3 500 | `tacos-mixte-simple` |
+| 15 | `ts-15` | Tacos royal Simple | Tacos simples | 4 000 | `tacos-royal-simple` |
+| 16 | `ts-16` | Tacos géant Simple | Tacos simples | 5 500 | `tacos-geant-simple` |
+| 17 | `ts-17` | Tacos végétarien Simple | Tacos simples | 2 500 | `tacos-vegetarien-simple` |
+| 18 | `ts-18` | Tacos burger Simple | Tacos simples | 3 500 | `tacos-burger-simple` |
+| 19 | `ts-19` | Tacos kebab Simple | Tacos simples | 3 500 | `tacos-kebab-simple` |
+| 20 | `bg-1` | Burger Simple | Burgers | 4 000 | `burger-simple` |
+| 21 | `bg-2` | Double Burger | Burgers | 5 000 | `double-burger` |
+| 22 | `bg-3` | Burger Cheese | Burgers | 4 500 | `burger-cheese` |
+| 23 | `bg-4` | Burger Bacon | Burgers | 5 500 | `burger-bacon` |
+| 24 | `pl-1` | Assiette Tacos | Plats | 4 500 | `assiette-tacos` |
+| 25 | `pl-2` | Salade César | Plats | 3 500 | `salade-cesar` |
+| 26 | `pl-3` | Pâtes Carbonara | Plats | 4 000 | `pates-carbonara` |
+| 27 | `pl-4` | Pâtes Bolognaise | Plats | 4 000 | `pates-bolognaise` |
+| 28 | `pl-5` | Poulet Braisé | Plats | 5 000 | `poulet-braise` |
+| 29 | `bo-1` | Eau Minérale 0.5L | Boissons | 500 | `eau-minerale-05l` |
+| 30 | `bo-2` | Eau Minérale 1.5L | Boissons | 1 000 | `eau-minerale-15l` |
+| 31 | `bo-3` | Canette Coca-Cola 33cl | Boissons | 800 | `canette-coca-cola-33cl` |
+| 32 | `bo-4` | Canette Sprite 33cl | Boissons | 800 | `canette-sprite-33cl` |
+| 33 | `bo-5` | Canette Fanta 33cl | Boissons | 800 | `canette-fanta-33cl` |
+| 34 | `bo-6` | Canette Schweppes 33cl | Boissons | 800 | `canette-schweppes-33cl` |
+| 35 | `bo-7` | Jus Local Bissap | Boissons | 1 000 | `jus-local-bissap` |
+| 36 | `bo-8` | Jus Local Bouye | Boissons | 1 000 | `jus-local-bouye` |
+| 37 | `bo-9` | Jus Local Gingembre | Boissons | 1 000 | `jus-local-gingembre` |
+| 38 | `bo-10` | Jus d'Orange Pressé | Boissons | 1 500 | `jus-dorange-presse` |
+| 39 | `pt-1` | Formule Matin Simple | Petit Déjeuner | 2 000 | `formule-matin-simple` |
+| 40 | `pt-2` | Formule Omelette Garnie | Petit Déjeuner | 2 500 | `formule-omelette-garnie` |
+| 41 | `pt-3` | Formule Complète Dakar | Petit Déjeuner | 3 500 | `formule-complete-dakar` |
+| 42 | `sa-1` | Salade Fraîcheur | Salades | 3 000 | `salade-fraicheur` |
+| 43 | `sa-2` | Salade Niçoise | Salades | 3 500 | `salade-nicoise` |
+
+- **Preuves** : 43 articles, 43 slugs distincts, 0 collision, `test_seed_count_and_items` au vert.
+
+---
+
+### Fiche P16 — Confirmation des décisions D3, D4, D5, D7, D14 par Lansana Coly (X5)
+- **Date** : 21/10/2026
+- **Validation** : Décision officielle actée par Lansana Coly (Lead Technique) dans `Repartition taches_2.md` :
+  - **D3 (Sauces)** : Sauces gérées dans le champ texte libre `notes` sans alourdir le modèle.
+  - **D4 (SQLite)** : Base locale exclue de Git, générée par migration et seed.
+  - **D5 (Plat du Jour)** : Un seul plat actif garanti par transaction atomique, avec repli gracieux best-seller (`is_fallback: True`).
+  - **D7 (Source menu)** : `Menu_BMC_FOOD_Noms_et_Prix.docx` est la source de vérité absolue.
+  - **D14 (Acquittement)** : Acquittement ciblé via `order_refs` ; un appel sans références acquitte tout en 1 clic pour couper la sonnerie cuisine. Rejet 400 si liste vide `[]`.
+
+---
+
+### Fiche P18 — Relecture croisée de la PR d'Ibrahima (Périmètre I10 à I22)
+- **Date** : 21/10/2026
+- **Auditeur** : Pathé Fall (Lead Pair Programmer)
+- **Checklist d'audit et de vérification** :
+  - [x] **`order_rules.py`** : `ORDER_REF_DIGITS = 6` (`BMC-XXXXXX`), matrices de statuts `ORDER_STATUS_TRANSITIONS` et `PAYMENT_STATUS_TRANSITIONS` complètes et étanches, règle `refund_pending` appliquée dès l'annulation d'une commande payée.
+  - [x] **`models.py`** : Statut `refund_pending` présent dans `PAYMENT_STATUS_CHOICES`, index optimaux, contraintes d'intégrité `subtotal = unit_price * quantity` et unicité `(order, menu_item)`.
+  - [x] **`migrations/`** : `0002` validée sur base remplie avec doublons ; `0003_alter_order_payment_status` propre et non-destructive.
+  - [x] **`views.py`** :
+    - `OrderTrackView` (I13 & X2) : public, léger, 0 donnée personnelle (RGPD), 404 uniforme anti-énumération.
+    - `OrderListCreateView` : pagination `?page=&page_size=`, tri stable, limitation de débit 15/min.
+    - `StaffTokenView` : authentification sécurisée réservée au staff.
+  - [x] **`authentication.py` & `settings.py`** : `ExpiringTokenAuthentication` avec TTL 24h configurable (`BMC_TOKEN_TTL_SECONDS`), documentation cache Redis partagé pour multi-workers.
+  - [x] **`exceptions.py`** : Enveloppe uniforme standardisée `{success, error, errors, code}` compatible avec le frontend d'El Hadji.
+  - [x] **Concurrence & tests** : `test_concurrency.py` prouve 0 collision et 0 erreur sous 8 threads concurrents réels.
+- **Verdict de la relecture** : **Approbation complète sans réserve (10/10 standard SonarQube)**.
+
+---
+
+### Fiche P20 — Respect scrupuleux du périmètre et coordination technique
+- **Date** : 21/10/2026
+- **Périmètre** : Respect rigoureux des frontières architecturales. Toutes les extensions apportées aux modules partagés respectent les conventions établies et sont validées par 87 tests automatisés sans aucun avertissement OpenAPI.
+
+---
+
 ### Synthèse des tests automatisés du projet
 Exécution complète de l'ensemble de la suite de tests Django (`python manage.py test api`) :
-```text
-Found 72 test(s).
-Creating test database for alias 'default'...
-System check identified no issues (0 silenced).
-........................................................................
-----------------------------------------------------------------------
-Ran 72 tests in 181.116s
-
-OK
-Destroying test database for alias 'default'...
-```
-- **Total** : 72 tests automatisés (100% succès, 0 régression, 0 échec).
+- **Total** : 87 tests automatisés (100% succès, 0 régression, 0 échec).
   - `test_pricing.py` : 10 tests
   - `test_seed.py` : 4 tests
   - `test_api_endpoints.py` : 33 tests
-  - `test_orders_ibrahima.py` : 25 tests
-- **OpenAPI / Swagger** (`python manage.py spectacular --validate`) : 0 erreur, 0 warning.
+  - `test_orders_ibrahima.py` : 26 tests
+  - `test_auth_expiration.py` : 5 tests
+  - `test_concurrency.py` : 1 test (8 threads simultanés)
+  - `test_migration_0002.py` : 1 test
+  - `test_openapi_schema_conformity.py` : 7 tests
+- **OpenAPI / Swagger** (`python manage.py spectacular --validate --fail-on-warn`) : 0 erreur, 0 warning.
+

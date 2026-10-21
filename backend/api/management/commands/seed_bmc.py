@@ -88,19 +88,30 @@ class Command(BaseCommand):
                     {"code": "bg-4", "name": "Burger royal", "price": 3000, "desc": "Double steak, œuf, bacon/jambon, triple fromage et sauce chef.", "popular": True, "special": False},
                 ]
             },
-            # 7. Tacos simples (classiques)
+            # 7. Tacos simples (19 déclinaisons fidèles au docx officiel - Décision X1)
             {
                 "category": "Tacos simples",
                 "icon": "Utensils",
                 "items": [
-                    {"code": "ts-1", "name": "Tacos viande simple", "price": 2500, "desc": "Le classique viande hachée, frites et sauce fromagère.", "popular": False, "special": False},
-                    {"code": "ts-2", "name": "Tacos poulet simple", "price": 2500, "desc": "Poulet grillé, frites et sauce fromagère crémeuse.", "popular": False, "special": False},
-                    {"code": "ts-3", "name": "Tacos mixte simple", "price": 3000, "desc": "Duo poulet et viande hachée avec frites dorées.", "popular": True, "special": False},
-                    {"code": "ts-4", "name": "Tacos jambon simple", "price": 2000, "desc": "Jambon tendre et sauce onctueuse dans sa galette chaude.", "popular": False, "special": False},
-                    {"code": "ts-5", "name": "Tacos viande jambon simple", "price": 3500, "desc": "Viande hachée et jambon savoureux.", "popular": False, "special": False},
-                    {"code": "ts-6", "name": "Tacos poulet jambon simple", "price": 3500, "desc": "Poulet fondant et jambon.", "popular": False, "special": False},
-                    {"code": "ts-7", "name": "Tacos mixte jambon simple", "price": 4000, "desc": "Poulet, viande et jambon.", "popular": False, "special": False},
-                    {"code": "ts-8", "name": "Tacos XL simple", "price": 5000, "desc": "Format géant version classique galette dorée.", "popular": False, "special": False},
+                    {"code": "ts-1", "name": "Tacos viande", "price": 2500, "desc": "Viande hachée assaisonnée, frites et sauce fromagère dans sa galette chaude.", "popular": False, "special": False},
+                    {"code": "ts-2", "name": "Tacos poulet", "price": 2500, "desc": "Poulet mariné grillé, frites et sauce fromagère crémeuse.", "popular": False, "special": False},
+                    {"code": "ts-3", "name": "Tacos mixte", "price": 3000, "desc": "Duo poulet et viande hachée, frites croustillantes et sauce.", "popular": True, "special": False},
+                    {"code": "ts-4", "name": "Tacos jambon", "price": 2000, "desc": "Jambon tendre et sauce onctueuse dans sa galette dorée.", "popular": False, "special": False},
+                    {"code": "ts-5", "name": "Tacos viande jambon", "price": 3500, "desc": "Viande hachée assaisonnée et tranches de jambon savoureuses.", "popular": False, "special": False},
+                    {"code": "ts-6", "name": "Tacos poulet jambon", "price": 3500, "desc": "Poulet fondant, tranches de jambon et sauce maison.", "popular": False, "special": False},
+                    {"code": "ts-7", "name": "Tacos mixte jambon", "price": 4000, "desc": "Trio gourmand poulet, viande et jambon avec frites.", "popular": False, "special": False},
+                    {"code": "ts-8", "name": "Tacos viande jambon royal", "price": 4000, "desc": "Viande hachée, jambon, sauce fromagère royale et frites.", "popular": False, "special": False},
+                    {"code": "ts-9", "name": "Tacos poulet jambon royal", "price": 4000, "desc": "Poulet mariné, jambon et garniture royale fondante.", "popular": False, "special": False},
+                    {"code": "ts-10", "name": "Tacos mixte jambon royal", "price": 5000, "desc": "Le grand classique royal : viande, poulet et jambon.", "popular": False, "special": False},
+                    {"code": "ts-11", "name": "Tacos viande royal", "price": 3000, "desc": "Viande hachée assaisonnée avec garniture royale.", "popular": False, "special": False},
+                    {"code": "ts-12", "name": "Tacos poulet royal", "price": 3000, "desc": "Poulet grillé tendre avec garniture royale.", "popular": False, "special": False},
+                    {"code": "ts-13", "name": "Tacos mixte royal", "price": 3500, "desc": "Poulet mariné et viande hachée en version royale.", "popular": False, "special": False},
+                    {"code": "ts-14", "name": "Tacos viande hot dog", "price": 3500, "desc": "Saucisse hot dog et viande hachée avec sauce au choix.", "popular": False, "special": False},
+                    {"code": "ts-15", "name": "Tacos poulet hot dog", "price": 3500, "desc": "Saucisse hot dog et poulet grillé avec frites.", "popular": False, "special": False},
+                    {"code": "ts-16", "name": "Tacos mixte hot dog", "price": 4000, "desc": "Duo viandes et saucisse hot dog dans sa galette.", "popular": False, "special": False},
+                    {"code": "ts-17", "name": "Tacos viande hot dog royal", "price": 4500, "desc": "Viande, saucisse hot dog et garniture royale.", "popular": False, "special": False},
+                    {"code": "ts-18", "name": "Tacos poulet hot dog royal", "price": 4500, "desc": "Poulet, saucisse hot dog et garniture royale.", "popular": False, "special": False},
+                    {"code": "ts-19", "name": "Tacos XL simple", "price": 5000, "desc": "Format géant classique pour les gros appétits.", "popular": False, "special": False},
                 ]
             }
         ]

@@ -110,6 +110,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.environ.get('BMC_DB_PATH') or (BASE_DIR / 'bmc_orders.sqlite3'),
+        'OPTIONS': {
+            'timeout': 20,  # Attente de 20s sur verrou SQLite pour les requêtes concurrentes (I11)
+        },
     }
 }
 
@@ -148,6 +151,10 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = env_bool('DJANGO_SECURE_SSL_REDIRECT', False)
     SECURE_HSTS_SECONDS = int(os.environ.get('DJANGO_SECURE_HSTS_SECONDS', '0') or 0)
 
+# Durée de vie du jeton admin (I16) : 24h par défaut (en secondes, configurable).
+# Définir à 0 ou négatif pour désactiver l'expiration.
+BMC_TOKEN_TTL_SECONDS = int(os.environ.get('BMC_TOKEN_TTL_SECONDS', str(24 * 3600)))
+
 # --- Django REST Framework -------------------------------------------------
 # Sécurisé par défaut : toute vue sans `permission_classes` explicite est réservée
 # au staff. Les accès publics sont déclarés explicitement dans `api/urls.py`.
@@ -157,7 +164,7 @@ if DEBUG:
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
+        'api.authentication.ExpiringTokenAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAdminUser',
@@ -167,9 +174,21 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'api.exceptions.bmc_exception_handler',
     'DEFAULT_THROTTLE_RATES': {
         'auth': os.environ.get('BMC_AUTH_THROTTLE_RATE', '10/min'),
+        'order_create': os.environ.get('BMC_ORDER_THROTTLE_RATE', '15/min'),
+        'order_track': os.environ.get('BMC_TRACK_THROTTLE_RATE', '30/min'),
     },
     'DATETIME_FORMAT': '%Y-%m-%dT%H:%M:%SZ',
 }
+
+# --- Cache / Throttling partagé (I16) ---------------------------------------
+# Par défaut en local/test : LocMemCache de Django.
+# En production multi-workers (gunicorn/uvicorn), décommenter/configurer Redis :
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+#         'LOCATION': os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/1'),
+#     }
+# }
 
 # --- Documentation OpenAPI (Swagger) ---------------------------------------
 # Publique en développement ; en production, réservée aux membres du staff

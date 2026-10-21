@@ -63,6 +63,7 @@ class Order(models.Model):
         ('unpaid', 'Non payée'),
         ('pending', 'Paiement en attente'),
         ('paid', 'Payée'),
+        ('refund_pending', 'Remboursement en attente'),
     ]
 
     order_ref = models.CharField(max_length=20, unique=True, db_index=True)

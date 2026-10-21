@@ -138,25 +138,40 @@ curl -X GET http://127.0.0.1:8000/api/health/
 }
 ```
 
-### 2. Consulter le menu officiel complet
+### 2. Obtenir un jeton d'administration (X6 & I16)
+```bash
+curl -X POST http://127.0.0.1:8000/api/auth/token/ \
+     -H "Content-Type: application/json" \
+     -d '{"username": "admin_bmc", "password": "MonMotDePasseFort!"}'
+```
+*Réponse :*
+```json
+{
+  "success": true,
+  "token": "9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b",
+  "username": "admin_bmc"
+}
+```
+
+### 3. Consulter le menu officiel complet (43 articles)
 ```bash
 curl -X GET http://127.0.0.1:8000/api/menu/
 ```
 
-### 3. Consulter le Plat du Jour
+### 4. Consulter le Plat du Jour (avec repli best-seller si aucun actif — P15)
 ```bash
 curl -X GET http://127.0.0.1:8000/api/daily-special/
 ```
 
-### 4. Activer / Désactiver le Plat du Jour (Admin)
+### 5. Activer / Désactiver le Plat du Jour (Admin — Token Auth)
 ```bash
 curl -X PATCH http://127.0.0.1:8000/api/daily-special/1/toggle/ \
-     -u "admin_bmc:admin_secure_password_2026" \
+     -H "Authorization: Token 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b" \
      -H "Content-Type: application/json" \
      -d '{"is_daily_special": true}'
 ```
 
-### 5. Passer une commande client (Recalcul 100% serveur des prix)
+### 6. Passer une commande client (Recalcul 100% serveur des prix)
 ```bash
 curl -X POST http://127.0.0.1:8000/api/orders/ \
      -H "Content-Type: application/json" \
@@ -166,18 +181,18 @@ curl -X POST http://127.0.0.1:8000/api/orders/ \
        "address": "Ngor, Dakar",
        "payment_method": "wave",
        "items": [
-         {"id": "tp-1", "quantity": 2},
+         {"id": "ts-1", "quantity": 2},
          {"id": "bg-1", "quantity": 1}
        ]
      }'
 ```
-*Réponse attendue (201 Created) :*
+*Réponse attendue (201 Created) avec référence à 6 chiffres (X3) :*
 ```json
 {
   "success": true,
   "message": "Commande créée avec succès !",
   "order": {
-    "order_ref": "BMC-4821",
+    "order_ref": "BMC-849201",
     "customer_name": "Lansana Coly",
     "total_amount": 9000,
     "payment_method": "wave",
@@ -187,24 +202,77 @@ curl -X POST http://127.0.0.1:8000/api/orders/ \
 }
 ```
 
-### 6. Consulter les alertes de commandes non encore notifiées (Admin)
+### 7. Suivi public allégé d'une commande (Client — X2 & I13)
+```bash
+curl -X GET http://127.0.0.1:8000/api/orders/track/BMC-849201/
+```
+*Réponse allégée (zéro donnée personnelle / RGPD) :*
+```json
+{
+  "success": true,
+  "order_ref": "BMC-849201",
+  "status": "pending",
+  "status_label": "En attente",
+  "payment_status": "pending",
+  "payment_status_label": "Paiement en attente",
+  "total_amount": 9000,
+  "created_at": "2026-10-21T20:30:00Z",
+  "items_count": 3,
+  "items": [
+    {"item_name": "Tacos 1 viande Simple", "quantity": 2, "unit_price": 2500, "subtotal": 5000},
+    {"item_name": "Burger Simple", "quantity": 1, "unit_price": 4000, "subtotal": 4000}
+  ]
+}
+```
+
+### 8. Consulter les alertes de commandes non encore notifiées (Admin)
 ```bash
 curl -X GET http://127.0.0.1:8000/api/orders/events/unnotified/ \
-     -u "admin_bmc:admin_secure_password_2026"
+     -H "Authorization: Token 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b"
 ```
 
-### 7. Acquitter une alerte de commande ciblée (Admin)
+### 9. Acquitter une alerte de commande ciblée (Admin — D14 & P14)
 ```bash
 curl -X POST http://127.0.0.1:8000/api/orders/events/unnotified/ \
-     -u "admin_bmc:admin_secure_password_2026" \
+     -H "Authorization: Token 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b" \
      -H "Content-Type: application/json" \
-     -d '{"order_refs": ["BMC-4821"]}'
+     -d '{"order_refs": ["BMC-849201"]}'
 ```
 
-### 8. Faire évoluer le statut d'une commande (Admin Cuisine / Livraison)
+### 10. Faire évoluer le statut d'une commande (Admin Cuisine / Livraison)
 ```bash
-curl -X PATCH http://127.0.0.1:8000/api/orders/BMC-4821/status/ \
-     -u "admin_bmc:admin_secure_password_2026" \
+curl -X PATCH http://127.0.0.1:8000/api/orders/BMC-849201/status/ \
+     -H "Authorization: Token 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b" \
      -H "Content-Type: application/json" \
-     -d '{"status": "preparing", "payment_status": "paid"}'
+     -d '{"status": "confirmed", "payment_status": "paid"}'
 ```
+
+---
+
+## 🔒 Sécurité & Durcissement (I16, I20)
+
+### Durée de vie des jetons Admin (TTL) & Cache partagé (I16)
+- **Durée de vie configurable** : Les jetons d'administration expirent automatiquement après un délai défini par `BMC_TOKEN_TTL_SECONDS` (par défaut : `86400` secondes, soit 24 heures). Au-delà, l'accès est refusé (401 Unauthorized) et le jeton supprimé, imposant une réauthentification via `POST /api/auth/token/`. Pour désactiver l'expiration en local, définir `BMC_TOKEN_TTL_SECONDS=0`.
+- **Throttling en environnement multi-workers (Production)** :
+  En développement, Django utilise `LocMemCache`. En production multi-processus (Gunicorn / Uvicorn avec N workers), la limitation de débit DRF (`DEFAULT_THROTTLE_RATES`) doit être synchronisée via Redis pour être globale :
+  ```python
+  CACHES = {
+      'default': {
+          'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+          'LOCATION': os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/1'),
+      }
+  }
+  ```
+
+### Avis de sécurité : Secret historique compromis (I20)
+1. **Constat d'incident** : Une clé secrète factice de développement (`django-insecure-...`) figurait dans les premiers commits initiaux du dépôt.
+2. **Statut** : Cette clé est formellement déclarée **compromise**. Le fichier `settings.py` interdit formellement son utilisation en production (`DEBUG=False`) en levant une exception bloquante si `DJANGO_SECRET_KEY` n'est pas explicitement fournie par l'environnement.
+3. **Mesures obligatoires de déploiement** :
+   - Générer une clé cryptographique forte et unique pour chaque environnement :
+     ```bash
+     python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+     ```
+   - Injecter cette valeur dans `DJANGO_SECRET_KEY` via le gestionnaire de secrets de l'hébergeur.
+   - Invalidation immédiate de tout cookie ou session créé avec l'ancienne clé.
+4. **Politique de réécriture Git** : Conformément à l'arbitrage de Lansana Coly (Lead Technique), **aucune réécriture destructive de l'historique partagé (`git filter-branch` / force-push)** n'est appliquée sur les branches d'équipe afin de préserver l'intégrité du travail collaboratif. La sécurité est assurée de manière stricte au niveau applicatif et opérationnel.
+

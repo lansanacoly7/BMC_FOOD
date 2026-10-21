@@ -30,9 +30,15 @@ class BaseCase(TestCase):
         cls.plain = U.objects.create_user("client", password=PW)
 
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.anon = APIClient()
         self.admin = APIClient()
         self.admin.credentials(HTTP_AUTHORIZATION="Token " + Token.objects.create(user=self.staff).key)
+
+    def tearDown(self):
+        from django.core.cache import cache
+        cache.clear()
 
     def payload(self, items, **kw):
         d = {"customer_name": "Test Client", "phone": "771067575", "address": "Ngor, Dakar",
@@ -53,7 +59,7 @@ class CreateOrderTests(BaseCase):
         self.assertEqual(r.status_code, 201, r.content)
         o = r.json()["order"]
         self.assertEqual(o["total_amount"], 9000)
-        self.assertRegex(o["order_ref"], r"^BMC-\d{4}$")
+        self.assertRegex(o["order_ref"], fr"^BMC-\d{{{order_rules.ORDER_REF_DIGITS}}}$")
         self.assertEqual(o["payment_status"], "pending")  # wave
 
     def test_prix_et_total_falsifies_sont_ignores(self):
@@ -113,11 +119,11 @@ class CreateOrderTests(BaseCase):
 
     def test_collision_de_reference_retentee(self):
         existing = self.make_order()
-        seq = iter([existing, existing, existing, "BMC-9999"])
+        seq = iter([existing, existing, existing, "BMC-999999"])
         with mock.patch.object(order_rules, "generate_order_ref", lambda: next(seq)):
             r = self.post([{"id": "bg-1", "quantity": 1}])
         self.assertEqual(r.status_code, 201, r.content)
-        self.assertEqual(r.json()["order"]["order_ref"], "BMC-9999")
+        self.assertEqual(r.json()["order"]["order_ref"], "BMC-999999")
 
     def test_references_epuisees_donnent_503_sans_commande(self):
         existing = self.make_order()
@@ -219,6 +225,15 @@ class AccessTests(BaseCase):
         self.assertIn(429, codes)
         cache.clear()
 
+    def test_limitation_de_debit_sur_order_create(self):
+        """Critère I15 : Rejet 429 au-delà du seuil configuré sur POST /api/orders/."""
+        from django.core.cache import cache
+        cache.clear()
+        # Seuil par défaut : 15 requêtes/minute
+        codes = [self.post([{"id": "bg-1", "quantity": 1}]).status_code for _ in range(18)]
+        self.assertIn(429, codes)
+        cache.clear()
+
 
 class StatusTransitionTests(BaseCase):
     def patch(self, ref, body):
@@ -265,6 +280,8 @@ class StatusTransitionTests(BaseCase):
         self.assertEqual(self.patch(ref, {"payment_status": "paid"}).status_code, 200)
         self.assertEqual(self.patch(ref, {"payment_status": "unpaid"}).status_code, 400)
         self.assertEqual(self.patch(ref, {"status": "cancelled"}).status_code, 200)
+        # Règle X4 / I14 : Commande annulée alors qu'elle était payée -> bascule automatique à refund_pending
+        self.assertEqual(Order.objects.get(order_ref=ref).payment_status, "refund_pending")
         self.assertEqual(self.patch(ref, {"status": "confirmed"}).status_code, 400)
 
     def test_especes_payees_apres_livraison(self):
@@ -278,3 +295,45 @@ class StatusTransitionTests(BaseCase):
             self.make_order()
         refs = list(Order.objects.values_list("order_ref", flat=True))
         self.assertEqual(len(refs), len(set(refs)))
+
+    # --- I13 & X2 : Suivi de commande client minimal -------------------------
+    def test_order_tracking_minimal_no_personal_data_200(self):
+        """Critère I13 & X2 : Endpoint public sans aucune donnée personnelle."""
+        ref = self.make_order()
+        r = self.anon.get(f"/api/orders/track/{ref}/")
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertTrue(data["success"])
+        self.assertEqual(data["order_ref"], ref)
+        self.assertIn("status", data)
+        self.assertIn("status_label", data)
+        self.assertIn("payment_status", data)
+        self.assertIn("total_amount", data)
+        self.assertIn("items", data)
+        self.assertIn("items_count", data)
+
+        # Exclusion stricte de toute donnée personnelle (RGPD / Confidentialité)
+        self.assertNotIn("customer_name", data)
+        self.assertNotIn("phone", data)
+        self.assertNotIn("address", data)
+        self.assertNotIn("notes", data)
+
+    def test_order_tracking_unknown_ref_fails_404_uniform(self):
+        """Critère I13 : Référence inconnue renvoie un 404 uniforme anti-énumération."""
+        r = self.anon.get("/api/orders/track/BMC-000000/")
+        self.assertEqual(r.status_code, 404)
+        self.assertFalse(r.json()["success"])
+
+    # --- I18 : Pagination de la liste des commandes --------------------------
+    def test_orders_pagination_page_and_page_size(self):
+        """Critère I18 : Pagination ?page=&page_size= avec count préservé."""
+        for _ in range(5):
+            self.make_order()
+        r = self.admin.get("/api/orders/?page=1&page_size=2")
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertEqual(data["page"], 1)
+        self.assertEqual(data["page_size"], 2)
+        self.assertEqual(len(data["orders"]), 2)
+        self.assertTrue(data["count"] >= 5)
+        self.assertTrue(data["total_pages"] >= 3)

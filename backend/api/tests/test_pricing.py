@@ -11,6 +11,8 @@ class PricingEngineTests(TestCase):
     """
 
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.client = APIClient()
         self.category = Category.objects.create(name="Tacos panés", slug="tacos-panes", icon="Flame")
         self.item1 = MenuItem.objects.create(
@@ -222,4 +224,5 @@ class PricingEngineTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         order_ref = response.data['order']['order_ref']
         self.assertTrue(order_ref.startswith('BMC-'))
-        self.assertEqual(len(order_ref), 8)
+        self.assertEqual(len(order_ref), 10)
+        self.assertRegex(order_ref, r'^BMC-\d{6}$')

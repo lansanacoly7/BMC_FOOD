@@ -1,0 +1,59 @@
+name: Backend CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+      - 'feature/**'
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+
+jobs:
+  test-and-lint:
+    name: Django Tests & Migrations Check
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      DJANGO_DEBUG: "True"
+      DJANGO_SECRET_KEY: "ci-insecure-test-key-for-github-actions-only"
+      CORS_ALLOWED_ORIGINS: "http://localhost:5173"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check for missing migrations (makemigrations --check)
+        run: |
+          python manage.py makemigrations --check --dry-run
+
+      - name: Verify database migrations apply cleanly
+        run: |
+          python manage.py migrate --noinput
+
+      - name: Run Django test suite
+        run: |
+          python manage.py test api --noinput -v 2
+
+      - name: Validate OpenAPI schema (drf-spectacular)
+        run: |
+          python manage.py spectacular --validate --fail-on-warn

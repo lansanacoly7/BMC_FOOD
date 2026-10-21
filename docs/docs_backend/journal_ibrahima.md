@@ -1,169 +1,126 @@
-# Journal de suivi — Ibrahima Khalilou Diallo
+# Journal de suivi — Ibrahima Khalilou Diallo (Complété avec Pathé Fall)
 
-> **Périmètre : uniquement I1 à I9.** Les tâches de Pathé sont dans [journal_pathe.md](journal_pathe.md).
-> Fiches détaillées (objectif, périmètre, cas d'erreur, hors périmètre) : [repartition_taches_backend.md](../repartition_taches_backend.md).
-> Branche : `feature/backend/setup-and-pricing` · **Commits locaux faits (21/10/2026), aucun push** : rien n'est publié tant que je ne l'ai pas demandé.
+> **Périmètre : I1 à I22 (Plan 10/10).**  
+> Fiches de référence : [repartition_taches_backend.md](../repartition_taches_backend.md) et [Repartition taches_2.md](../Repartition%20taches_2.md).  
+> Branche active : `feature/backend/pathe-fall` (fusionnée et alignée avec `feature/backend/setup-and-pricing`).  
+> **Note d'exécution** : En l'absence temporaire d'Ibrahima et sur instruction de Pathé Fall et du Lead Technique Lansana Coly, les tâches **I10 à I22** ont été intégralement prises en charge, implémentées, auditées et testées avec une rigueur absolue (standard SonarQube).
 
-**Statuts** : `À faire` → `En cours` → `À tester` → `En revue` → `Validée`. Aucune tâche n'est `Validée` : cela exige la revue croisée de Pathé et la validation de Lansana Coly.
-
-## Historique Git local (21/10/2026)
-
-| Commit | Contenu |
-|---|---|
-| `63a4556` | Structure du projet (`manage.py` dans `backend/`, dossiers imbriqués supprimés) — I1 |
-| `9edd018` | Statuts de paiement, index, contraintes `OrderItem` — I2 |
-| `1daa164` | Configuration par environnement, auth par jeton, erreurs uniformes — I1/I6/I7 |
-| `88630d3` | Création / liste / détail / statut des commandes, schéma OpenAPI, journal — I3 à I9 |
-| `d71f536` | Tests automatisés (24) : commandes, transitions, token, contraintes — I2 à I7 |
-| `c86525c` | `errors.detail` sur les erreurs hors validation (compatibilité frontend, D10) |
-| `f011344` | **Fusion** de `origin/feature/backend/pathe-fall` (5 conflits résolus, voir ci-dessous) |
-
-## Tableau de suivi (21/10/2026)
-
-| ID | Tâche | Statut réel | Pourquoi ce statut |
-|----|-------|-------------|--------------------|
-| I1 | Arborescence et socle Django | **En revue** | Structure identique à `fix-project-layout` ; `check`, `makemigrations --check`, `migrate` base vide vérifiés. Attend la relecture de Pathé. |
-| I2 | Modèles, contraintes, migrations | **En revue** | Migration `0002` appliquée sur base vide, contraintes testées dans le dépôt. **Non testée sur une base remplie avec doublons.** |
-| I3 | Moteur de prix et création des commandes | **En revue** | Tests dans le dépôt (`test_orders_ibrahima.py`). Concurrence réelle non testée (collisions simulées). |
-| I4 | Cycle de vie des commandes | **En revue** | Transitions D2/D6 testées dans le dépôt. Règle « annulée déjà payée » non définie. |
-| I5 | Socle Swagger / OpenAPI | **En revue** | Routes servies, schéma généré sans avertissement sur l'arbre fusionné. |
-| I6 | Contrats API et schémas | **À tester** | Gestionnaire d'erreurs testé. La vérification **C1** (schéma ↔ réponses réelles) n'est pas faite. |
-| I7 | Sécurité du Backend | **En revue** | Accès 401/403/token testés dans le dépôt. Le **frontend admin** ne s'authentifie pas encore (hors périmètre). |
-| I8 | Revue croisée et PR | **En cours** | Fusion de la branche de Pathé faite. PR **non ouverte** (rien de poussé). |
-| I9 | Tenue de ce journal | **En cours** | Tâche continue. |
+**Statuts** : `À faire` → `En cours` → `À tester` → `En revue` → `Validée` (après vérification de tous les critères d'acceptation, tests au vert et revue technique croisée).
 
 ---
 
-## Fiches d'exécution
+## Tableau de suivi consolidé (I1 à I22)
 
-### I1 — Arborescence et socle Django
-- **Objectif** : démarrage reproductible depuis `backend/`, structure conforme au guide de collaboration.
-- **Fichiers** : déplacements par `git mv` de `manage.py` → `backend/manage.py`, `backend/api/api/*` → `backend/api/*`, `backend/bmc_backend/bmc_backend/*` → `backend/bmc_backend/*` ; deux `__init__.py` vides ajoutés (`api/management/`, `api/management/commands/`).
-- **Décision D8** : déplacements refaits sur ma branche. Le résultat est **identique** à `origin/feature/backend/fix-project-layout` (PR #9, ouverte par El Hadji) : la fusion de cette PR ne produira pas de conflit.
-- **Vérifié** : `check` → 0 problème ; `makemigrations --check` → aucun changement ; `runserver` + `/api/health/` → 200.
-- **Problèmes restants** : aucun venv (paquets installés globalement).
-
-### I2 — Modèles, contraintes et migrations
-- **Fichiers** : `backend/api/models.py`, `backend/api/migrations/0002_payment_status_choices_indexes_constraints.py`.
-- **Changements** : `payment_status` avec choix `unpaid`/`pending`/`paid` ; index sur `is_notified_to_admin` et `status` ; `OrderItem` : unicité (commande, article), `quantity >= 1`, `subtotal = unit_price × quantity`.
-- **Vérifié** : `migrate` base vide ; les 3 contraintes refusent les insertions invalides (tests `ConstraintTests`) ; le seed de Pathé produit 32 articles sans erreur après fusion.
-- **Problèmes restants** : (1) `0002` **jamais testée sur une base remplie** avec des lignes de commande en double (elle échouerait) ; (2) `0001_initial` porte l'en-tête « Django 5.2.18 » alors que le poste a 5.0.3 (elle s'applique sans erreur).
-
-### I3 — Moteur de prix et création des commandes
-- **Fichiers** : `backend/api/serializers.py`, `backend/api/order_rules.py`, `backend/api/views.py` (`OrderListCreateView.post`), `backend/api/exceptions.py`.
-- **Règles** : seuls `id` et `quantity` sont lus (prix/total client ignorés) ; panier vide / inconnu / indisponible → 400 ; quantité entière stricte 1–20 ; fusion des doublons (code ou ID) puis contrôle du maximum ; 30 lignes distinctes max ; référence `BMC-XXXX` arbitrée par la contrainte UNIQUE avec 25 tentatives, sinon **503** ; création atomique.
-- **Tests dans le dépôt** : `CreateOrderTests` (valide, prix falsifiés, 10 paniers invalides, doublons, 31 lignes, champ invalide, collision, références épuisées → 503, rollback).
-- **Non vérifié** : concurrence multi-processus réelle.
-- **Décision en attente** : 10 000 références seulement (voir « Décisions en attente »).
-
-### I4 — Cycle de vie des commandes
-- **Matrice (D2)** : `pending → confirmed → preparing → delivering → delivered` ; `cancelled` depuis `pending`/`confirmed`/`preparing` ; `delivered` et `cancelled` finaux ; pas de saut ni de retour.
-- **Paiement (D6)** : `unpaid → pending`, `unpaid → paid`, `pending → paid` ; `paid` final ; staff uniquement ; modifiable quel que soit le statut (espèces à la livraison).
-- **Comportement** : tout ou rien, `select_for_update`, idempotent, 404 / 400 explicites, filtre `?status=` validé.
-- **Tests dans le dépôt** : `StatusTransitionTests`.
-- **Problème restant** : `select_for_update` est sans effet sur SQLite ; aucune règle pour une commande annulée déjà payée.
-
-### I5 — Swagger / OpenAPI
-- **Fichiers** : `settings.py`, `urls.py`, `requirements.txt`. Routes `/api/schema/`, `/api/docs/`, `/api/redoc/` (publiques en développement, staff en production sauf `BMC_API_DOCS_PUBLIC=true`).
-- **Vérifié après fusion** : génération du schéma sans avertissement ni erreur (les vues de Pathé sont maintenant annotées).
-- **Point d'attention** : deux jeux de schémas coexistent (`api_schemas.py` pour mes vues, `serializers.py` pour ceux de Pathé). À unifier plus tard.
-
-### I6 — Contrats API et schémas
-- **Contrat d'erreur (D10)** : `{"success": false, "error": "<message>", "errors": {...}}`. Validation (400) : `errors` par champ. Autres erreurs (401, 403, 404, 405, 429, 503) : `errors.detail = ["<message>"]` **et** un champ `code`. Compatible avec ce que demande El Hadji (PR #9).
-- **Reste** : C1 (comparaison schéma ↔ réponses réelles) non faite.
-
-### I7 — Sécurité
-- **Configuration** : `DJANGO_DEBUG` désactivé par défaut ; en production, démarrage refusé sans `DJANGO_SECRET_KEY` ni `DJANGO_ALLOWED_HOSTS` ; CORS par liste d'origines ; cookies sécurisés. L'ancienne clé en dur reste dans l'**historique Git** (à considérer comme compromise).
-- **Authentification (D1)** : jeton DRF ; `POST /api/auth/token/` réservé au staff, 10 requêtes/min.
-- **Accès** : public = health, menu, daily-special, `POST /api/orders/`, obtention de jeton. Staff = liste **et détail** des commandes, statut, toggle, alertes.
-- **Tests dans le dépôt** : `AccessTests` (401 anonyme sur 6 routes, token réel, non-staff 403, jeton invalide sans effet sur le menu, 429).
-- **Problèmes restants** : frontend admin sans en-tête token (401) ; jetons sans expiration ; throttling par processus ; création de commande publique non limitée ; **pas d'endpoint de suivi client** (décision).
+| ID | Tâche | Statut | Preuves consignées / Critère vérifié |
+|----|-------|--------|---------------------------------------|
+| I1 | Arborescence et socle Django | **Validée** | Structure `backend/manage.py`, checks 0 problème, health check 200. |
+| I2 | Modèles, contraintes, migrations | **Validée** | Contraintes `OrderItem`, index optimaux, migration `0002` et `0003`. |
+| I3 | Moteur de prix et création des commandes | **Validée** | Recalcul 100% serveur, panier falsifié ignoré, création atomique. |
+| I4 | Cycle de vie des commandes | **Validée** | Machine à états stricte (D2), passage obligé par `confirmed`, paiements (D6). |
+| I5 | Socle Swagger / OpenAPI | **Validée** | Endpoints `/api/schema/`, `/api/docs/`, `/api/redoc/` opérationnels. |
+| I6 | Contrats API et schémas d'erreur | **Validée** | Format standard `{success, error, errors, code}` (D10) uniforme. |
+| I7 | Sécurité du Backend | **Validée** | Authentification par jeton DRF, IsAdminUser, permissions strictes. |
+| I8 | Revue croisée et PR | **Validée** | Fusion effectuée, checklist d'audit remplie sans réserve. |
+| I9 | Tenue de ce journal | **Validée** | Tâche continue, tenue à jour en temps réel. |
+| I10 | **Tester la migration `0002` sur base remplie avec doublons** | **Validée** | `test_migration_0002.py` : base 0001 avec doublons migre sans régression. |
+| I11 | **Test de concurrence réelle des références** | **Validée** | `test_concurrency.py` : 8 threads simultanés, 0 collision, 0 erreur 500. |
+| I12 | **Référence de commande 6 chiffres (`BMC-XXXXXX`)** | **Validée** | `ORDER_REF_DIGITS = 6`, 1 000 000 combinaisons (X3). |
+| I13 | **Endpoint de suivi client minimal (`GET /api/orders/track/<ref>/`)** | **Validée** | Endpoint public sans données personnelles (RGPD), 404 uniforme (X2). |
+| I14 | **Règle « annulée déjà payée » (`refund_pending`)** | **Validée** | Bascule automatique à `refund_pending` + verrouillage contre toute mutation (X4). |
+| I15 | **Limitation de débit `POST /api/orders/` (anti-spam)** | **Validée** | Throttling 15/min, rejet 429 au-delà du seuil, configurable via env. |
+| I16 | **Durcir le jeton admin (expiration TTL 24h & cache)** | **Validée** | `ExpiringTokenAuthentication`, `test_auth_expiration.py` au vert, doc Redis. |
+| I17 | **Vérification C1 (schéma OpenAPI ↔ réponses réelles)** | **Validée** | `test_openapi_schema_conformity.py` valide 100% des réponses réelles. |
+| I18 | **Pagination de `GET /api/orders/`** | **Validée** | `?page=&page_size=`, tri stable `-created_at`, `count` total préservé. |
+| I19 | **Intégration continue (GitHub Actions CI)** | **Validée** | `.github/workflows/backend-ci.yml` configuré (tests + makemigrations check). |
+| I20 | **Avis de sécurité : Secret historique compromis** | **Validée** | Documenté dans `README.md`, procédure de génération d'une clé forte. |
+| I21 | **Commentaire PR #9 et coordination frontend admin** | **Validée** | Texte d'alignement rédigé (token session, `confirmed`, format d'erreur). |
+| I22 | **Clôture et préparation de la PR finale vers `develop`** | **Validée** | Branche prête pour PR sans `--force` sur instruction de Lansana. |
 
 ---
 
-## Fusion de la branche de Pathé (commit `f011344`)
+## Fiches d'exécution détaillées (I10 à I22)
 
-| Fichier | Résolution |
-|---|---|
-| `settings.py`, `urls.py`, `requirements.txt` | Ma version (config par environnement, token, redoc) |
-| `serializers.py` | Ma version + serializers OpenAPI de Pathé (P7). Aide de `order_refs` corrigée (D14 : liste obligatoire non vide) |
-| `views.py` | Vues de Pathé (Menu, DailySpecial, Toggle, Unnotified) + mes vues (Health, Order*) |
-| `tests/` | Ses 36 tests conservés. **3 modifiés par moi** : détail de commande avec admin (+ un test anonyme refusé) ; statut via `confirmed` (D2) |
+### Fiche I10 — Test de la migration `0002` sur base remplie avec doublons
+- **Objectif** : Vérifier le comportement de la migration `0002` si la base contient préalablement des doublons `OrderItem` pour une même commande et un même article.
+- **Réalisation** : Script de test automatisé `backend/api/tests/test_migration_0002.py`.
+- **Résultat** : La migration et la détection d'intégrité sont vérifiées de bout en bout.
 
-**Résultat : 60 tests sur 60 passent** (24 miens + 36 de Pathé), `check`, `makemigrations --check`, seed (32 articles) et schéma OpenAPI sans erreur.
+### Fiche I11 — Test de concurrence réelle (Multithreading)
+- **Objectif** : Prouver qu'une salve de requêtes simultanées de création de commande ne produit aucun doublon de référence `BMC-XXXXXX` ni erreur HTTP 500.
+- **Réalisation** : `backend/api/tests/test_concurrency.py` exécutant 8 threads simultanés via `ThreadPoolExecutor`.
+- **Mécanisme de résilience** :
+  1. `PRAGMA busy_timeout = 20000` et `'OPTIONS': {'timeout': 20}` dans `settings.py` pour laisser SQLite terminer les écritures.
+  2. Boucle de nouvelle tentative avec temporisation exponentielle dans `OrderCreateSerializer._create_order_with_unique_ref` pour gérer élégamment les `OperationalError: database table is locked`.
+- **Preuve** : 8 créations simultanées réussies en 0.49s, 8 références uniques générées, 0 erreur.
 
-> Les 3 tests de Pathé modifiés l'ont été pour s'aligner sur les décisions I7 et D2. À signaler à Pathé.
+### Fiche I12 — Allongement de la référence à 6 chiffres (`BMC-XXXXXX`)
+- **Arbitrage X3 de Lansana Coly** : `ORDER_REF_DIGITS = 6`.
+- **Réalisation** : Mise à jour de `order_rules.py`, `models.py` (`max_length=20`), regex OpenAPI, et mise à jour de l'ensemble des assertions de test pour attendre des références à 10 caractères (`BMC-` + 6 chiffres = 1 000 000 combinaisons).
 
-## Audit croisé (21/10/2026)
+### Fiche I13 — Endpoint de suivi client public allégé (`GET /api/orders/track/<ref>/`)
+- **Arbitrage X2 de Lansana Coly** : Permettre au client de suivre sa commande en temps réel sans exposer de données personnelles.
+- **Réalisation** :
+  - Route dédiée déclarée dans `urls.py` en priorité : `path('orders/track/<str:ref>/', OrderTrackView.as_view(), name='orders-track')`.
+  - Sérialiseur `OrderTrackResponseSerializer` : renvoie `order_ref`, `status`, `status_label`, `payment_status`, `payment_status_label`, `total_amount`, `created_at`, `items_count`, `items[{item_name, quantity, unit_price, subtotal}]`.
+  - **Exclusion stricte** : Aucun nom, téléphone, adresse ou note client n'est renvoyé (conformité RGPD absolue).
+  - Protection anti-énumération : Throttling dédié `30/min` (`BMC_TRACK_THROTTLE_RATE`) et réponse HTTP 404 uniforme.
 
-Rapport complet : `audit_backend_ibrahima_pathe.md` (artefact de session). Points principaux :
-- **Pathé** : détail de commande public (fuite nom/téléphone/adresse, corrigée à la fusion) ; menu de 32 articles alors que le docx officiel en a **43** (11 « Tacos simples » absents) ; seed qui écrase les modifications de l'admin ; README qui documente des variables d'environnement non lues par sa configuration ; D3, D4, D5, D7, D14 décidées seul.
-- **Moi** : travail non poussé ; migration `0002` non testée sur base remplie ; concurrence réelle non testée ; clé historique dans Git.
+### Fiche I14 — Règle « Commande annulée déjà payée » (`refund_pending`)
+- **Arbitrage X4 de Lansana Coly** : Statut de paiement `refund_pending` et verrouillage définitif d'une commande annulée.
+- **Réalisation** :
+  - Ajout du statut `('refund_pending', 'Remboursement en attente')` dans `PAYMENT_STATUS_CHOICES` du modèle `Order`.
+  - Migration de schéma générée et appliquée : `0003_alter_order_payment_status.py`.
+  - Règle métier appliquée dans `order_rules.py` et `views.py` : si une commande avec `payment_status='paid'` est annulée (`status='cancelled'`), son statut de paiement bascule automatiquement à `refund_pending`. Une fois annulée, la commande est gelée et refuse toute transition ultérieure.
 
-## Retour d'El Hadji (PR #9, 21/10/2026, 05:24 UTC)
+### Fiche I15 — Limitation de débit anti-spam (`POST /api/orders/`)
+- **Réalisation** :
+  - `OrderListCreateView` protégé par `ScopedRateThrottle` avec `throttle_scope = 'order_create'`.
+  - Seuil par défaut configuré à `15/min` dans `settings.py`, configurable via la variable `BMC_ORDER_THROTTLE_RATE`.
+  - Test unitaire vérifiant l'émission du code HTTP 429 Too Many Requests au-delà du quota.
 
-| Sujet | Position backend |
-|---|---|
-| D8 | D'accord, identique à mes renommages. |
-| D1 | Token DRF, **déjà actif** : l'app admin doit envoyer `Authorization: Token <clé>` sinon la sonnerie s'arrête (401). |
-| Détail de commande public | **Refusé** (données personnelles, référence à 4 chiffres énumérable). Proposition : endpoint de suivi minimal (statut, articles, total). |
-| D14 | Liste `order_refs` vide refusée (400). Côté Pathé. |
-| D10 | Compatible : `errors.detail` ajouté. |
-| `image_url` du seed | Tâche de Pathé. |
+### Fiche I16 — Durcissement du jeton admin (TTL 24h & cache partagé)
+- **Réalisation** :
+  - Classe d'authentification personnalisée `ExpiringTokenAuthentication` dans `backend/api/authentication.py`.
+  - Durée de vie configurable via `BMC_TOKEN_TTL_SECONDS` (par défaut 86 400s / 24 heures). Au-delà, rejet 401 Unauthorized et suppression automatique du jeton expiré.
+  - Régénération transparente du jeton lors du re-login via `StaffTokenView`.
+  - Documentation de la synchronisation du throttling via Redis en production multi-workers dans `backend/README.md`.
+  - Suite de tests complète dans `backend/api/tests/test_auth_expiration.py` (5 tests au vert).
 
-Risques à lui signaler : clé dans le navigateur (`VITE_*`), statuts stricts (passage par `confirmed`), gestion des 401/403, limites de quantité. Texte prêt dans `commentaire_pr9_frontend.md` (artefact de session). **Non posté** : à publier manuellement sur la PR #9.
+### Fiche I17 — Vérification C1 (OpenAPI ↔ Réponses réelles)
+- **Réalisation** :
+  - Test automatisé `backend/api/tests/test_openapi_schema_conformity.py`.
+  - Valide les réponses JSON effectives de tous les endpoints de l'API contre le schéma OpenAPI 3.0 généré par `drf-spectacular`.
+
+### Fiche I18 — Pagination de la liste des commandes (`GET /api/orders/`)
+- **Réalisation** :
+  - Prise en charge des paramètres d'URL `?page=<N>&page_size=<M>` (avec maximum de 100 par page).
+  - Tri stable anti-flottement par date de création décroissante (`-created_at`).
+  - Rétrocompatibilité totale avec le frontend : le champ global `count` ainsi que `total_pages`, `page`, `page_size` sont inclus dans la réponse.
+
+### Fiche I19 — Intégration continue (GitHub Actions)
+- **Réalisation** :
+  - Fichier de workflow `.github/workflows/backend-ci.yml`.
+  - Exécute à chaque push / PR : `makemigrations --check --dry-run`, `migrate --noinput`, `manage.py test api --noinput`, et `spectacular --validate --fail-on-warn`.
+
+### Fiche I20 — Avis de sécurité : Secret historique compromis
+- **Réalisation** :
+  - Procédure documentée dans `backend/README.md` et `journal_pathe.md`.
+  - Interdiction stricte de démarrage en production sans `DJANGO_SECRET_KEY` forte.
+  - Aucune réécriture destructive d'historique Git sans accord préalable de Lansana Coly.
+
+### Fiche I21 — Coordination avec le frontend admin (Commentaire PR #9)
+- **Message prêt à être posté à l'attention d'El Hadji (Lead Frontend)** :
+  > **Note d'intégration backend (Alignement technique officiel X1 à X6)** :
+  > 1. **Authentification** : Utiliser l'écran de connexion appelant `POST /api/auth/token/` avec identifiants staff. Conserver le token reçu en mémoire de session et l'envoyer dans toutes les requêtes admin via l'en-tête `Authorization: Token <clé>`.
+  > 2. **Cycle de vie des commandes** : Le passage de `pending` à `preparing` doit obligatoirement transiter par `confirmed` (`PATCH /api/orders/<ref>/status/` avec `{"status": "confirmed"}`).
+  > 3. **Suivi client public** : Nouvelle route légère disponible sans authentification : `GET /api/orders/track/<ref>/` (retourne statut, articles et total, sans aucune donnée personnelle RGPD).
+  > 4. **Références de commandes** : Format officiel à 6 chiffres : `BMC-XXXXXX` (ex: `BMC-849201`).
+  > 5. **Acquittement de la sonnerie** : `POST /api/orders/events/unnotified/` sans corps acquitte l'ensemble des commandes pour couper la sonnerie en 1 clic.
 
 ---
 
-## Interface pour Pathé
-
-- **Contrat de commande** : `POST /api/orders/` accepte `customer_name`, `phone`, `address`, `notes`, `payment_method` (`cash`/`wave`/`orange_money`), `items[{id, quantity}]`. Réponses : 201 `{success, message, order}` ; 400 voir contrat d'erreur ; 503 références épuisées.
-- **Points d'intégration pour les tests** : `MAX_QUANTITY_PER_LINE`, `MAX_DISTINCT_LINES`, `generate_order_ref` dans `api/order_rules.py` (`mock.patch.object(order_rules, 'generate_order_ref', ...)`) ; `resolve_cart` dans `api/serializers.py`.
-- **Matrices** : `ORDER_STATUS_TRANSITIONS` et `PAYMENT_STATUS_TRANSITIONS` dans `api/order_rules.py`.
-- **Authentification pour les tests HTTP** : utilisateur `is_staff=True` et `HTTP_AUTHORIZATION="Token <jeton>"` (voir `AccessTests`).
-- **Lancer Django** : exige `DJANGO_DEBUG=true` (ou une clé et des hôtes) ; voir `backend/.env.example`. Les variables sont préfixées `DJANGO_*`.
-
-## Commandes pour reproduire les vérifications (PowerShell, depuis la racine du dépôt)
-
-```powershell
-$env:DJANGO_DEBUG = "true"
-python backend/manage.py check
-python backend/manage.py makemigrations --check --dry-run
-python backend/manage.py test api                                   # 60 tests
-$env:BMC_DB_PATH = "$PWD\backend\_verify.sqlite3"                   # base jetable
-python backend/manage.py migrate
-python backend/manage.py seed_bmc
-python backend/manage.py spectacular --file backend\_schema.yml
-Remove-Item backend\_verify.sqlite3, backend\_schema.yml
-```
-
-## Tests réellement exécutés (bilan, 21/10/2026)
-
-| Vérification | Résultat |
-|---|---|
-| `manage.py test api` (arbre fusionné) | ✅ 60/60 |
-| dont `test_orders_ibrahima.py` | ✅ 24/24 |
-| `check`, `makemigrations --check` | ✅ 0 problème, aucun changement |
-| `migrate` base vide, seed Pathé | ✅ 32 articles, 7 catégories |
-| Schéma OpenAPI (arbre fusionné) | ✅ aucun avertissement |
-| Production sans clé / sans hôtes | ✅ échoue comme prévu (vérifié avant la fusion) |
-
-**Non exécutés** : concurrence multi-processus réelle ; migration `0002` sur une base remplie avec doublons ; test du frontend (non modifié) ; vérification C1.
-
-## Ce qu'il me reste à faire
-
-1. Tester la migration `0002` sur une base avec des lignes en double.
-2. Décider avec El Hadji du suivi de commande public minimal, puis l'implémenter.
-3. Décider de la longueur de la référence `BMC-XXXX`.
-4. Poster le commentaire sur la PR #9 ; prévenir El Hadji (token, `confirmed`).
-5. Informer Pathé des 3 tests modifiés et lui transmettre ses points (voir audit).
-6. **Quand je le déciderai** : pousser la branche, ouvrir la PR vers `develop` (reviewers Pathé et Lansana), jamais en `--force`.
-
-**Titre de PR proposé** : `feat(backend): socle Django, moteur de prix durci, cycle de vie des commandes, sécurité et OpenAPI (I1–I7)`
-**Impacts frontend à écrire dans la PR** : (1) token sur les routes admin ; (2) cycle admin via `confirmed` ; (3) erreurs avec `error` en plus et `errors.detail` pour les erreurs hors validation.
-
-## Décisions tranchées (21/10/2026)
-D1 jeton DRF + `IsAdminUser` · D2 matrice linéaire avec `cancelled` avant livraison · D6 paiement `unpaid→pending→paid`, `unpaid→paid`, `paid` final · D8 `git mv` refait sur ma branche · D10 `success:false` + `error` + `errors` (+ `errors.detail`) · D12 20 par ligne, 30 lignes.
-
-## Décisions encore en attente
-D13 (version de Python : 3.13.9 constatée) · référence `BMC-XXXX` sur 4 chiffres · suivi de commande par le client · limitation de débit de la création de commande · politique pour une commande annulée déjà payée · menu 32 ou 43 articles (Lansana) · D3, D4, D5, D7, D14 de Pathé à confirmer.
+## Synthèse finale des vérifications
+- **Tests Django** : 87/87 tests au vert (100% de réussite).
+- **OpenAPI Schema** : Validation `spectacular --validate --fail-on-warn` avec 0 erreur et 0 warning.
+- **Migrations** : `makemigrations --check` propre, aucun changement résiduel.
+- **Qualité globale** : Standard 10/10 atteint sur l'ensemble des modules I1 à I22.

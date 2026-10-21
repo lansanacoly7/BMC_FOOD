@@ -20,12 +20,12 @@ MAX_DISTINCT_LINES = 30
 
 # Les montants sont des entiers en F CFA (pas de décimales) : aucun flottant n'est utilisé.
 ORDER_REF_PREFIX = 'BMC-'
-ORDER_REF_DIGITS = 4
+ORDER_REF_DIGITS = 6  # Décision X3 : 6 chiffres (1 000 000 de combinaisons sans collision)
 ORDER_REF_MAX_ATTEMPTS = 25
 
 
 def generate_order_ref():
-    """Génère un candidat de référence `BMC-XXXX`. L'unicité n'est PAS garantie ici :
+    """Génère un candidat de référence `BMC-XXXXXX`. L'unicité n'est PAS garantie ici :
     elle est assurée par la contrainte unique de la base et la boucle de nouvelle
     tentative lors de la création de la commande."""
     number = secrets.randbelow(10 ** ORDER_REF_DIGITS)
@@ -45,7 +45,8 @@ ORDER_STATUS_TRANSITIONS = {
 PAYMENT_STATUS_TRANSITIONS = {
     'unpaid': ('pending', 'paid'),
     'pending': ('paid',),
-    'paid': (),
+    'paid': ('refund_pending',),
+    'refund_pending': (),
 }
 
 

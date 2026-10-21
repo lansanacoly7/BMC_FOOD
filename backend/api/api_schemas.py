@@ -12,7 +12,12 @@ Contrat commun :
 from rest_framework import serializers
 
 from .models import Order
-from .serializers import MenuItemSerializer, OrderSerializer
+from .serializers import (
+    MenuItemSerializer,
+    OrderSerializer,
+    OrderTrackItemSerializer,
+    OrderTrackResponseSerializer,
+)
 
 
 class ErrorEnvelopeSerializer(serializers.Serializer):
@@ -52,6 +57,7 @@ class MenuResponseSerializer(serializers.Serializer):
 class DailySpecialResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     count = serializers.IntegerField()
+    is_fallback = serializers.BooleanField(required=False, default=False)
     daily_specials = MenuItemSerializer(many=True)
 
 

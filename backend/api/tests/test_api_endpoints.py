@@ -13,6 +13,8 @@ class ApiEndpointsHTTPTests(TestCase):
     """
 
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.client = APIClient()
 
         # Utilisateur administrateur pour tester les endpoints protégés

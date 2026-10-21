@@ -1,4 +1,5 @@
-from django.db import IntegrityError, transaction
+import time
+from django.db import IntegrityError, OperationalError, transaction
 from django.db.models import Q
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
@@ -175,37 +176,47 @@ class OrderCreateSerializer(serializers.Serializer):
             try:
                 with transaction.atomic():
                     return Order.objects.create(order_ref=candidate, **fields)
-            except IntegrityError:
-                if Order.objects.filter(order_ref=candidate).exists():
+            except (IntegrityError, OperationalError) as e:
+                if isinstance(e, OperationalError) and 'locked' in str(e).lower():
+                    time.sleep(0.05)
+                    continue
+                if isinstance(e, IntegrityError) and Order.objects.filter(order_ref=candidate).exists():
                     continue  # collision de référence : on retente
-                raise  # autre violation d'intégrité : ne pas la masquer
+                raise  # autre violation : ne pas la masquer
         raise OrderReferenceUnavailable()
 
     def create(self, validated_data):
         payment_method = validated_data['payment_method']
         payment_status = 'pending' if payment_method in ('wave', 'orange_money') else 'unpaid'
 
-        with transaction.atomic():
-            # Relecture des prix et de la disponibilité DANS la transaction de création.
-            lines, errors = resolve_cart(validated_data['items'])
-            if errors:
-                raise serializers.ValidationError({'items': errors})
+        for attempt in range(order_rules.ORDER_REF_MAX_ATTEMPTS):
+            try:
+                with transaction.atomic():
+                    # Relecture des prix et de la disponibilité DANS la transaction de création.
+                    lines, errors = resolve_cart(validated_data['items'])
+                    if errors:
+                        raise serializers.ValidationError({'items': errors})
 
-            total_amount = sum(line['subtotal'] for line in lines)
-            order = self._create_order_with_unique_ref(
-                customer_name=validated_data['customer_name'].strip(),
-                phone=validated_data['phone'].strip(),
-                address=validated_data['address'].strip(),
-                notes=validated_data.get('notes', '').strip(),
-                payment_method=payment_method,
-                payment_status=payment_status,
-                total_amount=total_amount,
-                status='pending',
-                is_notified_to_admin=False,
-            )
-            OrderItem.objects.bulk_create([OrderItem(order=order, **line) for line in lines])
-
-        return order
+                    total_amount = sum(line['subtotal'] for line in lines)
+                    order = self._create_order_with_unique_ref(
+                        customer_name=validated_data['customer_name'].strip(),
+                        phone=validated_data['phone'].strip(),
+                        address=validated_data['address'].strip(),
+                        notes=validated_data.get('notes', '').strip(),
+                        payment_method=payment_method,
+                        payment_status=payment_status,
+                        total_amount=total_amount,
+                        status='pending',
+                        is_notified_to_admin=False,
+                    )
+                    OrderItem.objects.bulk_create([OrderItem(order=order, **line) for line in lines])
+                    return order
+            except OperationalError as e:
+                # Verrou SQLite concurrent (I11) : brève attente et nouvelle tentative
+                if 'locked' in str(e).lower() and attempt < order_rules.ORDER_REF_MAX_ATTEMPTS - 1:
+                    time.sleep(0.05 + 0.02 * attempt)
+                    continue
+                raise
 
 
 # ============================================================================
@@ -278,9 +289,9 @@ class OrderStatusUpdateInputSerializer(serializers.Serializer):
         help_text="Nouveau statut de la commande"
     )
     payment_status = serializers.ChoiceField(
-        choices=['unpaid', 'pending', 'paid'],
+        choices=[choice[0] for choice in Order.PAYMENT_STATUS_CHOICES],
         required=False,
-        help_text="Nouveau statut de paiement (unpaid, pending, paid)"
+        help_text="Nouveau statut de paiement"
     )
 
 
@@ -315,4 +326,25 @@ class ErrorResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField(default=False)
     error = serializers.CharField(required=False)
     errors = serializers.DictField(required=False)
+
+
+class OrderTrackItemSerializer(serializers.Serializer):
+    item_name = serializers.CharField(help_text="Nom de l'article")
+    quantity = serializers.IntegerField(help_text="Quantité commandée")
+    unit_price = serializers.IntegerField(help_text="Prix unitaire en F CFA")
+    subtotal = serializers.IntegerField(help_text="Sous-total en F CFA")
+
+
+class OrderTrackResponseSerializer(serializers.Serializer):
+    """Réponse allégée pour le suivi client public (I13 & X2) : AUCUNE donnée personnelle."""
+    success = serializers.BooleanField(default=True)
+    order_ref = serializers.CharField(help_text="Référence unique BMC-XXXXXX")
+    status = serializers.CharField(help_text="Code du statut de la commande")
+    status_label = serializers.CharField(help_text="Libellé lisible du statut (ex: En préparation)")
+    payment_status = serializers.CharField(help_text="Statut de paiement (unpaid, pending, paid, refund_pending)")
+    payment_status_label = serializers.CharField(help_text="Libellé lisible du statut de paiement")
+    total_amount = serializers.IntegerField(help_text="Montant total en F CFA")
+    created_at = serializers.DateTimeField(help_text="Date et heure de passage de commande")
+    items_count = serializers.IntegerField(help_text="Nombre total d'articles commandés")
+    items = OrderTrackItemSerializer(many=True, help_text="Liste des articles de la commande")
 
