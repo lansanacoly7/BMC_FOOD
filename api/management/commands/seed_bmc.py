@@ -1,0 +1,120 @@
+from django.core.management.base import BaseCommand
+from django.utils.text import slugify
+from api.models import Category, MenuItem
+
+class Command(BaseCommand):
+    help = "Charge le menu complet et authentique de BMC FOOD avec le Plat du Jour."
+
+    def handle(self, *args, **options):
+        self.stdout.write("Initialisation des catégories et du menu BMC FOOD...")
+
+        catalog = [
+            # 1. Tacos panés
+            {
+                "category": "Tacos panés",
+                "icon": "Flame",
+                "items": [
+                    {"code": "tp-1", "name": "Tacos viande pané", "price": 3500, "desc": "Viande hachée assaisonnée, frites croustillantes, sauce fromagère maison et panure dorée.", "popular": True, "special": False},
+                    {"code": "tp-2", "name": "Tacos poulet pané", "price": 3500, "desc": "Émincé de poulet mariné, sauce crémeuse, frites et galette croustillante panée.", "popular": True, "special": False},
+                    {"code": "tp-3", "name": "Tacos mixte pané", "price": 4000, "desc": "Duo savoureux poulet et viande hachée, sauce au choix et panure croustillante.", "popular": True, "special": False},
+                    {"code": "tp-4", "name": "Tacos jambon pané", "price": 3000, "desc": "Jambon savoureux, sauce fromagère onctueuse, frites et galette dorée panée.", "popular": False, "special": False},
+                ]
+            },
+            # 2. Tacos jambon pané
+            {
+                "category": "Tacos jambon pané",
+                "icon": "Utensils",
+                "items": [
+                    {"code": "tjp-1", "name": "Tacos viande jambon pané", "price": 4500, "desc": "Viande hachée et jambon fondant, sauce au choix et panure dorée.", "popular": False, "special": False},
+                    {"code": "tjp-2", "name": "Tacos poulet jambon pané", "price": 4500, "desc": "Poulet mariné, tranches de jambon, frites et sauce fromagère.", "popular": False, "special": False},
+                    {"code": "tjp-3", "name": "Tacos mixte jambon pané", "price": 5000, "desc": "Mélange viande, poulet et jambon dans une galette panée croustillante.", "popular": True, "special": False},
+                ]
+            },
+            # 3. Tacos Royal pané
+            {
+                "category": "Tacos Royal pané",
+                "icon": "Crown",
+                "items": [
+                    {"code": "trp-1", "name": "Tacos viande jambon royal pané", "price": 5000, "desc": "Formule royale : viande, jambon, fromage double dose, pané croustillant.", "popular": False, "special": False},
+                    {"code": "trp-2", "name": "Tacos poulet jambon royal pané", "price": 5000, "desc": "Poulet royal, jambon, galette dorée et sauce onctueuse.", "popular": False, "special": False},
+                    {"code": "trp-3", "name": "Tacos mixte jambon royal pané", "price": 6000, "desc": "Le suprême BMC : viande, poulet, jambon, garniture royale panée.", "popular": True, "special": True}, # Plat du Jour par excellence !
+                    {"code": "trp-4", "name": "Tacos viande royal pané", "price": 4000, "desc": "Viande hachée royal, galette panée avec supplément cheddar fondu.", "popular": False, "special": False},
+                    {"code": "trp-5", "name": "Tacos poulet royal pané", "price": 4000, "desc": "Poulet royal fondant, frites fraîches et panure croustillante.", "popular": False, "special": False},
+                    {"code": "trp-6", "name": "Tacos mixte royal pané", "price": 4500, "desc": "Viande et poulet royal avec sauce au choix et panure.", "popular": False, "special": False},
+                ]
+            },
+            # 4. Tacos Hot Dog pané
+            {
+                "category": "Tacos Hot Dog pané",
+                "icon": "Zap",
+                "items": [
+                    {"code": "thp-1", "name": "Tacos viande hot dog pané", "price": 4500, "desc": "Saucisse hot dog & viande hachée, sauce barbecue et panure dorée.", "popular": False, "special": False},
+                    {"code": "thp-2", "name": "Tacos poulet hot dog pané", "price": 4500, "desc": "Saucisse hot dog & poulet mariné, frites et sauce fromagère.", "popular": False, "special": False},
+                    {"code": "thp-3", "name": "Tacos mixte hot dog pané", "price": 5000, "desc": "Poulet, viande, saucisse hot dog gourmande et panure croustillante.", "popular": False, "special": False},
+                    {"code": "thp-4", "name": "Tacos viande hot dog royal pané", "price": 5000, "desc": "Viande, hot dog et garniture royale sous panure dorée.", "popular": False, "special": False},
+                    {"code": "thp-5", "name": "Tacos poulet hot dog royal pané", "price": 5000, "desc": "Poulet royal, hot dog, fromage coulant et panure.", "popular": False, "special": False},
+                    {"code": "thp-6", "name": "Tacos mixte hot dog royal pané", "price": 6000, "desc": "La totale hot dog royal : 3 viandes, saucisse, fromage et panure.", "popular": True, "special": False},
+                ]
+            },
+            # 5. Tacos XL pané
+            {
+                "category": "Tacos XL pané",
+                "icon": "Maximize",
+                "items": [
+                    {"code": "txl-1", "name": "Tacos XL pané", "price": 6000, "desc": "Format géant ultra-gourmand pour les gros appétits, entièrement pané.", "popular": True, "special": False},
+                ]
+            },
+            # 6. Burgers
+            {
+                "category": "Burgers",
+                "icon": "Beef",
+                "items": [
+                    {"code": "bg-1", "name": "Burger complet", "price": 2000, "desc": "Steak pur bœuf, œuf, salade, tomate, oignons caramélisés et sauce burger maison.", "popular": True, "special": False},
+                    {"code": "bg-2", "name": "Double burger", "price": 2500, "desc": "Deux steaks grillés, double cheddar coulant, sauce spéciale et pain toasté.", "popular": True, "special": False},
+                    {"code": "bg-3", "name": "Burger jambon", "price": 2500, "desc": "Steak savoureux, tranches de jambon, fromage fondu et légumes frais.", "popular": False, "special": False},
+                    {"code": "bg-4", "name": "Burger royal", "price": 3000, "desc": "Double steak, œuf, bacon/jambon, triple fromage et sauce chef.", "popular": True, "special": False},
+                ]
+            },
+            # 7. Tacos simples (classiques)
+            {
+                "category": "Tacos simples",
+                "icon": "Utensils",
+                "items": [
+                    {"code": "ts-1", "name": "Tacos viande simple", "price": 2500, "desc": "Le classique viande hachée, frites et sauce fromagère.", "popular": False, "special": False},
+                    {"code": "ts-2", "name": "Tacos poulet simple", "price": 2500, "desc": "Poulet grillé, frites et sauce fromagère crémeuse.", "popular": False, "special": False},
+                    {"code": "ts-3", "name": "Tacos mixte simple", "price": 3000, "desc": "Duo poulet et viande hachée avec frites dorées.", "popular": True, "special": False},
+                    {"code": "ts-4", "name": "Tacos jambon simple", "price": 2000, "desc": "Jambon tendre et sauce onctueuse dans sa galette chaude.", "popular": False, "special": False},
+                    {"code": "ts-5", "name": "Tacos viande jambon simple", "price": 3500, "desc": "Viande hachée et jambon savoureux.", "popular": False, "special": False},
+                    {"code": "ts-6", "name": "Tacos poulet jambon simple", "price": 3500, "desc": "Poulet fondant et jambon.", "popular": False, "special": False},
+                    {"code": "ts-7", "name": "Tacos mixte jambon simple", "price": 4000, "desc": "Poulet, viande et jambon.", "popular": False, "special": False},
+                    {"code": "ts-8", "name": "Tacos XL simple", "price": 5000, "desc": "Format géant version classique galette dorée.", "popular": False, "special": False},
+                ]
+            }
+        ]
+
+        total_created = 0
+        for group in catalog:
+            category, _ = Category.objects.get_or_create(
+                name=group["category"],
+                defaults={
+                    "slug": slugify(group["category"]),
+                    "icon": group.get("icon", "Utensils")
+                }
+            )
+
+            for item_data in group["items"]:
+                item, created = MenuItem.objects.update_or_create(
+                    code=item_data["code"],
+                    defaults={
+                        "category": category,
+                        "name": item_data["name"],
+                        "price": item_data["price"],
+                        "description": item_data["desc"],
+                        "popular": item_data["popular"],
+                        "is_daily_special": item_data["special"],
+                        "is_available": True
+                    }
+                )
+                total_created += 1
+
+        self.stdout.write(self.style.SUCCESS(f"Succès : {total_created} articles importés dans la base Django avec le Plat du Jour configuré."))
