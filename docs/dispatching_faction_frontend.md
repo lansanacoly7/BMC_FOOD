@@ -50,6 +50,7 @@ graph TD
         EH2["Module C2 : Bottom-Sheet Panier Framer Motion"]
         EH3["Module A2 : Carillon Web Audio & Push Notifications"]
         EH4["Revue de code & Intégration Mobile"]
+        EH5["Module C1 : Bandeau Plat du Jour animé"]
     end
 
     subgraph Maimouna["Maimouna Sall (Composants & Logique)"]
@@ -122,6 +123,18 @@ graph TD
 * **Statut** : ✅ Livré sur `feature/frontend/admin-app`, testé de bout en bout contre le backend Django.
 * **À savoir pour la démo** : les navigateurs bloquent le son tant que personne n'a cliqué sur la page. À l'ouverture, l'admin affiche donc l'écran « Démarrer le service » : un clic sur « Activer les alertes » débloque la sonnerie et demande l'autorisation des notifications. Le bouton « Tester la sonnerie » permet de vérifier le son avant le service.
 
+#### 📌 Tâche EH-5 : Module C1 — Bandeau Plat du Jour Animé
+* **Objectif** : Mettre en avant le Plat du Jour en tête du site client avec une animation soignée (critère d'audit « Plat du jour bien mis en avant avec Motion »).
+* **Fichiers impactés** :
+  - `client_website/src/components/client/DailySpecialBanner.tsx`
+  - `client_website/src/hooks/useDailySpecials.ts`
+* **Spécifications** :
+  - Données de `GET /api/daily-special/`, rafraîchies toutes les 10 secondes et au retour sur l'onglet : un changement fait dans l'admin (A3) apparaît sans recharger la page.
+  - Badge « Plat du jour » animé, carte sombre et dorée, prix serveur en F CFA, bouton « Ajouter » avec confirmation « Ajouté ».
+  - Plusieurs plats du jour : cartes défilables au doigt (pas de rotation automatique). Aucun plat ou API injoignable : bandeau masqué, le reste du site fonctionne.
+* **Statut** : ✅ Livré sur `feature/frontend/elhadji-daily-special`. Recette 360/390/414 px validée contre le backend Django.
+* **Branchement** : `<DailySpecialBanner specials={specials} isLoading={isLoading} onAdd={addToCart} />` avec `const { specials, isLoading } = useDailySpecials()`, à placer sous le `Header` (MS-2).
+
 #### 📌 Tâche EH-4 : Revue de Code, Contrôle Qualité & Clôture de Branche
 * **Objectif** : Vérifier le respect des standards, l'absence d'erreurs en console, et préparer les Pull Requests pour validation par Lansana Coly.
 * **Statut** : ✅ Livré pour EH-1 à EH-3 (build et lint sans erreur ni avertissement, recettes automatisées dans Chrome). Les PR vers `develop` sont prêtes. La revue des modules de Maimouna et Pape Aliou se fera à leur livraison.
@@ -150,7 +163,7 @@ graph TD
 * **Objectif** : Intégrer la page d'accueil du site client avec tous les produits réels de BMC Food.
 * **Fichiers impactés** :
   - `client_website/src/components/client/Header.tsx` (Logo BMC, horaires 11h-02h, téléphones 77 856 13 13 / 77 106 75 75)
-  - `client_website/src/components/client/DailySpecialBanner.tsx` (Mise en valeur animée du Plat du Jour)
+  - ~~`client_website/src/components/client/DailySpecialBanner.tsx`~~ : livré par El Hadji (tâche EH-5), à placer sous le `Header`
   - `client_website/src/components/client/CategoryScroll.tsx` (Barre de défilement horizontal tactile des 7 catégories)
   - `client_website/src/components/client/ProductCard.tsx` (Carte avec photo optimisée, prix en F CFA, badge catégorie, bouton d'ajout)
 * **Critères d'Acceptation (DoD)** :
@@ -251,7 +264,7 @@ graph TD
 | **Design System & Palette BMC** | **R / A** | C | C | I |
 | **CartContext & LocalStorage** | C | **R / A** | I | I |
 | **Catalogue & Catégories (C1)** | C | **R / A** | C | I |
-| **Plat du Jour Animé (C1)** | **R** | **R** | C | I |
+| **Plat du Jour Animé (C1)** | **R / A** | C | C | I |
 | **Tiroir Panier Motion (C2)** | **R / A** | C | I | I |
 | **Formulaire & GPS (C3)** | C | **R / A** | C | I |
 | **Paiements Wave/OM/Cash (C3)** | C | C | **R / A** | I |
