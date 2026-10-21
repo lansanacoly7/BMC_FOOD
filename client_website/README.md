@@ -49,10 +49,10 @@ Tailwind v4 se configure dans `src/index.css` (bloc `@theme`) et non plus dans `
 
 | Classe Tailwind (`bg-`, `text-`, `border-`…) | Couleur   | Usage                                                   |
 | :------------------------------------------- | :-------- | :------------------------------------------------------ |
-| `bmc-braise`                                 | `#CF4A08` | Bouton d'action principal (charte v1.1). **Texte blanc dessus** (4,5:1). Appuyé : `bmc-braise-press`. |
-| `bmc-orange`                                 | `#F97316` | Ancien orange d'action, encore utilisé par le bandeau Plat du Jour. Jamais de texte blanc dessus (2,8:1). |
+| `bmc-orange-braise` (alias `bmc-orange`)     | `#CF4A08` | Bouton d'action principal (charte v1.1). **Texte blanc dessus** (4,5:1). |
+| `bmc-gold`                                   | `#FCB800` | Or du logo : badges, prix, bouton d'ajout. **Texte charbon dessus**, jamais blanc. |
+| `bmc-black`                                  | `#0C0C0D` | Fonds premium (en-tête, confirmation). |
 | `bmc-orange-deep`                            | `#C2410C` | Texte orange sur fond clair (contraste AA).             |
-| `bmc-gold`                                   | `#FCB800` | Or du logo (charte v1.1) : badges, prix, bouton d'ajout. Texte charbon dessus. |
 | `bmc-charcoal`                               | `#18181B` | Textes, fonds sombres.                                  |
 | `bmc-offwhite`                               | `#FAFAFA` | Fond du site.                                           |
 

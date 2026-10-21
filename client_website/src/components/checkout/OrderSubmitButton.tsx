@@ -25,7 +25,7 @@ export function OrderSubmitButton({ isSubmitting, amount, disabled = false, onCl
       disabled={isDisabled}
       aria-busy={isSubmitting}
       whileTap={isDisabled ? undefined : { scale: 0.97 }}
-      className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-bmc-braise font-display text-lg font-bold text-white shadow-lg shadow-bmc-braise/40 transition-colors hover:bg-bmc-braise-press focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-charcoal disabled:cursor-not-allowed disabled:shadow-none [&:disabled:not([aria-busy=true])]:bg-[#e7b9a0]"
+      className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-bmc-orange-braise font-display text-lg font-bold text-white shadow-lg shadow-bmc-orange-braise/40 transition-colors hover:brightness-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-charcoal disabled:cursor-not-allowed disabled:shadow-none [&:disabled:not([aria-busy=true])]:bg-[#e7b9a0]"
     >
       {isSubmitting ? (
         <>
