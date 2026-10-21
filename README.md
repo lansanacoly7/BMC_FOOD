@@ -4,7 +4,6 @@
 > **Dépôt GitHub** : [https://github.com/lansanacoly7/BMC_FOOD](https://github.com/lansanacoly7/BMC_FOOD)  
 > **Sponsor** : Pape Aliou Sène (Directeur Général)  
 > **Chef de Projet & Lead Technique** : Lansana Coly  
-> **Documentation pour l'équipe** : [Guide de Collaboration GitHub](docs/guide_collaboration_github.md)
 
 ---
 
@@ -25,8 +24,7 @@ BMC_FOOD/
 ├── backend/                  # [Ibrahima & Pathé] Django REST Framework, SQLite, moteur de prix
 ├── client_website/           # [El Hadji, Maimouna, Pape Aliou] Site Web Client Mobile-First (React + Vite + TS + Motion)
 ├── admin_app/                # [El Hadji & Maimouna] Application Web Admin avec alertes sonores & push
-├── docs/                     # Guides de collaboration et feuilles de route
-│   ├── guide_collaboration_github.md       <-- À LIRE PAR TOUTE L'ÉQUIPE
+├── docs/                     # Feuilles de route complètes par faction (incluant les guides GitHub)
 │   ├── feuille_de_route_frontend_design.md <-- Équipe Frontend & Design
 │   ├── feuille_de_route_backend.md         <-- Équipe Backend & API
 │   └── pilotage_et_audits_lead_technique.md<-- Lead Technique
@@ -35,14 +33,16 @@ BMC_FOOD/
 
 ---
 
-## 🚀 Guides & Feuilles de Route
+## 🚀 Feuilles de Route des Factions (Rôles, Tâches & Workflow Git)
 
-Chaque membre de l'équipe doit se référer au document correspondant à sa faction :
+Chaque faction dispose d'un document complet et unique contenant ses missions, l'emplacement de ses fichiers et son guide Git pas à pas :
 
-- 📖 **Guide GitHub & Règles de Commit** : [docs/guide_collaboration_github.md](docs/guide_collaboration_github.md)
-- 🎨 **Feuille de Route Frontend & Design** : [docs/feuille_de_route_frontend_design.md](docs/feuille_de_route_frontend_design.md)
-- ⚙️ **Feuille de Route Backend & API** : [docs/feuille_de_route_backend.md](docs/feuille_de_route_backend.md)
-- 🛡️ **Pilotage & Critères de Qualité** : [docs/pilotage_et_audits_lead_technique.md](docs/pilotage_et_audits_lead_technique.md)
+- 🎨 **Feuille de Route Frontend & Design** : [docs/feuille_de_route_frontend_design.md](docs/feuille_de_route_frontend_design.md)  
+  *(Pour El Hadji Massogui Diop, Maimouna Sall, Pape Aliou Sène)*
+- ⚙️ **Feuille de Route Backend & API** : [docs/feuille_de_route_backend.md](docs/feuille_de_route_backend.md)  
+  *(Pour Ibrahima Khalilou Diallo, Pathé Fall)*
+- 🛡️ **Pilotage & Critères de Qualité** : [docs/pilotage_et_audits_lead_technique.md](docs/pilotage_et_audits_lead_technique.md)  
+  *(Pour Lansana Coly)*
 
 ---
 
