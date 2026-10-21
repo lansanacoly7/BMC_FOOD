@@ -1,8 +1,22 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
+from django.db import transaction
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework import status
+from rest_framework.permissions import AllowAny, IsAdminUser
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from . import order_rules
+from .api_schemas import (
+    ErrorEnvelopeSerializer,
+    HealthResponseSerializer,
+    OrderEnvelopeSerializer,
+    OrderListResponseSerializer,
+    OrderStatusUpdateRequestSerializer,
+)
+from .exceptions import error_response, first_message
 from .models import Category, MenuItem, Order
 from .serializers import (
     CategorySerializer,
@@ -12,6 +26,7 @@ from .serializers import (
 )
 
 class HealthCheckView(APIView):
+    @extend_schema(responses=HealthResponseSerializer)
     def get(self, request):
         return Response({
             'status': 'ok',
@@ -75,20 +90,75 @@ class ToggleDailySpecialView(APIView):
         })
 
 
+ORDER_STATUS_VALUES = [choice[0] for choice in Order.STATUS_CHOICES]
+PAYMENT_STATUS_VALUES = [choice[0] for choice in Order.PAYMENT_STATUS_CHOICES]
+
+
+def _find_order(ref_or_id, for_update=False):
+    """Retrouve une commande par ID Django (numérique) ou par référence `BMC-XXXX`. Lève Http404."""
+    queryset = Order.objects.all()
+    if for_update:
+        queryset = queryset.select_for_update()
+    if ref_or_id.isdigit():
+        return get_object_or_404(queryset, id=int(ref_or_id))
+    return get_object_or_404(queryset, order_ref=ref_or_id)
+
+
+def _check_allowed_value(errors, field, value, allowed):
+    if value is None:
+        return
+    if not isinstance(value, str) or value not in allowed:
+        errors[field] = [f"Valeur invalide. Valeurs autorisées : {', '.join(allowed)}."]
+
+
 class OrderListCreateView(APIView):
+    """GET (liste, administration) / POST (création, public)."""
+
+    def get_permissions(self):
+        method = getattr(getattr(self, 'request', None), 'method', None)
+        if method == 'POST':
+            return [AllowAny()]
+        return [IsAdminUser()]
+
+    @extend_schema(
+        operation_id='orders_list',
+        parameters=[
+            OpenApiParameter(
+                'status', str, enum=ORDER_STATUS_VALUES, required=False,
+                description="Filtre par statut de commande.",
+            ),
+        ],
+        responses={
+            200: OrderListResponseSerializer,
+            400: ErrorEnvelopeSerializer,
+            401: ErrorEnvelopeSerializer,
+            403: ErrorEnvelopeSerializer,
+        },
+    )
     def get(self, request):
         status_filter = request.query_params.get('status')
         queryset = Order.objects.prefetch_related('items__menu_item').all()
         if status_filter:
+            if status_filter not in ORDER_STATUS_VALUES:
+                message = f"Statut invalide. Valeurs autorisées : {', '.join(ORDER_STATUS_VALUES)}."
+                return error_response(message, errors={'status': [message]})
             queryset = queryset.filter(status=status_filter)
-        
-        serializer = OrderSerializer(queryset, many=True)
+
+        orders = list(queryset)
         return Response({
             'success': True,
-            'count': queryset.count(),
-            'orders': serializer.data
+            'count': len(orders),
+            'orders': OrderSerializer(orders, many=True).data
         })
 
+    @extend_schema(
+        request=OrderCreateSerializer,
+        responses={
+            201: OrderEnvelopeSerializer,
+            400: ErrorEnvelopeSerializer,
+            503: ErrorEnvelopeSerializer,
+        },
+    )
     def post(self, request):
         serializer = OrderCreateSerializer(data=request.data)
         if serializer.is_valid():
@@ -98,19 +168,26 @@ class OrderListCreateView(APIView):
                 'message': 'Commande créée avec succès !',
                 'order': OrderSerializer(order).data
             }, status=status.HTTP_201_CREATED)
-        return Response({
-            'success': False,
-            'errors': serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
+        return error_response(
+            first_message(serializer.errors) or 'Commande invalide.',
+            errors=serializer.errors,
+        )
 
 
 class OrderDetailView(APIView):
+    permission_classes = [IsAdminUser]
+
+    @extend_schema(
+        operation_id='orders_detail',
+        responses={
+            200: OrderEnvelopeSerializer,
+            401: ErrorEnvelopeSerializer,
+            403: ErrorEnvelopeSerializer,
+            404: ErrorEnvelopeSerializer,
+        },
+    )
     def get(self, request, ref_or_id):
-        if ref_or_id.isdigit():
-            order = get_object_or_404(Order, id=int(ref_or_id))
-        else:
-            order = get_object_or_404(Order, order_ref=ref_or_id)
-        
+        order = _find_order(ref_or_id)
         return Response({
             'success': True,
             'order': OrderSerializer(order).data
@@ -118,32 +195,68 @@ class OrderDetailView(APIView):
 
 
 class OrderStatusUpdateView(APIView):
+    """Met à jour le statut de commande et/ou le statut de paiement (I4).
+
+    Les deux valeurs sont validées (valeurs, puis transitions autorisées) AVANT toute
+    écriture : en cas d'erreur sur l'une, aucune des deux n'est appliquée.
+    Les transitions sont définies dans `api/order_rules.py`.
+    """
+    permission_classes = [IsAdminUser]
+
+    @extend_schema(
+        request=OrderStatusUpdateRequestSerializer,
+        responses={
+            200: OrderEnvelopeSerializer,
+            400: ErrorEnvelopeSerializer,
+            401: ErrorEnvelopeSerializer,
+            403: ErrorEnvelopeSerializer,
+            404: ErrorEnvelopeSerializer,
+        },
+    )
     def patch(self, request, ref_or_id):
-        if ref_or_id.isdigit():
-            order = get_object_or_404(Order, id=int(ref_or_id))
-        else:
-            order = get_object_or_404(Order, order_ref=ref_or_id)
+        data = request.data
+        if not isinstance(data, dict):
+            return error_response("Corps de requête invalide : un objet JSON est attendu.")
 
-        new_status = request.data.get('status')
-        new_payment_status = request.data.get('payment_status')
+        new_status = data.get('status')
+        new_payment_status = data.get('payment_status')
+        if new_status is None and new_payment_status is None:
+            message = "Fournir au moins « status » ou « payment_status »."
+            return error_response(message, errors={'non_field_errors': [message]})
 
-        allowed_statuses = [choice[0] for choice in Order.STATUS_CHOICES]
-        if new_status and new_status not in allowed_statuses:
-            return Response({
-                'success': False,
-                'error': f"Statut invalide. Autorisés : {', '.join(allowed_statuses)}"
-            }, status=status.HTTP_400_BAD_REQUEST)
+        errors = {}
+        _check_allowed_value(errors, 'status', new_status, ORDER_STATUS_VALUES)
+        _check_allowed_value(errors, 'payment_status', new_payment_status, PAYMENT_STATUS_VALUES)
+        if errors:
+            return error_response(first_message(errors), errors=errors)
 
-        if new_status:
-            order.status = new_status
-        if new_payment_status:
-            order.payment_status = new_payment_status
-        
-        order.save()
+        with transaction.atomic():
+            order = _find_order(ref_or_id, for_update=True)
+
+            if new_status is not None:
+                message = order_rules.validate_order_status_transition(order.status, new_status)
+                if message:
+                    errors['status'] = [message]
+            if new_payment_status is not None:
+                message = order_rules.validate_payment_status_transition(order.payment_status, new_payment_status)
+                if message:
+                    errors['payment_status'] = [message]
+            if errors:
+                return error_response(first_message(errors), errors=errors)
+
+            changed = []
+            if new_status is not None and new_status != order.status:
+                order.status = new_status
+                changed.append('status')
+            if new_payment_status is not None and new_payment_status != order.payment_status:
+                order.payment_status = new_payment_status
+                changed.append('payment_status')
+            if changed:
+                order.save(update_fields=changed)
 
         return Response({
             'success': True,
-            'message': 'Statut de commande mis à jour.',
+            'message': 'Commande mise à jour.' if changed else 'Aucun changement : la commande est déjà dans cet état.',
             'order': OrderSerializer(order).data
         })
 

@@ -413,3 +413,18 @@ flowchart TD
 3. **Répartition et suivi** : ce document, puis les journaux individuels.
 
 Les contradictions relevées entre ces documents (notamment D2 et D3) ne sont **pas tranchées ici** : elles attendent une décision humaine.
+
+---
+
+## 9. Décisions tranchées par Ibrahima (21/10/2026)
+
+| # | Décision retenue |
+|---|---|
+| D1 | Jeton DRF pour compte staff ; permission `IsAdminUser` sur les endpoints admin. |
+| D2 | `pending → confirmed → preparing → delivering → delivered` ; `cancelled` depuis `pending`/`confirmed`/`preparing` ; sans saut ni retour ; `delivered` et `cancelled` finaux. |
+| D6 | Paiement : `unpaid → pending → paid` et `unpaid → paid` ; `paid` final ; modifiable par l'administration uniquement ; pas d'intégration Wave/OM réelle. |
+| D8 | Déplacements `git mv` refaits sur la branche (résultat identique à `fix-project-layout`). |
+| D10 | Erreurs : `success:false` + `errors` (par champ) + `error` ; 404 harmonisés. |
+| D12 | 20 unités maximum par ligne, 30 lignes distinctes maximum. |
+
+Les autres décisions (D3, D4, D5, D7, D9, D11, D13, D14) restent ouvertes. Statuts réels des tâches d'Ibrahima : voir [journal_ibrahima.md](docs_backend/journal_ibrahima.md).
