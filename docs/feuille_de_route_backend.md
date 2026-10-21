@@ -1,21 +1,100 @@
-# Feuille de Route — Faction Backend & API
+# Feuille de Route & Guide de Travail — Faction Backend & API
 
 > **Responsable Faction** : Ibrahima Khalilou Diallo  
 > **Contributeur** : Pathé Fall (Assistance Backend)  
-> **Supervision & Audit** : Lansana Coly (Lead Technique)  
-> **Dépôt Git** : `BMC_FOOD` | **Branches de travail** : `feature/backend/*`
+> **Supervision & Validation PR** : Lansana Coly (Lead Technique)  
+> **Dépôt GitHub** : [https://github.com/lansanacoly7/BMC_FOOD](https://github.com/lansanacoly7/BMC_FOOD)
 
 ---
 
-## 1. Principes & Autonomie de l'Équipe
+## 1. Comment Travailler sur GitHub & Où Mettre Vos Fichiers
+
+### 📁 Emplacement Obligatoire des Fichiers
+Tout le code Python et Django doit être impérativement placé dans le dossier `backend/` :
+
+```text
+BMC_FOOD/
+├── backend/                  <-- [METTRE ICI TOUT LE CODE BACKEND DJANGO]
+│   ├── api/                  # Application API REST (models.py, views.py, serializers.py, urls.py)
+│   │   ├── migrations/       # Fichiers de migrations Django
+│   │   └── management/       # Commande seed_bmc.py
+│   ├── bmc_backend/          # Configuration Django (settings.py, urls.py, wsgi.py)
+│   ├── manage.py             # Script de commande Django
+│   ├── requirements.txt      # Dépendances Python
+│   └── bmc_orders.sqlite3    # Base de données locale de démo (exclue de Git)
+│
+└── docs/                     # Documentation et feuilles de route
+```
+
+> [!WARNING]
+> **Ce qu'il ne faut JAMAIS committer** :
+> Les dossiers `venv/`, `__pycache__/`, `*.sqlite3` et `.env` sont strictement exclus par `.gitignore`. Ne jamais tenter de committer votre environnement virtuel ni votre base de test locale.
+
+---
+
+### 🌿 Branches de Travail Assignées
+Le backend dispose de sa branche dédiée. Vous ne travaillez **JAMAIS sur `main`** :
+
+- **Branche principale Backend** : `feature/backend/setup-and-pricing`
+- **Sous-branches autorisées** : Si vous découpez une tâche entre vous (ex : Ibrahima sur les serializers, Pathé sur les tests), créez une sous-branche :
+  ```bash
+  git checkout -b feature/backend/nom-de-votre-tache
+  ```
+
+---
+
+### 🛠️ Commandes Git Pas à Pas pour l'Équipe Backend
+
+#### 1. Cloner le projet (la première fois)
+```bash
+git clone https://github.com/lansanacoly7/BMC_FOOD.git
+cd BMC_FOOD
+git fetch --all
+```
+
+#### 2. Se positionner sur la branche Backend
+```bash
+git checkout feature/backend/setup-and-pricing
+git pull origin develop
+```
+
+#### 3. Coder et faire des commits réguliers et clairs
+Faites des commits atomiques au format standard :
+- `feat(backend): ajout du modele MenuItem avec is_daily_special`
+- `feat(api): recalcul strict des montants dans OrderCreateSerializer`
+- `fix(orders): validation du moyen de paiement wave et orange_money`
+- `feat(events): endpoint pour notifier les commandes entrantes a l'admin`
+
+Exemple de commande :
+```bash
+git add backend/
+git commit -m "feat(api): recalcul infalsifiable des prix cote serveur"
+```
+
+#### 4. Pousser son travail sur GitHub
+```bash
+git push origin feature/backend/setup-and-pricing
+```
+
+#### 5. Ouvrir une Pull Request (PR) pour faire valider son travail
+Une fois votre module fonctionnel et testé :
+1. Allez sur GitHub : [https://github.com/lansanacoly7/BMC_FOOD/pulls](https://github.com/lansanacoly7/BMC_FOOD/pulls)
+2. Cliquez sur **« New pull request »**.
+3. Base : **`develop`** (⚠️ **JAMAIS `main`**).
+4. Compare : votre branche (ex : `feature/backend/setup-and-pricing`).
+5. Assignez **Lansana Coly** en Reviewer.
+
+---
+
+## 2. Principes & Autonomie de la Faction Backend
 
 > [!NOTE]
-> **Flexibilité du Dispatching** :  
-> En tant que Responsable Backend, **Ibrahima Khalilou Diallo** pilote l'architecture de données et l'API. Il a toute liberté pour répartir les tâches ci-dessous avec **Pathé Fall**, selon leurs affinités (ex : Ibrahima sur le moteur de prix et l'architecture des modèles, Pathé sur les migrations, le script de seed, les endpoints d'alertes et les tests unitaires).
+> **Autonomie d'Organisation** :  
+> En tant que Responsable Backend, **Ibrahima Khalilou Diallo** pilote l'architecture de données et l'API. Il a toute liberté pour répartir les tâches avec **Pathé Fall**, selon leurs affinités (ex : Ibrahima sur le moteur de prix et l'architecture des modèles, Pathé sur les migrations, le script de seed, les endpoints d'alertes et les tests).
 
 ---
 
-## 2. Stack Technique Obligatoire
+## 3. Stack Technique Obligatoire
 - **Framework** : `Python 3.13` + `Django 5`
 - **API REST** : `Django REST Framework (DRF)`
 - **CORS** : `django-cors-headers`
@@ -23,45 +102,33 @@
 
 ---
 
-## 3. Chantiers & Spécifications Métier
+## 4. Chantiers & Spécifications Métier
 
 ### Chantier B1 — Modèles de Données & Relations
 1. **`Category`** : `name`, `slug`, `icon`.
 2. **`MenuItem`** :
    - `category` (ForeignKey vers Category)
-   - `code` (identifiant unique pour les commandes : `tp-1`, `bg-1`, etc.)
+   - `code` (identifiant unique : `tp-1`, `bg-1`, etc.)
    - `name`, `description`, `price` (en F CFA), `image_url`
    - `is_available` (booléen)
    - `is_daily_special` (booléen : **Plat du Jour**)
    - `popular` (booléen : best-sellers)
 3. **`Order`** :
-   - `order_ref` (référence unique visible client : `BMC-XXXX`)
+   - `order_ref` (référence unique : `BMC-XXXX`)
    - `customer_name`, `phone`, `address`, `notes`
    - `payment_method` (`cash`, `wave`, `orange_money`)
    - `payment_status` (`unpaid`, `pending`, `paid`)
-   - `total_amount` (montant total calculé obligatoirement par le serveur)
+   - `total_amount` (montant recalculé obligatoirement par le serveur)
    - `status` (`pending`, `confirmed`, `preparing`, `delivering`, `delivered`, `cancelled`)
-   - `is_notified_to_admin` (booléen pour le suivi des alertes sonores/push)
+   - `is_notified_to_admin` (booléen pour le suivi de la sonnerie et push)
    - `created_at`
 4. **`OrderItem`** :
    - `order` (ForeignKey), `menu_item` (ForeignKey), `item_name`, `unit_price`, `quantity`, `subtotal`
 
 ---
 
-### Chantier B2 — Moteur Absolu de Tarification (Règle Métier Sécurité)
+### Chantier B2 — Moteur Absolu de Tarification (Règle Sécurité)
 - **Le navigateur / client ne doit JAMAIS pouvoir définir le prix d'un article.**
-- Le payload de commande reçu contient uniquement :
-  ```json
-  {
-    "customer_name": "Lansana Coly",
-    "phone": "77 106 75 75",
-    "address": "Ngor, Dakar",
-    "payment_method": "wave",
-    "items": [
-      { "id": "tp-1", "quantity": 2 }
-    ]
-  }
-  ```
 - Le sérialiseur Django doit :
   1. Vérifier l'existence et la disponibilité de chaque `MenuItem` dans la base.
   2. Récupérer le `price` officiel en base.
@@ -71,36 +138,35 @@
 ---
 
 ### Chantier B3 — Catalogue Authentique BMC FOOD & Plat du Jour
-- Implémenter une commande de seed (`python manage.py seed_bmc`) insérant les 32 produits réels :
-  - **Tacos panés** (Viande: 3 500, Poulet: 3 500, Mixte: 4 000, Jambon: 3 000 F CFA)
-  - **Tacos jambon pané** (Viande: 4 500, Poulet: 4 500, Mixte: 5 000 F CFA)
-  - **Tacos Royal pané** (Viande jambon royal: 5 000, Mixte jambon royal: 6 000 F CFA...)
+- La commande de seed (`python manage.py seed_bmc`) insère les 32 produits réels :
+  - **Tacos panés** (3 000 à 4 000 F CFA)
+  - **Tacos jambon pané** (4 500 à 5 000 F CFA)
+  - **Tacos Royal pané** (4 000 à 6 000 F CFA)
   - **Tacos Hot Dog pané** (4 500 à 6 000 F CFA)
   - **Tacos XL pané** (6 000 F CFA)
-  - **Burgers** (Complet: 2 000, Double: 2 500, Jambon: 2 500, Royal: 3 000 F CFA)
+  - **Burgers** (2 000 à 3 000 F CFA)
   - **Tacos simples** (2 000 à 5 000 F CFA)
-  - Sauces associées (Fromagère, Samouraï, Algérienne, Barbecue, etc.)
-- Assigner un plat emblématique (ex : *Tacos mixte jambon royal pané*) avec `is_daily_special = True`.
+- Assigner un plat emblématique avec `is_daily_special = True`.
 
 ---
 
 ### Chantier B4 — Endpoints API REST
-1. `GET /api/health/` : Contrôle d'état de l'API.
-2. `GET /api/menu/` : Liste structurée des catégories et des plats disponibles.
-3. `GET /api/daily-special/` : Retourne le ou les Plats du Jour actuels.
-4. `PATCH /api/daily-special/<id>/toggle/` : Bascule l'état Plat du Jour (utilisé par l'Admin).
-5. `POST /api/orders/` : Création et recalcul côté serveur d'une commande (Espèces, Wave, OM).
-6. `GET /api/orders/` : Liste de toutes les commandes pour l'admin (avec filtres de statut).
+1. `GET /api/health/` : État du serveur.
+2. `GET /api/menu/` : Liste des catégories et plats.
+3. `GET /api/daily-special/` : Retourne le Plat du Jour actuel.
+4. `PATCH /api/daily-special/<id>/toggle/` : Active / désactive le Plat du Jour (utilisé par l'Admin).
+5. `POST /api/orders/` : Création et recalcul côté serveur (Espèces, Wave, OM).
+6. `GET /api/orders/` : Liste des commandes pour l'admin (avec filtres de statut).
 7. `GET /api/orders/<ref>/` : Détail complet d'une commande avec ses articles.
-8. `PATCH /api/orders/<ref>/status/` : Mise à jour du statut (`preparing`, `delivering`, etc.).
-9. `GET /api/orders/events/unnotified/` : Retourne les commandes créées non encore notifiées à l'admin (pour déclencher la sonnerie et la notification push).
-10. `POST /api/orders/events/unnotified/` : Marque les commandes comme notifiées (acquittement par l'admin).
+8. `PATCH /api/orders/<ref>/status/` : Mise à jour du statut.
+9. `GET /api/orders/events/unnotified/` : Commandes non encore notifiées (déclencheur pour l'alerte sonore et push).
+10. `POST /api/orders/events/unnotified/` : Acquittement de l'alerte par l'admin.
 
 ---
 
-## 4. Livrables Attendus pour l'Audit de Qualité
-
-1. **Modèles et migrations Django sans conflits**.
-2. **Calcul des prix infalsifiable** testé et validé.
-3. **Endpoints testés** (Postman ou curl) avec gestion des erreurs 400 et 404 claires.
-4. **Base SQLite pré-remplie** avec les données exactes du restaurant.
+## 5. Critères d'Audit par Lansana Coly
+- [ ] Tout le code backend est bien confiné dans `backend/`.
+- [ ] Modèles et migrations sans conflits.
+- [ ] Calcul des prix infalsifiable vérifié.
+- [ ] Endpoints testés et documentés.
+- [ ] PR propre ouverte vers `develop`.
