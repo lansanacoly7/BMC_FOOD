@@ -1,12 +1,14 @@
 from django.contrib.auth.models import User
 from django.test import TestCase
 from rest_framework import status
+from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 from api.models import Category, MenuItem, Order, OrderItem
 
 class ApiEndpointsHTTPTests(TestCase):
     """
-    Tâche P6 : Tests automatisés de conformité HTTP et permissions de tous les endpoints B4.
+    Tâche P6 & P14 : Tests automatisés de conformité HTTP, permissions et authentification
+    par jeton réel sur tous les endpoints B4.
     Couvre 100% des endpoints : cas nominaux (200/201), cas d'erreur (400, 404) et sécurité (401/403).
     """
 
@@ -19,6 +21,7 @@ class ApiEndpointsHTTPTests(TestCase):
             email='admin@bmcfood.sn',
             password='admin_secure_password_2026'
         )
+        self.admin_token, _ = Token.objects.get_or_create(user=self.admin_user)
 
         # Utilisateur classique (non admin / non staff)
         self.regular_user = User.objects.create_user(
@@ -26,6 +29,7 @@ class ApiEndpointsHTTPTests(TestCase):
             email='client@bmcfood.sn',
             password='client_secure_password_2026'
         )
+        self.regular_token, _ = Token.objects.get_or_create(user=self.regular_user)
 
         # Données de menu
         self.category = Category.objects.create(name="Burgers", slug="burgers", icon="Beef")
@@ -101,16 +105,44 @@ class ApiEndpointsHTTPTests(TestCase):
         self.assertNotIn('bg-epuise', item_codes)
 
     # ------------------------------------------------------------------------
-    # 3. GET /api/daily-special/
+    # 3. GET /api/daily-special/ (Tâche P15 & Repli Gracieux)
     # ------------------------------------------------------------------------
     def test_daily_special_get_nominal_200(self):
-        """GET /api/daily-special/ renvoie le Plat du Jour configuré"""
+        """GET /api/daily-special/ renvoie le Plat du Jour configuré sans repli"""
         response = self.client.get('/api/daily-special/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data.get('success'))
+        self.assertFalse(response.data.get('is_fallback'))
         specials = response.data.get('daily_specials', [])
         self.assertEqual(len(specials), 1)
         self.assertEqual(specials[0]['code'], 'trp-3')
+
+    def test_daily_special_fallback_to_best_seller_when_none_configured(self):
+        """Critère P15 : repli gracieux sur le premier best-seller disponible si aucun plat du jour"""
+        self.item_special.is_daily_special = False
+        self.item_special.save()
+
+        self.item_burger.popular = True
+        self.item_burger.save()
+
+        response = self.client.get('/api/daily-special/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data.get('success'))
+        self.assertTrue(response.data.get('is_fallback'), "Le flag is_fallback doit valoir True")
+        specials = response.data.get('daily_specials', [])
+        self.assertEqual(len(specials), 1)
+        self.assertEqual(specials[0]['code'], 'bg-1')
+
+    def test_daily_special_empty_when_no_special_and_no_popular_available(self):
+        """Critère P15 : retour propre (count: 0, liste vide) si aucun plat du jour ni best-seller"""
+        MenuItem.objects.update(is_daily_special=False, popular=False)
+
+        response = self.client.get('/api/daily-special/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data.get('success'))
+        self.assertFalse(response.data.get('is_fallback'))
+        self.assertEqual(response.data.get('count'), 0)
+        self.assertEqual(response.data.get('daily_specials'), [])
 
     # ------------------------------------------------------------------------
     # 4. PATCH /api/daily-special/<id>/toggle/ (Tâche P3)
@@ -364,8 +396,93 @@ class ApiEndpointsHTTPTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('liste', response.data.get('error', '').lower())
 
+    def test_unnotified_events_post_empty_order_refs_fails_400(self):
+        """Critère P14 & Règle D14 : Liste order_refs vide refusée avec 400"""
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.post(
+            '/api/orders/events/unnotified/',
+            {'order_refs': []},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('vide', response.data.get('error', '').lower())
+        self.order.refresh_from_db()
+        self.assertFalse(self.order.is_notified_to_admin)
+
     def test_unnotified_events_post_anonymous_refused(self):
         """Critère P4 : POST acquittement refusé aux anonymes (401/403)"""
         self.client.force_authenticate(user=None)
         response = self.client.post('/api/orders/events/unnotified/', {}, format='json')
         self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+    # ------------------------------------------------------------------------
+    # 11. Authentification par jeton réel (Tâche P14)
+    # ------------------------------------------------------------------------
+    def test_real_token_authentication_success_on_protected_endpoints(self):
+        """
+        Validation P14 :
+        Vérifie qu'un client HTTP utilisant un vrai jeton DRF via l'en-tête
+        'Authorization: Token <cle>' accède avec succès aux endpoints administrateur.
+        """
+        token_client = APIClient()
+        token_client.credentials(HTTP_AUTHORIZATION=f'Token {self.admin_token.key}')
+
+        # Accès à la liste des commandes
+        res_orders = token_client.get('/api/orders/')
+        self.assertEqual(res_orders.status_code, status.HTTP_200_OK)
+
+        # Accès au détail complet de la commande
+        res_detail = token_client.get(f'/api/orders/{self.order.order_ref}/')
+        self.assertEqual(res_detail.status_code, status.HTTP_200_OK)
+
+        # Accès aux alertes non notifiées
+        res_alerts = token_client.get('/api/orders/events/unnotified/')
+        self.assertEqual(res_alerts.status_code, status.HTTP_200_OK)
+
+        # Bascule du Plat du Jour
+        res_toggle = token_client.patch(
+            f'/api/daily-special/{self.item_burger.id}/toggle/',
+            {'is_daily_special': True},
+            format='json'
+        )
+        self.assertEqual(res_toggle.status_code, status.HTTP_200_OK)
+
+    def test_real_token_authentication_regular_user_fails_403(self):
+        """Validation P14 : Le jeton d'un utilisateur non-staff est rejeté avec 403"""
+        token_client = APIClient()
+        token_client.credentials(HTTP_AUTHORIZATION=f'Token {self.regular_token.key}')
+
+        res_orders = token_client.get('/api/orders/')
+        self.assertEqual(res_orders.status_code, status.HTTP_403_FORBIDDEN)
+
+        res_alerts = token_client.get('/api/orders/events/unnotified/')
+        self.assertEqual(res_alerts.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_invalid_token_fails_401(self):
+        """Validation P14 : Un jeton invalide ou corrompu est rejeté avec 401"""
+        token_client = APIClient()
+        token_client.credentials(HTTP_AUTHORIZATION='Token faux_jeton_inexistant_99999')
+
+        response = token_client.get('/api/orders/events/unnotified/')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_obtain_real_token_via_endpoint_and_consume_it(self):
+        """
+        Validation P14 :
+        Obtention d'un jeton réel via POST /api/auth/token/ et réutilisation
+        immédiate pour consommer l'API protégée.
+        """
+        auth_client = APIClient()
+        login_res = auth_client.post(
+            '/api/auth/token/',
+            {'username': 'admin_bmc', 'password': 'admin_secure_password_2026'},
+            format='json'
+        )
+        self.assertEqual(login_res.status_code, status.HTTP_200_OK)
+        token_key = login_res.data.get('token')
+        self.assertTrue(token_key, "Le jeton n'a pas été retourné par /api/auth/token/")
+
+        # Consommation avec le jeton fraîchement délivré
+        auth_client.credentials(HTTP_AUTHORIZATION=f'Token {token_key}')
+        res = auth_client.get('/api/orders/events/unnotified/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)

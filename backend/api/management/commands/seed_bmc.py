@@ -4,10 +4,22 @@ from django.utils.text import slugify
 from api.models import Category, MenuItem
 
 class Command(BaseCommand):
-    help = "Charge le menu complet et authentique de BMC FOOD avec le Plat du Jour de façon idempotente."
+    help = "Charge le menu complet et authentique de BMC FOOD avec le Plat du Jour de façon idempotente et non-destructive."
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--reset',
+            action='store_true',
+            help=(
+                "Force la réinitialisation de tous les champs aux valeurs par défaut du catalogue "
+                "(écrase les prix, descriptions, disponibilités et plats du jour modifiés en admin)."
+            ),
+        )
 
     def handle(self, *args, **options):
-        self.stdout.write("Initialisation des catégories et du menu BMC FOOD...")
+        reset = options.get('reset', False)
+        mode_label = "FORCÉ (--reset)" if reset else "NON-DESTRUCTIF (préserve les modifications admin)"
+        self.stdout.write(f"Initialisation du catalogue BMC FOOD en mode {mode_label}...")
 
         catalog = [
             # 1. Tacos panés
@@ -113,18 +125,49 @@ class Command(BaseCommand):
                     cats_updated += 1
 
                 for item_data in group["items"]:
-                    item, itm_created = MenuItem.objects.update_or_create(
-                        code=item_data["code"],
-                        defaults={
-                            "category": category,
-                            "name": item_data["name"],
-                            "price": item_data["price"],
-                            "description": item_data["desc"],
-                            "popular": item_data["popular"],
-                            "is_daily_special": item_data["special"],
-                            "is_available": True
-                        }
-                    )
+                    image_slug = slugify(item_data["name"])
+                    image_url = f"/images/products/{image_slug}.webp"
+
+                    if reset:
+                        item, itm_created = MenuItem.objects.update_or_create(
+                            code=item_data["code"],
+                            defaults={
+                                "category": category,
+                                "name": item_data["name"],
+                                "price": item_data["price"],
+                                "description": item_data["desc"],
+                                "popular": item_data["popular"],
+                                "is_daily_special": item_data["special"],
+                                "is_available": True,
+                                "image_url": image_url,
+                            }
+                        )
+                    else:
+                        item = MenuItem.objects.filter(code=item_data["code"]).first()
+                        if item:
+                            # Mode non-destructif (P10) : on préserve les modifications
+                            # apportées par l'administrateur (prix, description, disponibilité, plat du jour).
+                            item.category = category
+                            item.name = item_data["name"]
+                            item.popular = item_data["popular"]
+                            if not item.image_url:
+                                item.image_url = image_url
+                            item.save()
+                            itm_created = False
+                        else:
+                            item = MenuItem.objects.create(
+                                code=item_data["code"],
+                                category=category,
+                                name=item_data["name"],
+                                price=item_data["price"],
+                                description=item_data["desc"],
+                                popular=item_data["popular"],
+                                is_daily_special=item_data["special"],
+                                is_available=True,
+                                image_url=image_url,
+                            )
+                            itm_created = True
+
                     if itm_created:
                         items_created += 1
                     else:
@@ -135,9 +178,8 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Succès : Seed idempotent terminé. "
+                f"Succès : Seed {mode_label} terminé. "
                 f"Catégories (créées: {cats_created}, màj: {cats_updated}, total: {total_categories}) | "
-                f"Articles (créés: {items_created}, màj: {items_updated}, total: {total_items}). "
-                f"Plat du Jour: trp-3 configuré."
+                f"Articles (créés: {items_created}, màj: {items_updated}, total: {total_items})."
             )
         )

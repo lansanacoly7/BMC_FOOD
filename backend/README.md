@@ -40,20 +40,36 @@ pip install -r requirements.txt
 ```
 
 ### Étape 4 : Variables d'Environnement (Configuration Sécurisée)
-Le fichier `bmc_backend/settings.py` utilise les variables d'environnement suivantes (avec valeurs par défaut saines pour le développement local) :
+Le projet utilise un fichier `.env` local (ignoré par Git) ou des variables d'environnement système.
+Un modèle est fourni dans `backend/.env.example`.
 
-| Variable | Description | Valeur par défaut en Dev | Exemple en Production |
+Pour initialiser rapidement votre environnement de développement :
+```bash
+# Sur Linux / macOS :
+cp .env.example .env
+
+# Sur Windows (PowerShell) :
+Copy-Item .env.example .env
+```
+Activez ensuite `DJANGO_DEBUG=true` dans votre fichier `.env` ou directement dans votre terminal.
+
+| Variable | Description | Valeur par défaut en Dev (`DJANGO_DEBUG=true`) | Configuration Production (`DJANGO_DEBUG=false`) |
 |---|---|---|---|
-| `SECRET_KEY` | Clé secrète cryptographique Django | *(clé dev intégrée)* | `export SECRET_KEY='<cle_secrete_aleatoire>'` |
-| `DEBUG` | Mode débogage Django (`True`/`False`) | `True` | `export DEBUG=False` |
-| `ALLOWED_HOSTS` | Hôtes autorisés séparés par des virgules | `*` | `api.bmcfood.sn,localhost` |
-| `CORS_ALLOWED_ORIGINS` | Domaines frontend autorisés | `*` (Allow All en dev) | `https://bmcfood.sn,https://admin.bmcfood.sn` |
+| `DJANGO_DEBUG` | Active le mode débogage Django | `false` (définir explicitement à `true` en dev) | `false` |
+| `DJANGO_SECRET_KEY` | Clé secrète cryptographique Django | Clé interne jetable de dev si `DJANGO_DEBUG=true` | **Obligatoire** (générée aléatoirement) |
+| `DJANGO_ALLOWED_HOSTS` | Hôtes HTTP autorisés (séparés par des virgules) | `localhost,127.0.0.1,[::1]` | **Obligatoire** (ex. `api.bmcfood.sn`) |
+| `CORS_ALLOWED_ORIGINS` | Origines frontend autorisées par CORS | Ports Vite de dev (`5173`, `5174`, `5175`) | **Obligatoire** (ex. `https://bmcfood.sn,https://admin.bmcfood.sn`) |
+| `BMC_DB_PATH` | Emplacement du fichier SQLite | `backend/bmc_orders.sqlite3` | Chemin personnalisé absolu ou persistant |
 
 > [!CAUTION]
-> Aucun secret de production réel ne doit être committé dans le dépôt Git.
+> Par sécurité, sans `DJANGO_DEBUG=true`, le serveur Django refuse de démarrer si `DJANGO_SECRET_KEY` ou `DJANGO_ALLOWED_HOSTS` ne sont pas fournis. Aucun secret de production ne doit être committé dans le dépôt Git.
 
 ### Étape 5 : Appliquer les migrations de la base de données
 ```bash
+# Sur Windows (PowerShell) si .env n'est pas utilisé :
+$env:DJANGO_DEBUG="True"; python manage.py migrate
+
+# Avec le fichier .env configuré (DJANGO_DEBUG=true) :
 python manage.py migrate
 ```
 
@@ -61,7 +77,7 @@ python manage.py migrate
 ```bash
 python manage.py seed_bmc
 ```
-> La commande insère de façon 100% idempotente les **32 articles réels** et les **7 catégories officielles** du restaurant BMC FOOD, et configure le **Plat du Jour** emblématique (`trp-3` : *Tacos mixte jambon royal pané*). Relancer la commande met à jour les données sans créer de doublons.
+> La commande insère de façon 100% idempotente les **32 articles réels** et les **7 catégories officielles** du restaurant BMC FOOD, et configure le **Plat du Jour** emblématique (`trp-3` : *Tacos mixte jambon royal pané*). Relancer la commande met à jour les données sans créer de doublons. L'option `--reset` permet de forcer la réinitialisation des prix et disponibilités aux valeurs du catalogue initial.
 
 ### Étape 7 : Créer un compte administrateur (pour l'application Admin)
 ```bash
@@ -74,6 +90,7 @@ python manage.py createsuperuser
 
 ### Lancement du serveur de développement
 ```bash
+# Vérifiez que DJANGO_DEBUG=true est actif (.env ou terminal)
 python manage.py runserver
 ```
 L'API est accessible localement sur `http://127.0.0.1:8000/`.
@@ -86,11 +103,15 @@ L'API est accessible localement sur `http://127.0.0.1:8000/`.
 
 ## 4. Exécution de la Suite de Tests Automatisés
 
-La suite de tests unitaires et d'intégration couvre le moteur de prix (P5) et l'ensemble des endpoints HTTP (P6) :
+La suite de tests automatisée couvre l'ensemble des modules (moteur de prix, endpoints HTTP, authentification par jeton, plat du jour, règles métier et flux de commandes) :
 
 ```bash
-# Lancer la totalité des tests (35 tests) :
-python manage.py test api
+# Lancer la totalité des tests :
+# Sur Windows (PowerShell) :
+$env:DJANGO_DEBUG="True"; python manage.py test api
+
+# Sur Linux / macOS :
+DJANGO_DEBUG=true python manage.py test api
 
 # Lancer uniquement les tests du moteur de prix :
 python manage.py test api.tests.test_pricing

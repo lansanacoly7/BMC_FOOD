@@ -111,26 +111,50 @@ class MenuView(APIView):
 
 
 class DailySpecialView(APIView):
-    """Retourne le ou les Plats du Jour actuels"""
+    """Retourne le ou les Plats du Jour actuels (avec repli gracieux sur les best-sellers si aucun plat du jour n'est configuré - P15)."""
     permission_classes = [AllowAny]
 
     @extend_schema(
         tags=["Plat du Jour"],
         summary="Plat du Jour actif",
-        description="Retourne le ou les Plats du Jour actuellement configurés et disponibles pour mise en avant.",
+        description=(
+            "Retourne le Plat du Jour configuré et disponible pour mise en avant. "
+            "Règle de repli (P15) : si aucun Plat du Jour n'est configuré ou disponible, "
+            "l'API retourne gracieusement le premier best-seller disponible (avec is_fallback=True), "
+            "ou une liste vide si aucun article n'est éligible."
+        ),
         responses={
             200: OpenApiResponse(
                 response=DailySpecialResponseSerializer,
-                description="Plat du Jour actif retourné."
+                description="Plat du Jour actif ou article de repli (best-seller)."
             )
         }
     )
     def get(self, request):
         specials = MenuItem.objects.filter(is_daily_special=True, is_available=True)
+        if specials.exists():
+            return Response({
+                'success': True,
+                'count': specials.count(),
+                'is_fallback': False,
+                'daily_specials': MenuItemSerializer(specials, many=True).data
+            })
+
+        # Repli gracieux (P15) : premier article populaire (best-seller) disponible
+        fallback_items = MenuItem.objects.filter(is_available=True, popular=True)[:1]
+        if fallback_items.exists():
+            return Response({
+                'success': True,
+                'count': fallback_items.count(),
+                'is_fallback': True,
+                'daily_specials': MenuItemSerializer(fallback_items, many=True).data
+            })
+
         return Response({
             'success': True,
-            'count': specials.count(),
-            'daily_specials': MenuItemSerializer(specials, many=True).data
+            'count': 0,
+            'is_fallback': False,
+            'daily_specials': []
         })
 
 
@@ -402,13 +426,16 @@ class OrderUnnotifiedEventsView(APIView):
                     'error': "Le champ 'order_refs' doit être une liste de références."
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-            if order_refs:
-                updated_count = Order.objects.filter(
-                    order_ref__in=order_refs,
-                    is_notified_to_admin=False
-                ).update(is_notified_to_admin=True)
-            else:
-                updated_count = 0
+            if len(order_refs) == 0:
+                return Response({
+                    'success': False,
+                    'error': "La liste 'order_refs' ne peut pas être vide (D14)."
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            updated_count = Order.objects.filter(
+                order_ref__in=order_refs,
+                is_notified_to_admin=False
+            ).update(is_notified_to_admin=True)
         else:
             # Sans références spécifiées : acquitter toutes les commandes non notifiées (comportement D14)
             updated_count = Order.objects.filter(

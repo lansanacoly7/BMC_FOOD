@@ -238,6 +238,11 @@ class MenuResponseSerializer(serializers.Serializer):
 class DailySpecialResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField(default=True)
     count = serializers.IntegerField()
+    is_fallback = serializers.BooleanField(
+        default=False,
+        required=False,
+        help_text="Indique si les articles retournés sont issus du repli automatique sur les best-sellers (P15)."
+    )
     daily_specials = MenuItemSerializer(many=True)
 
 
