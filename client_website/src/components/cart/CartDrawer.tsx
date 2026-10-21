@@ -181,7 +181,7 @@ export function CartDrawer({ isOpen, onClose, items, onUpdateQuantity, onRemove,
                   type="button"
                   whileTap={{ scale: 0.97 }}
                   onClick={onCheckout}
-                  className="mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-bmc-orange font-display text-lg font-bold text-bmc-charcoal shadow-lg shadow-bmc-orange/30 transition-colors hover:bg-bmc-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-charcoal"
+                  className="mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-bmc-orange font-display text-lg font-bold text-white shadow-lg shadow-bmc-orange/30 transition-opacity hover:opacity-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-charcoal"
                 >
                   Valider la commande
                   <ArrowRight className="size-5" aria-hidden="true" />
