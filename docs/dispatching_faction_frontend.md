@@ -1,146 +1,150 @@
-# Dispatching équitable Frontend BMC FOOD
+# Dispatching équitable de tout le Frontend BMC FOOD
 
-## Règle de partage
+## Répartition
 
-Chaque personne a exactement la même charge estimée :
+Chaque membre a 3 tâches techniques principales et 1 tâche de contrôle.
 
-- **2 lots moyens (M)** de développement ;
-- **1 lot court (S)** de contrôle ou recette ;
-- participation aux tests finaux.
+| Membre | Site client | Application Admin | Contrôle |
+| --- | --- | --- | --- |
+| El Hadji Massogui Diop | Design system, menu | Dashboard commandes | Revue Frontend |
+| Maimouna Sall | Accueil, checkout | Plat du Jour | Tests responsive |
+| Pape Alioune Sène | Panier, envoi commande | Alertes et notifications | Vérification des données |
 
-Cette répartition concerne uniquement la faction Frontend et Design. Le backend Django REST reste hors de ce fichier.
+---
 
-| Membre | Charge | Ce qu'il livre |
-| --- | --- | --- |
-| El Hadji Massogui Diop | 2 M + 1 S | Design system, menu, revue Frontend |
-| Maimouna Sall | 2 M + 1 S | Accueil, checkout, recette responsive |
-| Pape Alioune Sène | 2 M + 1 S | Panier, commande/confirmation, recette contenu |
+## 1. El Hadji Massogui Diop — Lead Frontend
 
-## 1. El Hadji Massogui Diop - Lead Frontend et Design
+### 1. Appliquer la charte existante dans le code
 
-### Lot EH-1 - Design system et composants communs - M
+- Configurer Tailwind avec les couleurs, espacements, tailles, rayons et boutons de la charte existante (`Charte_graphique_BMC_Food.pdf`).
+- Créer les composants réutilisables : bouton, champ, badge, modal, loader, message d’erreur, header et état vide.
+- Préparer les animations Framer Motion communes.
 
-**Tu fais exactement ceci :**
+**Terminé quand :** les composants sont réutilisables dans le site client et l’Admin, avec des états focus, chargement, erreur et désactivé.
 
-1. Configurer les couleurs, espacements, rayons, tailles de texte et tailles de boutons dans Tailwind à partir de la charte.
-2. Créer les composants réutilisables : `Button`, `Input`, `ProductCard`, `Badge`, `Loader`, `ErrorMessage` et `Header`.
-3. Définir les règles Framer Motion réutilisables : apparition de carte, clic bouton et transition de page.
-4. Documenter dans le code comment utiliser chaque composant.
+### 2. Développer la page Menu
 
-**Terminé quand :** les composants sont réutilisables, typés TypeScript, visibles dans l'application et utilisables par Maimouna et Pape.
+- Créer la page Menu dans `client_website/`.
+- Afficher les catégories : Tacos panés, Burgers, Tacos simples et Sauces.
+- Afficher nom, prix F CFA, image disponible et bouton d’ajout pour chaque produit.
+- Connecter le bouton `+` au panier de Pape.
+- Gérer les états chargement, erreur et menu vide.
 
-### Lot EH-2 - Menu et cartes produits - M
+**Terminé quand :** le client peut parcourir les catégories et ajouter un produit au panier sur mobile, tablette et desktop.
 
-**Tu fais exactement ceci :**
+### 3. Développer le dashboard Admin
 
-1. Créer la page Menu dans `client_website/` à partir des composants communs.
-2. Afficher les catégories et les produits fournis : Tacos panés, Burgers, Tacos simples et Sauces.
-3. Afficher pour chaque produit : photo disponible, nom, prix en F CFA et bouton `+`.
-4. Relier le bouton `+` à la fonction d'ajout du panier fournie par Pape.
+- Créer la structure de `admin_app/`.
+- Afficher les commandes : référence, heure, montant, client et statut.
+- Créer la vue détaillée d’une commande.
+- Ajouter les boutons de statut : En attente, En préparation, En livraison et Livrée.
+- Connecter la lecture et la mise à jour au backend.
 
-**Terminé quand :** un client peut parcourir les catégories, ajouter un produit au panier et le menu fonctionne entre 360 px et 414 px sans erreur TypeScript.
+**Terminé quand :** une commande peut être lue et son statut changé depuis tablette ou ordinateur.
 
-### Lot EH-3 - Revue Frontend avant PR - S
+### 4. Faire la revue Frontend
 
-**Tu fais exactement ceci :**
+- Vérifier les Pull Requests de Maimouna et Pape.
+- Vérifier TypeScript, responsive, clavier, cohérence avec la charte existante et absence de composants dupliqués.
+- Préparer la PR finale vers `develop` pour validation par Lansana Coly.
 
-1. Vérifier les Pull Requests de Maimouna et Pape avant envoi à Lansana Coly.
-2. Vérifier que les composants utilisent bien la charte, qu'il n'y a pas de débordement et que le clavier peut atteindre les boutons et champs.
-3. Signaler les corrections précises ; ne pas refaire les tâches des autres à leur place.
+---
 
-**Terminé quand :** une seule Pull Request Frontend propre est prête vers `develop` avec Lansana Coly comme reviewer.
+## 2. Maimouna Sall — Accueil, checkout et Plat du Jour
 
-## 2. Maimouna Sall - Accueil et checkout
+### 1. Terminer l’accueil déjà commencé
 
-### Lot MS-1 - Accueil et plat du jour - M
+- Finaliser la page Accueil.
+- Afficher le logo BMC FOOD, les contenus validés, le bouton « Voir le menu » et le Plat du Jour.
+- Créer le sélecteur tactile des catégories.
+- Utiliser les animations fournies par El Hadji.
 
-**Tu fais exactement ceci :**
+**Terminé quand :** l’accueil est utilisable entre 360 px et 414 px et mène correctement au menu.
 
-1. Continuer et terminer la page Accueil déjà commencée.
-2. Afficher le logo BMC FOOD, le titre, le bouton « Voir le menu » et le bloc Plat du Jour.
-3. Créer le sélecteur horizontal tactile des catégories : Tacos panés, Burgers, Tacos simples et Sauces.
-4. Ajouter les animations légères de l'accueil avec les règles Framer Motion fournies par El Hadji.
+### 2. Développer le checkout et la confirmation
 
-**Terminé quand :** l'accueil fonctionne entre 360 px et 414 px, mène au menu et n'a aucune erreur d'affichage.
+- Créer les champs Nom, Téléphone, Adresse et Instructions.
+- Ajouter la géolocalisation assistée avec message de repli si refusée.
+- Créer les choix Espèces, Wave et Orange Money (simulation).
+- Valider les champs et afficher les erreurs sous les champs concernés.
+- Créer l’écran de confirmation visuel avec la référence de commande.
 
-### Lot MS-2 - Checkout et validation Frontend - M
+**Terminé quand :** une commande incomplète ne part pas et qu’une erreur conserve les informations saisies.
 
-**Tu fais exactement ceci :**
+### 3. Développer le gestionnaire de Plat du Jour
 
-1. Créer le formulaire Nom, Téléphone, Adresse et Instructions facultatives.
-2. Ajouter le bouton de géolocalisation assistée avec message clair si la permission est refusée.
-3. Créer le sélecteur visuel Espèces, Wave et Orange Money.
-4. Valider les champs avant l'envoi et afficher une erreur lisible sous chaque champ incorrect.
-5. Transmettre les données validées au module de soumission de Pape.
+- Créer dans l’Admin la liste des plats disponibles.
+- Permettre au restaurateur d’activer, remplacer ou désactiver le Plat du Jour.
+- Afficher clairement le Plat du Jour actif.
+- Afficher succès ou erreur après chaque action.
 
-**Terminé quand :** un formulaire incomplet ne s'envoie pas et les données saisies restent présentes en cas d'erreur.
+**Terminé quand :** le restaurateur peut gérer le Plat du Jour depuis l’Admin.
 
-### Lot MS-3 - Recette responsive - S
+### 4. Tester le responsive
 
-**Tu fais exactement ceci :**
+- Tester le site client à 360 px, 390 px, 414 px, tablette et desktop.
+- Tester l’Admin sur tablette et desktop.
+- Lister chaque bug avec écran, action, résultat attendu et résultat observé.
 
-1. Tester Accueil, Menu, Panier et Checkout aux largeurs 360 px, 390 px, 414 px, tablette et desktop.
-2. Écrire une liste d'anomalies avec écran, action, résultat attendu et résultat observé.
-3. Vérifier que les boutons et champs sont utilisables au doigt.
+---
 
-**Terminé quand :** aucun débordement ou bouton trop petit n'est présent sur les largeurs testées.
+## 3. Pape Alioune Sène — Panier, commande, alertes
 
-## 3. Pape Alioune Sène - Panier et commande
+### 1. Terminer le panier déjà commencé
 
-### Lot PAS-1 - Panier animé déjà commencé - M
+- Terminer le panier actuel.
+- Créer le tiroir panier animé depuis le bas de l’écran.
+- Gérer ajout, suppression, quantité, sous-total et panier vide.
+- Conserver le panier pendant la navigation.
 
-**Tu fais exactement ceci :**
+**Terminé quand :** le sous-total se met à jour immédiatement et qu’une quantité ne peut pas descendre sous 1.
 
-1. Terminer le panier déjà commencé.
-2. Créer le tiroir panier qui glisse depuis le bas avec Framer Motion.
-3. Gérer l'ajout, la suppression, l'augmentation et la diminution de quantité.
-4. Afficher sous-total, panier vide et lien retour vers le menu.
-5. Conserver le panier durant la navigation.
+### 2. Envoyer la commande et gérer la confirmation
 
-**Terminé quand :** chaque changement de quantité met à jour le sous-total immédiatement ; une quantité ne descend jamais sous 1.
+- Récupérer les articles du panier et les données validées par le checkout.
+- Envoyer la commande vers `POST /api/orders/`.
+- Afficher un chargement pendant l’envoi.
+- Afficher la confirmation seulement après la réponse réussie du serveur.
+- En cas d’erreur, conserver panier et formulaire.
 
-### Lot PAS-2 - Envoi de commande et confirmation - M
+**Terminé quand :** une commande réussie affiche sa référence et qu’une erreur ne supprime aucune donnée.
 
-**Tu fais exactement ceci :**
+### 3. Développer les alertes Admin
 
-1. Recevoir les articles du panier et les données validées par le checkout de Maimouna.
-2. Envoyer la commande vers l'API backend avec `POST /api/orders/` selon le contrat fourni par le backend.
-3. Afficher l'état de chargement pendant l'envoi.
-4. Afficher la page Confirmation avec la référence `BMC-XXXX` retournée par l'API.
-5. En cas d'échec, afficher un message et ne pas effacer le panier ni le formulaire.
+- Rafraîchir régulièrement les nouvelles commandes.
+- Déclencher une alerte sonore à l’arrivée d’une commande.
+- Arrêter le son après clic sur « Prendre en charge ».
+- Demander la permission de notification navigateur.
+- Afficher une notification avec référence et montant si elle est autorisée.
 
-**Terminé quand :** une réponse API réussie mène à la confirmation ; une réponse en erreur conserve les données de commande.
+**Terminé quand :** une nouvelle commande déclenche une alerte sans répéter l’alerte pour une commande déjà prise en charge.
 
-### Lot PAS-3 - Recette des données BMC - S
+### 4. Vérifier les données BMC
 
-**Tu fais exactement ceci :**
+- Vérifier les noms, catégories et prix.
+- Signaler les photos, horaires, disponibilités ou informations manquantes.
+- Vérifier que le logo reste complet, lisible et non déformé.
 
-1. Vérifier noms, catégories et prix de menu avant publication dans le Frontend.
-2. Signaler à El Hadji toute photo, disponibilité ou information manquante au lieu de l'inventer.
-3. Vérifier visuellement que le logo BMC FOOD est complet, non déformé et lisible.
+---
 
-**Terminé quand :** les informations non confirmées sont signalées ; aucun contenu inventé n'est publié.
+## Ordre de travail
 
-## Ordre de travail sans blocage
+1. El Hadji prépare les composants et règles Frontend.
+2. Maimouna termine l’accueil.
+3. Pape termine le panier.
+4. El Hadji développe le menu.
+5. Maimouna développe checkout et confirmation.
+6. Pape relie la commande à l’API.
+7. El Hadji développe le dashboard.
+8. Maimouna développe le Plat du Jour.
+9. Pape développe alertes et notifications.
+10. Maimouna teste le responsive, Pape vérifie les contenus, El Hadji fait la revue finale.
+11. Pull Request vers `develop`, validation par Lansana Coly.
 
-1. El Hadji livre les composants communs et les règles d'animation.
-2. Pape continue son panier en parallèle.
-3. Maimouna termine l'accueil déjà commencé pendant qu'El Hadji construit le menu.
-4. Maimouna construit ensuite le checkout.
-5. Pape relie le panier et le checkout à l'API dès que le contrat backend est disponible.
-6. Maimouna fait la recette responsive.
-7. El Hadji fait uniquement la revue d'intégration puis prépare la PR vers `develop`.
+---
 
-## Règles Git
+## Décisions et points confirmés
 
-- Ne jamais pousser sur `main`.
-- Travailler sur `feature/frontend/client-website` ou `feature/frontend/<tache>`.
-- Ne jamais committer `node_modules/`, `dist/`, `.env.local` ou `.vscode/`.
-- Une Pull Request vers `develop`, validée par Lansana Coly.
-
-## Informations toujours ouvertes
-
-- Wave et Orange Money : simulation ou intégration réelle.
-- Contrat exact de `POST /api/orders/` fourni par le backend.
-- Photos définitives, plat du jour et disponibilité des produits.
-- Échéance et disponibilité de chaque membre.
+- **Wave et Orange Money** : Simulation validée pour la démonstration (pas d'intégration API bancaire réelle).
+- **Endpoints backend** : Fournis par l'API Django REST (`/api/menu/`, `/api/orders/`, `/api/daily-special/`, `/api/orders/events/unnotified/`).
+- **Charte graphique** : Document officiel disponible à la racine (`Charte_graphique_BMC_Food.pdf`).
