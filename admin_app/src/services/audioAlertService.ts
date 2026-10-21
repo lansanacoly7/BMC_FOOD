@@ -62,7 +62,7 @@ class AudioAlertService {
     return this.isUnlocked
   }
 
-  /** Lance la sonnerie répétée. Sans effet si elle est déjà en cours. */
+  /** Lance la sonnerie répétée (silencieuse tant que unlock() n'a pas abouti). Sans effet si elle est déjà en cours. */
   start(): void {
     if (!this.isRinging) this.ring()
   }
@@ -102,16 +102,19 @@ class AudioAlertService {
 
   /** Rétablit le volume après le fondu de sortie d'un stop(). */
   private resetVolume(): void {
-    const { context, master } = this.getGraph()
+    if (!this.graph) return
+    const { context, master } = this.graph
     master.gain.cancelScheduledValues(context.currentTime)
     master.gain.setValueAtTime(MASTER_VOLUME, context.currentTime)
   }
 
   private playChime(): void {
-    const { context, master } = this.getGraph()
-    // Contexte encore bloqué : ne rien programmer, sinon les carillons s'empileraient au déblocage.
-    if (context.state !== 'running') return
+    // Avant unlock() ou contexte bloqué : ne rien programmer. Créer l'AudioContext hors d'un clic
+    // provoquerait un avertissement du navigateur, et les carillons s'empileraient au déblocage.
+    const graph = this.graph
+    if (!graph || graph.context.state !== 'running') return
 
+    const { context, master } = graph
     const startAt = context.currentTime + 0.01
     CHIME_NOTES_HZ.forEach((frequency, index) => {
       this.playBell(context, master, frequency, startAt + index * NOTE_GAP_S)
@@ -148,6 +151,7 @@ class AudioAlertService {
     })
   }
 
+  /** Crée le graphe audio : uniquement depuis unlock(), donc dans un clic de l'utilisateur. */
   private getGraph(): AudioGraph {
     if (!this.graph) {
       const context = new AudioContext()
