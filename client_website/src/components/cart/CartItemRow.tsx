@@ -1,0 +1,104 @@
+import { Minus, Plus, Trash2, UtensilsCrossed } from 'lucide-react'
+import { motion } from 'motion/react'
+import { formatFcfa } from '../../lib/format'
+import type { CartItem } from '../../types'
+
+const tapBounce = { scale: 0.95 }
+
+interface CartItemRowProps {
+  item: CartItem
+  onUpdateQuantity: (code: string, quantity: number) => void
+  onRemove: (code: string) => void
+}
+
+export function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowProps) {
+  const { product, quantity } = item
+  // aria-disabled plutôt que disabled : le bouton garde le focus clavier quand la quantité redescend à 1.
+  const canDecrement = quantity > 1
+
+  return (
+    <motion.li
+      layout
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, x: -48, transition: { duration: 0.2 } }}
+      className="flex gap-3 py-4"
+    >
+      <div className="size-16 shrink-0 overflow-hidden rounded-2xl bg-bmc-gold/15">
+        {product.image_url ? (
+          <img
+            src={product.image_url}
+            alt=""
+            width={64}
+            height={64}
+            loading="lazy"
+            decoding="async"
+            className="size-full object-cover"
+          />
+        ) : (
+          <div className="grid size-full place-items-center text-bmc-orange-deep">
+            <UtensilsCrossed className="size-6" aria-hidden="true" />
+          </div>
+        )}
+      </div>
+
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="line-clamp-2 font-semibold leading-snug">{product.name}</p>
+            <p className="text-sm text-zinc-500">{formatFcfa(product.price)} l'unité</p>
+          </div>
+          <motion.button
+            type="button"
+            whileTap={tapBounce}
+            onClick={() => onRemove(product.code)}
+            aria-label={`Retirer ${product.name} du panier`}
+            className="-mr-2 -mt-1 grid size-10 shrink-0 place-items-center rounded-full text-zinc-500 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-bmc-orange"
+          >
+            <Trash2 className="size-5" aria-hidden="true" />
+          </motion.button>
+        </div>
+
+        <div className="flex items-center justify-between gap-2">
+          <div
+            role="group"
+            aria-label={`Quantité de ${product.name}`}
+            className="flex items-center rounded-full bg-zinc-100 p-1"
+          >
+            <motion.button
+              type="button"
+              whileTap={canDecrement ? tapBounce : undefined}
+              aria-disabled={!canDecrement}
+              onClick={() => {
+                if (canDecrement) onUpdateQuantity(product.code, quantity - 1)
+              }}
+              aria-label={`Diminuer la quantité de ${product.name}`}
+              className="grid size-10 place-items-center rounded-full bg-white shadow-sm transition-opacity focus-visible:outline-2 focus-visible:outline-bmc-orange aria-disabled:cursor-not-allowed aria-disabled:opacity-40 aria-disabled:shadow-none"
+            >
+              <Minus className="size-4" aria-hidden="true" />
+            </motion.button>
+            <motion.span
+              key={quantity}
+              initial={{ scale: 1.35 }}
+              animate={{ scale: 1 }}
+              className="w-9 text-center font-semibold tabular-nums"
+            >
+              {quantity}
+            </motion.span>
+            <motion.button
+              type="button"
+              whileTap={tapBounce}
+              onClick={() => onUpdateQuantity(product.code, quantity + 1)}
+              aria-label={`Augmenter la quantité de ${product.name}`}
+              className="grid size-10 place-items-center rounded-full bg-bmc-orange text-bmc-charcoal shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-orange"
+            >
+              <Plus className="size-4" aria-hidden="true" />
+            </motion.button>
+          </div>
+
+          <p className="font-display text-lg font-bold tabular-nums">{formatFcfa(product.price * quantity)}</p>
+        </div>
+      </div>
+    </motion.li>
+  )
+}
