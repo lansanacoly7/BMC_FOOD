@@ -9,12 +9,14 @@ import { StickyCartBar } from './components/home/StickyCartBar'
 import { FloatingCartButton } from './components/home/FloatingCartButton'
 import { NavMenuDrawer } from './components/home/NavMenuDrawer'
 import { Footer } from './components/home/Footer'
+import { MenuView } from './components/menu/MenuView'
 import { useDailySpecials } from './hooks/useDailySpecials'
 import { useMenu } from './hooks/useMenu'
 import type { CartItem, Product } from './types'
 
 export default function App() {
   const [items, setItems] = useState<CartItem[]>([])
+  const [currentPage, setCurrentPage] = useState<'home' | 'menu'>('home')
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState('all')
@@ -26,6 +28,18 @@ export default function App() {
 
   const itemCount = items.reduce((count, item) => count + item.quantity, 0)
   const totalAmount = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
+
+  const handleNavigate = (page: 'home' | 'menu') => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleSelectOffers = () => {
+    setCurrentPage('home')
+    setTimeout(() => {
+      document.getElementById('special-offers-grid')?.scrollIntoView({ behavior: 'smooth' })
+    }, 100)
+  }
 
   const addToCart = (product: Product) => {
     setItems((current) =>
@@ -54,11 +68,13 @@ export default function App() {
   return (
     <div className="min-h-dvh bg-zinc-950 text-zinc-100 pb-28 selection:bg-bmc-gold selection:text-black">
       {/* 
-        1. EN-TÊTE NOIR ET LOGO (Page 11 de la charte graphique, Point 1)
-        Menu hamburger à gauche, logo BMC Food centré, panier avec pastille braise à droite.
+        1. EN-TÊTE OFFICIEL BMC FOOD AVEC NAVIGATION ACCUEIL / MENU / OFFRES
       */}
       <TopHeader
+        currentPage={currentPage}
         cartItemCount={itemCount}
+        onNavigate={handleNavigate}
+        onSelectOffers={handleSelectOffers}
         onOpenCart={() => setIsCartOpen(true)}
         onToggleMenu={() => setIsNavMenuOpen(true)}
         onSelectCategory={setActiveCategory}
@@ -67,55 +83,64 @@ export default function App() {
       {/* Tiroir latéral de navigation & informations (accessible via hamburger) */}
       <NavMenuDrawer
         isOpen={isNavMenuOpen}
+        currentPage={currentPage}
         onClose={() => setIsNavMenuOpen(false)}
+        onNavigate={handleNavigate}
+        onSelectOffers={handleSelectOffers}
         onSelectCategory={setActiveCategory}
       />
 
       {/* 
-        ÉTAPE 1 : LE HERO CINÉMATIQUE PLEINE LARGEUR SANS CARTE
-        Centré sur la signature BMC Food : Le Tacos Pané sur ardoise avec dégradé progressif.
+        AFFICHAGE CONDITIONNEL : PAGE D'ACCUEIL (Home) vs PAGE MENU (El Hadji)
       */}
-      <HeroCinematic
-        onExploreMenu={() => {
-          document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth' })
-        }}
-      />
-
-      {/* 
-        3. BANDEAU VEDETTE HYBRIDE PLAT DU JOUR & BEST-SELLERS
-      */}
-      <DailySpecialBanner
-        specials={specials}
-        fallbackProducts={menuProducts}
-        isLoading={isSpecialsLoading}
-        onAdd={addToCart}
-      />
-
-      {/* 
-        ZONE DE CONTENU RESPONSIVE (Mobile / Tablette / Desktop) — UNIVERS DARK LUXURY
-      */}
-      <main id="menu-section" className="space-y-8 pt-6">
-        {/* 4. CATÉGORIES EN VIGNETTES PHOTO CIRCULAIRES */}
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <CategoryPills
-            activeId={activeCategory}
-            onSelect={setActiveCategory}
+      {currentPage === 'home' ? (
+        <>
+          {/* Hero cinématique avec bouton Explorer le Menu qui bascule vers le Menu */}
+          <HeroCinematic
+            onExploreMenu={() => handleNavigate('menu')}
           />
-        </div>
 
-        {/* 5. LES PLUS COMMANDÉS — GRILLE DU MENU AVEC BANNIÈRE PROMO PLEINE LARGEUR */}
-        <FeaturedGrid
-          products={menuProducts}
-          isLoading={isMenuLoading}
-          activeCategory={activeCategory}
-          searchQuery={searchQuery}
-          onAddToCart={addToCart}
-          onSeeAll={() => setActiveCategory('all')}
-        />
-      </main>
+          {/* Bandeau hybride Plat du Jour & Best-Sellers */}
+          <DailySpecialBanner
+            specials={specials}
+            fallbackProducts={menuProducts}
+            isLoading={isSpecialsLoading}
+            onAdd={addToCart}
+          />
+
+          {/* Grille d'accueil avec Catégories et Offres Spéciales */}
+          <main id="menu-section" className="space-y-8 pt-6">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              <CategoryPills
+                activeId={activeCategory}
+                onSelect={(catId) => {
+                  setActiveCategory(catId)
+                  if (catId !== 'all') {
+                    handleNavigate('menu')
+                  }
+                }}
+              />
+            </div>
+
+            <FeaturedGrid
+              products={menuProducts}
+              isLoading={isMenuLoading}
+              activeCategory={activeCategory}
+              searchQuery={searchQuery}
+              onAddToCart={addToCart}
+              onSeeAll={() => handleNavigate('menu')}
+            />
+          </main>
+        </>
+      ) : (
+        /* PAGE MENU COMPLÈTE RÉALISÉE PAR EL HADJI */
+        <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 min-h-[65vh]">
+          <MenuView onAddToCart={addToCart} />
+        </main>
+      )}
 
       {/* 
-        6. BARRE PANIER FLOTTANTE (« Pensé pour le pouce », Page 11, Point 6)
+        6. BARRE PANIER FLOTTANTE (« Pensé pour le pouce »)
       */}
       <StickyCartBar
         itemCount={itemCount}
@@ -124,7 +149,7 @@ export default function App() {
         isVisible={!isCartOpen}
       />
 
-      {/* 6.bis BULLE PANIER FLOTTANTE EN BAS À DROITE (Demandée par Maimouna Sall) */}
+      {/* 6.bis BULLE PANIER FLOTTANTE EN BAS À DROITE */}
       <FloatingCartButton
         itemCount={itemCount}
         totalAmount={totalAmount}
@@ -146,12 +171,9 @@ export default function App() {
         }}
       />
 
-      {/* Footer Institutionnel BMC Food Dakar (Univers Dark Luxury) */}
+      {/* Footer Institutionnel BMC Food Dakar */}
       <Footer
-        onExploreMenu={() => {
-          const el = document.getElementById('menu-section') || document.getElementById('menu-catalog-grid')
-          el?.scrollIntoView({ behavior: 'smooth' })
-        }}
+        onExploreMenu={() => handleNavigate('menu')}
       />
     </div>
   )

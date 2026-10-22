@@ -5,6 +5,9 @@ import { CATEGORIES } from './CategoryPills'
 interface NavMenuDrawerProps {
   isOpen: boolean
   onClose: () => void
+  currentPage?: 'home' | 'menu'
+  onNavigate?: (page: 'home' | 'menu') => void
+  onSelectOffers?: () => void
   onSelectCategory: (categoryId: string) => void
 }
 
@@ -12,7 +15,14 @@ interface NavMenuDrawerProps {
  * Tiroir latéral d'informations et navigation BMC Food Dakar.
  * Déclenché par le bouton menu hamburger de l'en-tête (TopHeader).
  */
-export function NavMenuDrawer({ isOpen, onClose, onSelectCategory }: NavMenuDrawerProps) {
+export function NavMenuDrawer({
+  isOpen,
+  onClose,
+  currentPage = 'home',
+  onNavigate,
+  onSelectOffers,
+  onSelectCategory,
+}: NavMenuDrawerProps) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -59,6 +69,63 @@ export function NavMenuDrawer({ isOpen, onClose, onSelectCategory }: NavMenuDraw
                   className="flex size-9 items-center justify-center rounded-full bg-white/10 text-zinc-300 hover:bg-white/20 hover:text-white cursor-pointer"
                 >
                   <X className="size-5" />
+                </button>
+              </div>
+
+              {/* Navigation Principale Mobile */}
+              <div className="space-y-1.5 pb-3 border-b border-white/10">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                  Navigation
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onNavigate?.('home')
+                    onClose()
+                  }}
+                  className={`w-full flex items-center justify-between rounded-xl px-3.5 py-2.5 text-left text-sm font-black transition-colors cursor-pointer ${
+                    currentPage === 'home'
+                      ? 'bg-amber-500/20 text-bmc-gold border border-amber-500/40'
+                      : 'text-zinc-200 hover:bg-white/10'
+                  }`}
+                >
+                  <span>🏠 Accueil</span>
+                  {currentPage === 'home' && <span className="size-2 rounded-full bg-bmc-gold" />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    onNavigate?.('menu')
+                    onClose()
+                  }}
+                  className={`w-full flex items-center justify-between rounded-xl px-3.5 py-2.5 text-left text-sm font-black transition-colors cursor-pointer ${
+                    currentPage === 'menu'
+                      ? 'bg-amber-500/20 text-bmc-gold border border-amber-500/40'
+                      : 'text-zinc-200 hover:bg-white/10'
+                  }`}
+                >
+                  <span>🍽️ Menu & La Carte</span>
+                  {currentPage === 'menu' && <span className="size-2 rounded-full bg-bmc-gold" />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onSelectOffers) {
+                      onSelectOffers()
+                    } else {
+                      onNavigate?.('home')
+                      setTimeout(() => {
+                        document.getElementById('special-offers-grid')?.scrollIntoView({ behavior: 'smooth' })
+                      }, 100)
+                    }
+                    onClose()
+                  }}
+                  className="w-full flex items-center justify-between rounded-xl px-3.5 py-2 text-left text-xs font-bold text-amber-400 hover:bg-amber-500/10 cursor-pointer"
+                >
+                  <span>🏷️ Nos Offres Spéciales (-20%)</span>
+                  <span>→</span>
                 </button>
               </div>
 

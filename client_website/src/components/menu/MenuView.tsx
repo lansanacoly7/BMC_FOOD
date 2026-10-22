@@ -37,10 +37,10 @@ export function MenuView({ onAddToCart }: MenuViewProps) {
       {/* En-tête de section avec titre et barre de recherche */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 id="menu-heading" className="font-display text-2xl font-extrabold text-zinc-950 sm:text-3xl text-left">
+          <h2 id="menu-heading" className="font-display text-2xl font-extrabold text-white sm:text-3xl text-left">
             La Carte & Spécialités
           </h2>
-          <p className="text-xs sm:text-sm text-zinc-500 mt-0.5 text-left">
+          <p className="text-xs sm:text-sm text-zinc-400 mt-0.5 text-left">
             Tacos panés signatures, burgers gourmets & saveurs authentiques.
           </p>
         </div>
@@ -54,7 +54,7 @@ export function MenuView({ onAddToCart }: MenuViewProps) {
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Rechercher un plat..."
             aria-label="Rechercher un plat du menu"
-            className="w-full rounded-full border border-zinc-200 bg-white py-2 pl-9.5 pr-4 text-xs sm:text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-bmc-gold focus:outline-none focus:ring-2 focus:ring-bmc-gold/20 shadow-xs"
+            className="w-full rounded-full border border-white/10 bg-zinc-900 py-2 pl-9.5 pr-4 text-xs sm:text-sm text-white placeholder:text-zinc-500 focus:border-bmc-gold focus:outline-none focus:ring-2 focus:ring-bmc-gold/20 shadow-xs"
           />
         </div>
       </div>
