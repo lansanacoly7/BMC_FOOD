@@ -12,13 +12,16 @@ export function CategoryNav({
   activeCategoryId,
   onSelectCategory,
 }: CategoryNavProps) {
-  // Vignettes photos rondes nettes pour chaque catégorie officielle
-  const categoryImages: Record<number, string> = {
-    1: '/images/products/tacos-viande-pane.webp',
-    2: '/images/products/burger-bmc-complet.webp',
-    3: '/images/products/sandwich-chawarma.webp',
-    4: '/images/products/sauces-assortiment.webp',
-    5: '/images/products/boissons-fraiches.webp',
+  function getCategoryThumb(cat: { name?: string; slug?: string; id: number }): string {
+    const s = (cat.slug || cat.name || '').toLowerCase()
+    if (s.includes('boisson')) return '/images/products/canette-bissap-bmc.webp'
+    if (s.includes('burger')) return '/images/products/burger-bmc-complet.webp'
+    if (s.includes('sauce')) return '/images/products/sauces-assortiment.webp'
+    if (s.includes('simple')) return '/images/products/sandwich-chawarma.webp'
+    if (s.includes('xl')) return '/images/products/tacos-xl-simple.webp'
+    if (s.includes('jambon')) return '/images/products/tacos-viande-jambon.webp'
+    if (s.includes('hot-dog') || s.includes('hot dog')) return '/images/products/tacos-viande-hot-dog.webp'
+    return '/images/products/tacos-viande-pane.webp'
   }
 
   const items = categories.length > 0 ? categories : FALLBACK_CATEGORIES
@@ -66,7 +69,7 @@ export function CategoryNav({
       {/* Catégories officielles en rondelles */}
       {items.map((cat) => {
         const isActive = activeCategoryId === cat.id
-        const imgUrl = categoryImages[cat.id] ?? '/images/products/tacos-viande-pane.webp'
+        const imgUrl = getCategoryThumb(cat)
 
         return (
           <button

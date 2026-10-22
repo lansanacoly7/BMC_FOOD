@@ -1,4 +1,4 @@
-import { Check, Crown, Flame, Plus } from 'lucide-react'
+import { Check, Flame, Plus } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useId, useState } from 'react'
 import { formatFcfa } from '../../lib/format'
@@ -58,7 +58,6 @@ interface DailySpecialCardProps {
 function DailySpecialCard({ product, isCarousel, onAdd }: DailySpecialCardProps) {
   const [justAdded, setJustAdded] = useState(false)
   const [imageFailed, setImageFailed] = useState(false)
-  const showImage = Boolean(product.image_url) && !imageFailed
 
   useEffect(() => {
     if (!justAdded) return
@@ -114,23 +113,17 @@ function DailySpecialCard({ product, isCarousel, onAdd }: DailySpecialCardProps)
         <motion.div
           animate={{ y: [0, -6, 0] }}
           transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-          className="size-24 shrink-0 overflow-hidden rounded-2xl shadow-lg shadow-black/40"
+          className="size-24 shrink-0 overflow-hidden rounded-2xl shadow-lg shadow-black/40 border border-amber-500/30"
         >
-          {showImage ? (
-            <img
-              src={product.image_url}
-              alt=""
-              width={96}
-              height={96}
-              decoding="async"
-              onError={() => setImageFailed(true)}
-              className="size-full object-cover"
-            />
-          ) : (
-            <div className="grid size-full place-items-center bg-linear-to-br from-bmc-gold to-bmc-orange text-bmc-charcoal">
-              <Crown className="size-10" aria-hidden="true" />
-            </div>
-          )}
+          <img
+            src={imageFailed ? '/images/products/tacos-mixte-pane.webp' : (product.image_url || '/images/products/tacos-mixte-pane.webp')}
+            alt={product.name}
+            width={96}
+            height={96}
+            decoding="async"
+            onError={() => setImageFailed(true)}
+            className="size-full object-cover"
+          />
         </motion.div>
       </div>
 

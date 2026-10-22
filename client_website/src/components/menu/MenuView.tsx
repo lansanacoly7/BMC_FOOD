@@ -10,6 +10,7 @@ import { ProductDetailModal } from './ProductDetailModal'
 import { Skeleton } from '../ui/Loader'
 import { ErrorMessage } from '../ui/ErrorMessage'
 import { EmptyState } from '../ui/EmptyState'
+import { FALLBACK_PRODUCTS, FALLBACK_CATEGORIES } from '../../data/mockMenu'
 
 export interface MenuViewProps {
   onAddToCart: (product: Product, quantity?: number) => void
@@ -21,11 +22,50 @@ export function MenuView({ onAddToCart }: MenuViewProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
 
+  // Catégories de navigation : s'assure que "Boissons" existe toujours dans le ruban
+  const navCategories = useMemo<import('../../types').Category[]>(() => {
+    const list: import('../../types').Category[] = categories.length > 0 ? [...categories] : [...FALLBACK_CATEGORIES]
+    const hasDrinks = list.some(
+      (c) => c.slug?.includes('boisson') || c.name?.toLowerCase().includes('boisson'),
+    )
+    if (!hasDrinks) {
+      list.push({ id: 50, name: 'Boissons', slug: 'boissons', icon: 'Coffee' })
+    }
+    return list
+  }, [categories])
+
+  // Catalogue complet : garantit que les 4 canettes BMC et sauces sont présentes
+  const allItems = useMemo(() => {
+    const hasDrinks = items.some(
+      (p) =>
+        p.category_name?.toLowerCase().includes('boisson') ||
+        p.code.toLowerCase().startsWith('bv'),
+    )
+    const hasSauces = items.some(
+      (p) =>
+        p.category_name?.toLowerCase().includes('sauce') ||
+        p.code.toLowerCase().startsWith('sc'),
+    )
+    const extras: Product[] = []
+    if (!hasDrinks) {
+      extras.push(...FALLBACK_PRODUCTS.filter((p) => p.code.startsWith('bv')))
+    }
+    if (!hasSauces) {
+      extras.push(...FALLBACK_PRODUCTS.filter((p) => p.code.startsWith('sc')))
+    }
+    return extras.length > 0 ? [...items, ...extras] : items
+  }, [items])
+
   // Filtrage combiné par catégorie et recherche texte
   const filteredProducts = useMemo(() => {
-    return items.filter((product) => {
+    return allItems.filter((product) => {
+      const isBoissonsNav = selectedCategoryId === 50
       const matchCategory =
-        selectedCategoryId === 'all' || product.category === selectedCategoryId
+        selectedCategoryId === 'all' ||
+        (isBoissonsNav
+          ? product.category_name?.toLowerCase().includes('boisson') ||
+            product.code.startsWith('bv')
+          : product.category === selectedCategoryId)
       const matchSearch =
         searchQuery.trim() === '' ||
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -33,28 +73,54 @@ export function MenuView({ onAddToCart }: MenuViewProps) {
 
       return matchCategory && matchSearch
     })
-  }, [items, selectedCategoryId, searchQuery])
+  }, [allItems, selectedCategoryId, searchQuery])
 
   // Groupes de produits pour le rendu rythmé alternant Carrousel -> Cartes -> Carrousel -> Cartes
   const popularItems = useMemo(
-    () => items.filter((p) => p.popular || p.is_daily_special).slice(0, 6),
-    [items],
+    () => allItems.filter((p) => p.popular || p.is_daily_special).slice(0, 6),
+    [allItems],
   )
   const tacosPanesItems = useMemo(
-    () => items.filter((p) => p.category === 1),
-    [items],
+    () =>
+      allItems.filter(
+        (p) =>
+          p.category_name?.toLowerCase().includes('pané') ||
+          p.category === 1 ||
+          p.code.startsWith('tp'),
+      ),
+    [allItems],
   )
   const drinksItems = useMemo(
-    () => items.filter((p) => p.category === 5),
-    [items],
+    () =>
+      allItems.filter(
+        (p) =>
+          p.category_name?.toLowerCase().includes('boisson') ||
+          p.code.toLowerCase().startsWith('bv'),
+      ),
+    [allItems],
   )
   const burgersAndTacosItems = useMemo(
-    () => items.filter((p) => p.category === 2 || p.category === 3),
-    [items],
+    () =>
+      allItems.filter(
+        (p) =>
+          p.category_name?.toLowerCase().includes('burger') ||
+          p.category_name?.toLowerCase().includes('simple') ||
+          p.category === 6 ||
+          p.category === 7 ||
+          p.code.startsWith('bg') ||
+          p.code.startsWith('ts') ||
+          p.code.startsWith('sw'),
+      ),
+    [allItems],
   )
   const saucesItems = useMemo(
-    () => items.filter((p) => p.category === 4),
-    [items],
+    () =>
+      allItems.filter(
+        (p) =>
+          p.category_name?.toLowerCase().includes('sauce') ||
+          p.code.toLowerCase().startsWith('sc'),
+      ),
+    [allItems],
   )
 
   const isFullCatalogView = selectedCategoryId === 'all' && searchQuery.trim() === ''
@@ -104,7 +170,7 @@ export function MenuView({ onAddToCart }: MenuViewProps) {
 
       {/* 3. Barre de navigation par rondelles (CategoryNav) */}
       <CategoryNav
-        categories={categories}
+        categories={navCategories}
         activeCategoryId={selectedCategoryId}
         onSelectCategory={setSelectedCategoryId}
       />
