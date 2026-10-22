@@ -1,6 +1,6 @@
 import { Clock, MapPin, Phone, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
-import { CATEGORIES } from './CategoryPills'
+import { CATEGORIES } from '../../data/categories'
 
 interface NavMenuDrawerProps {
   isOpen: boolean

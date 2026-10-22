@@ -33,6 +33,9 @@
   /* Moyens de paiement Sénégal */
   --color-payment-wave: #1DC8F2;
   --color-payment-om: #FF7900;
+  --color-wave: #1DC8F2;
+  --color-wave-indigo: #3634A3;
+  --color-orange-money: #FF7900;
 
   /* Alias sémantique du bouton principal */
   --color-bmc-orange: #CF4A08;

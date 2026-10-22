@@ -6,7 +6,6 @@ import type { Product } from '../../types'
 import { SpecialOfferBanner } from './SpecialOfferBanner'
 
 export const CATALOG_PRODUCTS: Product[] = [
-  // LIGNE 1 : Les 4 Tacos Panés signatures (Maimouna Sall)
   {
     id: 1,
     code: 'tp-viande',
