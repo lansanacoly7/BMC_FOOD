@@ -8,6 +8,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
+import type { Variants } from 'motion/react'
 import { useEffect, useId, useState } from 'react'
 import { formatFcfa } from '../../lib/format'
 import type { Product } from '../../types'
@@ -45,6 +46,7 @@ export function DailySpecialBanner({
 }: DailySpecialBannerProps) {
   const headingId = useId()
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [direction, setDirection] = useState<1 | -1>(1)
   const [isPaused, setIsPaused] = useState(false)
 
   // Détermination de la liste des produits à afficher
@@ -65,6 +67,7 @@ export function DailySpecialBanner({
   useEffect(() => {
     if (productList.length <= 1 || isPaused) return
     const timer = setInterval(() => {
+      setDirection(1)
       setCurrentIndex((prev) => (prev + 1) % productList.length)
     }, AUTO_PLAY_INTERVAL_MS)
     return () => clearInterval(timer)
@@ -87,26 +90,56 @@ export function DailySpecialBanner({
   const currentGif = BEST_SELLER_GIFS[currentIndex % BEST_SELLER_GIFS.length]
 
   const handlePrev = () => {
+    setDirection(-1)
     setCurrentIndex((prev) => (prev - 1 + productList.length) % productList.length)
   }
 
   const handleNext = () => {
+    setDirection(1)
     setCurrentIndex((prev) => (prev + 1) % productList.length)
+  }
+
+  const handleSelectDot = (idx: number) => {
+    setDirection(idx >= currentIndex ? 1 : -1)
+    setCurrentIndex(idx)
+  }
+
+  /** Variantes directionnelles fluides avec amorti naturel */
+  const slideVariants: Variants = {
+    enter: (dir: number) => ({
+      x: dir > 0 ? 32 : -32,
+      opacity: 0,
+    }),
+    center: {
+      x: 0,
+      opacity: 1,
+      transition: {
+        x: { type: 'spring' as const, stiffness: 320, damping: 32 },
+        opacity: { duration: 0.28 },
+      },
+    },
+    exit: (dir: number) => ({
+      x: dir > 0 ? -32 : 32,
+      opacity: 0,
+      transition: {
+        x: { type: 'spring' as const, stiffness: 320, damping: 32 },
+        opacity: { duration: 0.2 },
+      },
+    }),
   }
 
   return (
     <section id="daily-special-section" aria-labelledby={headingId} className="w-full bg-zinc-950 px-4 py-4 sm:px-6 sm:py-6 scroll-mt-20">
       {/* 
-        CONTENEUR GLOBAL AVEC MICRO-ANIMATION DE REBOND NATUREL ("BOND TAC-TAC-TAC")
+        CONTENEUR GLOBAL AVEC MICRO-ANIMATION DE REBOND NATUREL
       */}
       <motion.div
-        initial={{ opacity: 0, y: 32, scale: 0.95 }}
+        initial={{ opacity: 0, y: 28, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{
           type: 'spring',
-          damping: 17,
-          stiffness: 200,
-          bounce: 0.3,
+          damping: 20,
+          stiffness: 220,
         }}
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
@@ -117,7 +150,7 @@ export function DailySpecialBanner({
         </h2>
 
         {/* 
-          CARTE MAJESTUEUSE DU CARROUSEL (OPTION 1) — DISPOSITION CÔTE À CÔTE SANS AUCUN CHEVAUCHEMENT
+          CARTE MAJESTUEUSE DU CARROUSEL — DISPOSITION CÔTE À CÔTE SANS AUCUN CHEVAUCHEMENT
         */}
         <div className="relative isolate overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-900/95 via-zinc-900/85 to-zinc-950 p-4 sm:p-7 text-white shadow-2xl backdrop-blur-md">
           {/* Halo doré chaud circonscrit à l'intérieur */}
@@ -154,7 +187,7 @@ export function DailySpecialBanner({
                   type="button"
                   onClick={handlePrev}
                   aria-label="Plat précédent"
-                  className="flex size-7 sm:size-8 items-center justify-center rounded-full border border-white/10 bg-black/40 text-zinc-300 hover:border-bmc-gold hover:text-bmc-gold hover:bg-black/70 transition-all cursor-pointer"
+                  className="flex size-7 sm:size-8 items-center justify-center rounded-full border border-white/10 bg-black/40 text-zinc-300 hover:border-bmc-gold hover:text-bmc-gold hover:bg-black/70 hover:scale-105 active:scale-95 transition-all cursor-pointer"
                 >
                   <ChevronLeft className="size-4 sm:size-4.5" />
                 </button>
@@ -162,7 +195,7 @@ export function DailySpecialBanner({
                   type="button"
                   onClick={handleNext}
                   aria-label="Plat suivant"
-                  className="flex size-7 sm:size-8 items-center justify-center rounded-full border border-white/10 bg-black/40 text-zinc-300 hover:border-bmc-gold hover:text-bmc-gold hover:bg-black/70 transition-all cursor-pointer"
+                  className="flex size-7 sm:size-8 items-center justify-center rounded-full border border-white/10 bg-black/40 text-zinc-300 hover:border-bmc-gold hover:text-bmc-gold hover:bg-black/70 hover:scale-105 active:scale-95 transition-all cursor-pointer"
                 >
                   <ChevronRight className="size-4 sm:size-4.5" />
                 </button>
@@ -170,47 +203,45 @@ export function DailySpecialBanner({
             )}
           </div>
 
-          {/* CORPS DU CARROUSEL : TEXTE À GAUCHE ET PHOTO NETTE À DROITE SANS CHEVAUCHEMENT */}
-          <AnimatePresence mode="wait">
+          {/* CORPS DU CARROUSEL DIRECTIONNEL AVEC ZONE SUPÉRIEURE 50/50 ÉQUILIBRÉE */}
+          <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={currentProduct.code || currentIndex}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.35, ease: 'easeOut' }}
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
               className="mt-3 sm:mt-4 flex flex-row items-center justify-between gap-3 sm:gap-6 lg:gap-8"
             >
-              {/* 1. GAUCHE : TEXTE ET BOUTON (FLUIDE ET PARFAITEMENT DÉLIMITÉ) */}
-              <div className="min-w-0 flex-1 pr-1 sm:pr-0 space-y-1.5 sm:space-y-3.5">
-                <h3 className="font-display text-sm xs:text-base sm:text-2xl lg:text-3xl font-black leading-tight text-white tracking-tight truncate sm:line-clamp-none">
+              {/* 1. GAUCHE : TITRE, DESCRIPTIF ET PRIX EN GRAND OR */}
+              <div className="min-w-0 flex-1 pr-1 sm:pr-2 space-y-1.5 sm:space-y-3">
+                <h3 className="font-display text-sm xs:text-base sm:text-2xl lg:text-3xl font-black leading-tight text-white tracking-tight">
                   {currentProduct.name}
                 </h3>
 
-                {/* Descriptif avec passage à la ligne après la virgule */}
-                <div className="text-[11px] sm:text-sm font-normal text-zinc-300 leading-snug sm:leading-relaxed line-clamp-2 sm:line-clamp-none">
+                {/* Descriptif avec passage à la ligne propre */}
+                <div className="text-[11px] sm:text-sm font-normal text-zinc-300 leading-snug sm:leading-relaxed">
                   {formatDescription(currentProduct.description)}
                 </div>
 
-                {/* Bas de carte : Tarif Or et Bouton d'Action côte à côte et protégés contre tout contact */}
-                <div className="pt-2 sm:pt-4 flex items-center gap-2 xs:gap-3 sm:gap-6">
-                  <div className="shrink-0">
-                    <span className="block text-[8px] sm:text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                      Tarif
-                    </span>
-                    <p className="font-display text-sm xs:text-base sm:text-3xl font-black tabular-nums text-bmc-gold leading-none whitespace-nowrap">
-                      {formatFcfa(currentProduct.price)}
-                    </p>
-                  </div>
-
-                  <AddButton product={currentProduct} onAdd={onAdd} />
+                {/* Bloc Tarif Or mis en valeur sous le texte */}
+                <div className="pt-1.5 sm:pt-2">
+                  <span className="block text-[8px] sm:text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                    Tarif
+                  </span>
+                  <p className="font-display text-base xs:text-lg sm:text-2xl lg:text-3xl font-black tabular-nums text-bmc-gold leading-none whitespace-nowrap mt-0.5">
+                    {formatFcfa(currentProduct.price)}
+                  </p>
                 </div>
               </div>
 
-              {/* 2. DROITE : VISUEL DU PLAT SANS AUCUN CHEVAUCHEMENT, 100% NET ET ANGLES ARRONDIS */}
+              {/* 2. DROITE : VISUEL DU PLAT NETTEMENT AGRANDI ET MIS EN VALEUR */}
               <div className="relative shrink-0 flex justify-end">
                 <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  className="relative size-24 xs:size-28 sm:size-auto sm:w-84 lg:w-[420px] xl:w-[460px] sm:h-54 lg:h-60 overflow-hidden rounded-2xl border border-white/15 bg-zinc-900 shadow-xl shadow-black/80"
+                  whileHover={{ scale: 1.025 }}
+                  transition={{ duration: 0.2 }}
+                  className="relative w-32 xs:w-40 sm:w-84 lg:w-[420px] xl:w-[460px] h-28 xs:h-34 sm:h-54 lg:h-60 overflow-hidden rounded-2xl border border-white/15 bg-zinc-900 shadow-xl shadow-black/80"
                 >
                   <img
                     src={currentProduct.image_url || currentGif}
@@ -225,24 +256,32 @@ export function DailySpecialBanner({
             </motion.div>
           </AnimatePresence>
 
-          {/* DOTS DE PAGINATION DORÉS EN BAS */}
-          {productList.length > 1 && (
-            <div className="mt-3.5 sm:mt-4 flex items-center justify-center gap-2 pt-1 border-t border-white/5">
-              {productList.map((_, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setCurrentIndex(idx)}
-                  aria-label={`Aller au plat ${idx + 1}`}
-                  className={`h-1.5 sm:h-2 rounded-full transition-all cursor-pointer ${
-                    idx === currentIndex
-                      ? 'w-6 sm:w-7 bg-gradient-to-r from-bmc-gold to-amber-400 shadow-sm shadow-bmc-gold/50'
-                      : 'w-1.5 sm:w-2 bg-white/20 hover:bg-white/40'
-                  }`}
-                />
-              ))}
+          {/* 3. LIGNE SÉPARATRICE ET ZONE INFÉRIEURE : BOUTON COMMANDER ET DOTS */}
+          <div className="mt-3.5 sm:mt-5 pt-3 sm:pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
+            {/* Bouton d'action étendu et ergonomique sur mobile */}
+            <div className="w-full sm:w-auto">
+              <AddButton product={currentProduct} onAdd={onAdd} className="w-full sm:w-auto" />
             </div>
-          )}
+
+            {/* Dots de pagination dorés */}
+            {productList.length > 1 && (
+              <div className="flex items-center justify-center gap-2">
+                {productList.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleSelectDot(idx)}
+                    aria-label={`Aller au plat ${idx + 1}`}
+                    className={`h-1.5 sm:h-2 rounded-full transition-all cursor-pointer ${
+                      idx === currentIndex
+                        ? 'w-6 sm:w-7 bg-gradient-to-r from-bmc-gold to-amber-400 shadow-sm shadow-bmc-gold/50'
+                        : 'w-1.5 sm:w-2 bg-white/20 hover:bg-white/40'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </motion.div>
     </section>
@@ -250,7 +289,15 @@ export function DailySpecialBanner({
 }
 
 /** Bouton d'ajout avec retour tactile animé, dimensionné pour mobile et desktop */
-function AddButton({ product, onAdd }: { product: Product; onAdd: (p: Product) => void }) {
+function AddButton({
+  product,
+  onAdd,
+  className = '',
+}: {
+  product: Product
+  onAdd: (p: Product) => void
+  className?: string
+}) {
   const [justAdded, setJustAdded] = useState(false)
 
   useEffect(() => {
@@ -271,7 +318,7 @@ function AddButton({ product, onAdd }: { product: Product; onAdd: (p: Product) =
       whileTap={{ scale: 0.96 }}
       onClick={handleClick}
       aria-label={`Ajouter ${product.name} au panier`}
-      className="inline-flex h-9 xs:h-10 sm:h-12 items-center justify-center gap-1.5 sm:gap-2 rounded-xl bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 px-3 xs:px-4 sm:px-7 font-display text-[11px] xs:text-xs sm:text-sm font-black uppercase tracking-wider text-black shadow-md shadow-bmc-gold/25 hover:brightness-110 cursor-pointer transition-all shrink-0 whitespace-nowrap"
+      className={`inline-flex h-10 xs:h-11 sm:h-12 items-center justify-center gap-1.5 sm:gap-2 rounded-xl bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 px-4 sm:px-8 font-display text-xs sm:text-sm font-black uppercase tracking-wider text-black shadow-md shadow-bmc-gold/25 hover:brightness-110 cursor-pointer transition-all shrink-0 whitespace-nowrap ${className}`}
     >
       <AnimatePresence mode="wait" initial={false}>
         {justAdded ? (
