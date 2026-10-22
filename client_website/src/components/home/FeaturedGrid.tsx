@@ -235,8 +235,19 @@ export function FeaturedGrid({
   // Découpage Desktop : 8 items (2 lignes x 4 colonnes) pour Tacos Panés + Burgers & Tenders
   const desktopTop = filtered.slice(0, 8)
 
-  // Les 4 produits phares éligibles à l'Offre Spéciale (-20% sur 2 lignes)
-  const specialOfferCodes = ['bg-complet', 'bg-crispy', 'tp-cordon-bleu', 'td-poulet']
+  // Les 8 produits phares éligibles à l'Offre Spéciale (-20% sur 2 lignes Desktop)
+  const specialOfferCodes = [
+    // Ligne 1 : Burgers & Tacos Pané signatures
+    'bg-complet',
+    'bg-crispy',
+    'tp-cordon-bleu',
+    'td-poulet',
+    // Ligne 2 : Spécialités complémentaires
+    'tp-mixte',
+    'bg-cheese',
+    'ck-wings',
+    'fr-maison',
+  ]
   const specialOfferProducts = specialOfferCodes
     .map((code) => productList.find((p) => p.code === code) || CATALOG_PRODUCTS.find((p) => p.code === code))
     .filter((p): p is Product => p !== undefined)
@@ -245,6 +256,9 @@ export function FeaturedGrid({
       originalPrice: product.price,
       discountedPrice: Math.round((product.price * 0.8) / 100) * 100,
     }))
+
+  const mobileSpecialOffers = specialOfferProducts.slice(0, 4)
+  const desktopSpecialOffers = specialOfferProducts.slice(0, 8)
 
   return (
     <section aria-label="Les plus commandés" className="space-y-6">
@@ -291,7 +305,7 @@ export function FeaturedGrid({
           </div>
         </div>
       ) : isDefaultView ? (
-        /* VUE CATALOGUE PAR DÉFAUT : Grille Vedette + Bannière Pleine Largeur + 4 Offres Spéciales */
+        /* VUE CATALOGUE PAR DÉFAUT : Grille Vedette + Bannière Pleine Largeur + Offres Spéciales */
         <div className="space-y-8">
           {/* --- PARTIE 1 : VEDETTES DU CATALOGUE --- */}
           {/* Mobile : 4 Tacos Panés (2 colonnes x 2 lignes) */}
@@ -315,7 +329,7 @@ export function FeaturedGrid({
           {/* --- PARTIE 2 : BANNIÈRE PROMOTIONNELLE OFFICIELLE --- */}
           <SpecialOfferBanner />
 
-          {/* --- PARTIE 3 : NOS 4 FORMULES & OFFRES SPÉCIALES (-20%) --- */}
+          {/* --- PARTIE 3 : NOS OFFRES SPÉCIALES (-20%) --- */}
           <div id="special-offers-grid" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-1.5 pt-2">
               <div>
@@ -324,7 +338,7 @@ export function FeaturedGrid({
                   <span>Sélection Éligible · 20% Déduits</span>
                 </div>
                 <h3 className="font-display text-lg sm:text-2xl font-black text-white mt-0.5">
-                  Nos 4 Formules & Offres Spéciales
+                  Nos Formules & Offres Spéciales
                 </h3>
               </div>
               <p className="text-xs sm:text-sm text-zinc-400 max-w-md">
@@ -332,9 +346,28 @@ export function FeaturedGrid({
               </p>
             </div>
 
-            {/* Grille des 4 offres spéciales : 2 colonnes x 2 lignes sur mobile, 4 colonnes sur desktop */}
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-              {specialOfferProducts.map((item) => (
+            {/* Version Mobile : 4 cartes (2 colonnes x 2 lignes) */}
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:hidden">
+              {mobileSpecialOffers.map((item) => (
+                <SpecialOfferProductCard
+                  key={item.code}
+                  product={item}
+                  originalPrice={item.originalPrice}
+                  discountedPrice={item.discountedPrice}
+                  onAdd={() =>
+                    onAddToCart({
+                      ...item,
+                      price: item.discountedPrice,
+                      name: `${item.name} (-20%)`,
+                    })
+                  }
+                />
+              ))}
+            </div>
+
+            {/* Version Desktop : 8 cartes sur 2 lignes complètes (4 colonnes x 2 lignes) */}
+            <div className="hidden lg:grid grid-cols-4 gap-4">
+              {desktopSpecialOffers.map((item) => (
                 <SpecialOfferProductCard
                   key={item.code}
                   product={item}
