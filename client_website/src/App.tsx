@@ -9,6 +9,7 @@ import { StickyCartBar } from './components/home/StickyCartBar'
 import { FloatingCartButton } from './components/home/FloatingCartButton'
 import { NavMenuDrawer } from './components/home/NavMenuDrawer'
 import { Footer } from './components/home/Footer'
+import { CulinaryVideoShowcase } from './components/home/CulinaryVideoShowcase'
 import { MenuView } from './components/menu/MenuView'
 import { useDailySpecials } from './hooks/useDailySpecials'
 import { useMenu } from './hooks/useMenu'
@@ -140,6 +141,9 @@ export default function App() {
               onSeeAll={() => handleNavigate('menu')}
             />
           </main>
+
+          {/* Capsule Vidéo Culinaire Immersive (« L'Art du Tacos Pané » - Étape 3 Benchmark) */}
+          <CulinaryVideoShowcase onExploreMenu={() => handleNavigate('menu')} />
         </>
       ) : (
         /* PAGE MENU COMPLÈTE RÉALISÉE PAR EL HADJI */
