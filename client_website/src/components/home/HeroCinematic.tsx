@@ -7,10 +7,11 @@ interface HeroCinematicProps {
 }
 
 /**
- * Hero Cinématique BMC Food — Version Vidéo Officielle Unique :
- * - Vidéo MP4 officielle en arrière-plan complet plein écran (SANS BOÎTE / SANS CADRE).
- * - Net, fluide, contraste natif 100% sur fond noir sans aucun gif ni résidu.
+ * Hero Cinématique BMC Food — Version Vidéo Unique Slow Motion Officielle (Maimouna Sall) :
+ * - Vidéo MP4 officielle unique bmc_video_hero.mp4 en arrière-plan complet plein écran (SANS BOÎTE / SANS CADRE).
+ * - Net, fluide, contraste natif 100% sur fond noir sans animations WebP ni multi-scènes.
  * - Voile dégradé protecteur à GAUCHE pour assurer la parfaite lisibilité des textes.
+ * - Texte aéré avec décalage maîtrisé à droite (pl-3 sm:pl-6 md:pl-10 lg:pl-12).
  * - Bouton unique Or brossé « Explorer le Menu » qui fait défiler la carte en douceur.
  */
 export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
@@ -20,8 +21,7 @@ export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
       className="relative isolate w-full overflow-hidden bg-black text-white"
     >
       {/* 
-        1. VIDÉO EN BACKGROUND COMPLET (PREND TOUTE LA LARGEUR ET HAUTEUR SANS CADRE)
-        Nette, claire, à 100% de clarté
+        1. VIDÉO UNIQUE SLOW MOTION EN BACKGROUND COMPLET (PREND TOUTE LA LARGEUR ET HAUTEUR SANS CADRE)
       */}
       <div aria-hidden="true" className="absolute inset-0 -z-20 overflow-hidden bg-black">
         <video
@@ -50,7 +50,7 @@ export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
       />
 
       {/* 
-        3. CONTENU TEXTE ÉQUILIBRÉ & CALIBRÉ UI/UX MOBILE & DESKTOP
+        3. CONTENU TEXTE ÉQUILIBRÉ & CALIBRÉ UI/UX MOBILE & DESKTOP (DÉCALAGE LÉGER À DROITE)
       */}
       <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-14">
         <div className="max-w-2xl text-left pl-3 sm:pl-6 md:pl-10 lg:pl-12">
@@ -79,7 +79,7 @@ export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
             Est Arrivée.
           </motion.h1>
 
-          {/* Descriptif fidèle à la vidéo : sans mention de panure */}
+          {/* Descriptif officiel */}
           <motion.p
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}

@@ -7,6 +7,7 @@ import { CategoryPills } from './components/home/CategoryPills'
 import { FeaturedGrid } from './components/home/FeaturedGrid'
 import { StickyCartBar } from './components/home/StickyCartBar'
 import { NavMenuDrawer } from './components/home/NavMenuDrawer'
+import { Footer } from './components/home/Footer'
 import { ProvisionalCheckout } from './components/checkout/ProvisionalCheckout'
 import { useDailySpecials } from './hooks/useDailySpecials'
 import { useMenu } from './hooks/useMenu'
@@ -125,44 +126,8 @@ export default function App() {
       />
 
       {/* Footer Institutionnel BMC Food Dakar (Univers Dark Luxury) */}
-      <footer className="mt-20 border-t border-white/10 bg-black py-12 text-center text-xs text-zinc-400">
-        <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 px-4 sm:flex-row sm:justify-between sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3 text-left">
-            <div className="flex items-center justify-center rounded-lg bg-white/10 p-1 border border-white/15">
-              <img
-                src="/images/brand/logo.png"
-                alt="BMC Food"
-                className="h-8 w-auto object-contain filter brightness-110"
-                width={80}
-                height={32}
-              />
-            </div>
-            <div>
-              <p className="font-display text-sm font-extrabold text-white">BMC FOOD Dakar</p>
-              <p className="text-[11px] text-zinc-400">Tacos panés & Saveurs généreuses · 11h – 02h</p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-2.5 text-[11px]">
-            <div className="flex items-center gap-1.5 rounded-lg bg-zinc-900 border border-white/10 px-2.5 py-1">
-              <img src="/images/payments/cash.png" alt="Espèces" className="size-5 rounded object-contain" />
-              <span className="font-semibold text-zinc-200">Espèces</span>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-lg bg-zinc-900 border border-white/10 px-2.5 py-1">
-              <img src="/images/payments/wave.png" alt="Wave" className="size-5 rounded object-contain" />
-              <span className="font-semibold text-[#1DC8F2]">Wave</span>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-lg bg-zinc-900 border border-white/10 px-2.5 py-1">
-              <img src="/images/payments/orange_money.png" alt="Orange Money" className="size-5 rounded object-contain" />
-              <span className="font-semibold text-[#FF7900]">Orange Money</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-8 border-t border-white/5 pt-4 text-[11px] text-zinc-500">
-          <p>© {new Date().getFullYear()} BMC FOOD · Teranga Labs. Tous droits réservés.</p>
-        </div>
-      </footer>
+      <Footer onExploreMenu={() => document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth' })} />
     </div>
   )
 }
+

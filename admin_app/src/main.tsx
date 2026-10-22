@@ -1,10 +1,14 @@
+import { MotionConfig } from 'motion/react'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import App from './App.tsx'
 import './index.css'
+import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
-  </StrictMode>
+    {/* Respecte le réglage système « réduire les animations » pour toutes les animations Motion. */}
+    <MotionConfig reducedMotion="user">
+      <App />
+    </MotionConfig>
+  </StrictMode>,
 )
