@@ -95,21 +95,21 @@ export function SpecialOfferBanner({ onOrderNow, isVisible = true }: SpecialOffe
             </p>
           </div>
 
-          {/* 3. Bouton interactif Or - Placé dans la zone libre inférieure */}
-          <div className="absolute bottom-[6.5%] left-[6%] z-10 pointer-events-auto">
+          {/* 3. Bouton interactif Or - Imposant, large et valorisé sur Desktop uniquement */}
+          <div className="absolute bottom-[6.5%] md:bottom-[7.5%] lg:bottom-[8%] left-[6%] z-10 pointer-events-auto">
             <motion.button
               type="button"
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
+              whileHover={{ scale: 1.035 }}
+              whileTap={{ scale: 0.965 }}
               onClick={(e) => {
                 e.stopPropagation()
                 handleAction()
               }}
               aria-label="Commander maintenant et profiter de l'offre spéciale -20%"
-              className="inline-flex h-7 xs:h-8 sm:h-11 md:h-13 lg:h-15 items-center justify-center gap-1.5 sm:gap-2.5 md:gap-3 rounded-lg sm:rounded-xl md:rounded-2xl bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 px-3 xs:px-4 sm:px-7 md:px-9 lg:px-11 font-display text-[9px] xs:text-xs sm:text-sm md:text-base lg:text-lg font-black uppercase tracking-wider text-black shadow-xl shadow-amber-500/20 hover:shadow-2xl hover:shadow-amber-500/40 hover:brightness-110 cursor-pointer transition-all whitespace-nowrap"
+              className="inline-flex h-7 xs:h-8 sm:h-11 md:h-15 lg:h-18 xl:h-20 items-center justify-center gap-1.5 sm:gap-2.5 md:gap-3.5 lg:gap-4.5 rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 px-3 xs:px-4 sm:px-7 md:px-10 lg:px-14 xl:px-16 font-display text-[9px] xs:text-xs sm:text-sm md:text-lg lg:text-xl xl:text-2xl font-black uppercase tracking-wider text-black shadow-xl shadow-amber-500/25 hover:shadow-2xl hover:shadow-amber-500/50 hover:brightness-110 cursor-pointer transition-all whitespace-nowrap"
             >
               <span>Commander Maintenant</span>
-              <ArrowRight className="size-3 xs:size-3.5 sm:size-4 md:size-5 stroke-[3] transition-transform duration-300 group-hover:translate-x-1" />
+              <ArrowRight className="size-3 xs:size-3.5 sm:size-4 md:size-5.5 lg:size-7 xl:size-8 stroke-[3.5] transition-transform duration-300 group-hover:translate-x-1.5" />
             </motion.button>
           </div>
         </div>
