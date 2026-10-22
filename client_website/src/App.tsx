@@ -26,6 +26,7 @@ export default function App() {
   // Hooks de données officiels BMC Food (avec support fallback)
   const { specials, isLoading: isSpecialsLoading } = useDailySpecials()
   const { items: menuProducts, isLoading: isMenuLoading } = useMenu()
+  const hasDailySpecial = specials.length > 0
 
   const itemCount = items.reduce((count, item) => count + item.quantity, 0)
   const totalAmount = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
@@ -76,11 +77,12 @@ export default function App() {
   return (
     <div className="min-h-dvh bg-zinc-950 text-zinc-100 selection:bg-bmc-gold selection:text-black flex flex-col justify-between">
       {/* 
-        1. EN-TÊTE OFFICIEL BMC FOOD AVEC NAVIGATION ACCUEIL / PLAT DU JOUR / MENU / OFFRES
+        1. EN-TÊTE OFFICIEL BMC FOOD AVEC NAVIGATION ACCUEIL / PLAT DU JOUR OU BEST-SELLERS / MENU / OFFRES
       */}
       <TopHeader
         currentPage={currentPage}
         cartItemCount={itemCount}
+        hasDailySpecial={hasDailySpecial}
         onNavigate={handleNavigate}
         onSelectDailySpecial={handleSelectDailySpecial}
         onSelectOffers={handleSelectOffers}
@@ -93,6 +95,7 @@ export default function App() {
       <NavMenuDrawer
         isOpen={isNavMenuOpen}
         currentPage={currentPage}
+        hasDailySpecial={hasDailySpecial}
         onClose={() => setIsNavMenuOpen(false)}
         onNavigate={handleNavigate}
         onSelectDailySpecial={handleSelectDailySpecial}

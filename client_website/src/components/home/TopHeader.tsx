@@ -3,6 +3,7 @@ import { Menu, Phone } from 'lucide-react'
 interface TopHeaderProps {
   currentPage?: 'home' | 'menu'
   cartItemCount?: number
+  hasDailySpecial?: boolean
   onNavigate?: (page: 'home' | 'menu') => void
   onSelectDailySpecial?: () => void
   onSelectOffers?: () => void
@@ -17,6 +18,7 @@ interface TopHeaderProps {
  */
 export function TopHeader({
   currentPage = 'home',
+  hasDailySpecial = false,
   onNavigate,
   onSelectDailySpecial,
   onSelectOffers,
@@ -66,7 +68,7 @@ export function TopHeader({
             Accueil
           </button>
 
-          {/* 2. Plat du Jour */}
+          {/* 2. Plat du Jour / Best-Sellers (Dynamique selon le choix du chef) */}
           <button
             type="button"
             onClick={() => {
@@ -81,7 +83,7 @@ export function TopHeader({
             }}
             className="text-xs font-black uppercase tracking-wider text-zinc-300 hover:text-bmc-gold transition-colors cursor-pointer py-1"
           >
-            Plat du Jour
+            {hasDailySpecial ? 'Plat du Jour' : 'Best-Sellers'}
           </button>
 
           {/* 3. Menu & La Carte */}

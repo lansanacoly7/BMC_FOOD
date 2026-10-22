@@ -5,6 +5,7 @@ interface NavMenuDrawerProps {
   isOpen: boolean
   onClose: () => void
   currentPage?: 'home' | 'menu'
+  hasDailySpecial?: boolean
   onNavigate?: (page: 'home' | 'menu') => void
   onSelectDailySpecial?: () => void
   onSelectOffers?: () => void
@@ -14,13 +15,14 @@ interface NavMenuDrawerProps {
 /**
  * Tiroir latéral d'informations et navigation BMC Food Dakar (Mobile & Tablette).
  * - Icônes Lucide officielles (zéro emoji)
- * - Navigation complète et sans répétitions (Accueil, Plat du Jour, Menu, Nos Offres)
+ * - Navigation complète et sans répétitions (Accueil, Plat du Jour ou Best-Sellers, Menu, Nos Offres)
  * - Contacts et horaires officiels
  */
 export function NavMenuDrawer({
   isOpen,
   onClose,
   currentPage = 'home',
+  hasDailySpecial = false,
   onNavigate,
   onSelectDailySpecial,
   onSelectOffers,
@@ -100,7 +102,7 @@ export function NavMenuDrawer({
                   {currentPage === 'home' && <span className="size-2 rounded-full bg-bmc-gold" />}
                 </button>
 
-                {/* 2. Plat du Jour */}
+                {/* 2. Plat du Jour / Best-Sellers (Dynamique selon le chef) */}
                 <button
                   type="button"
                   onClick={() => {
@@ -118,7 +120,7 @@ export function NavMenuDrawer({
                 >
                   <div className="flex items-center gap-3">
                     <Sparkles className="size-4.5 text-bmc-gold" />
-                    <span>Plat du Jour</span>
+                    <span>{hasDailySpecial ? 'Plat du Jour' : 'Best-Sellers'}</span>
                   </div>
                   <span className="text-xs text-bmc-gold">Voir</span>
                 </button>
