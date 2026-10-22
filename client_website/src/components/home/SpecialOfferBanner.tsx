@@ -21,8 +21,8 @@ export function SpecialOfferBanner({ onOrderNow }: SpecialOfferBannerProps) {
       onOrderNow()
     } else {
       const target =
+        document.getElementById('special-offers-grid') ||
         document.getElementById('menu-catalog-grid') ||
-        document.getElementById('menu-catalog-grid-desktop') ||
         document.getElementById('menu-section')
       target?.scrollIntoView({ behavior: 'smooth' })
     }

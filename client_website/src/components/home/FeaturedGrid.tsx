@@ -1,4 +1,4 @@
-import { Check, Plus, Star } from 'lucide-react'
+import { Check, Plus, Star, Sparkles, Tag } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useState } from 'react'
 import { formatFcfa } from '../../lib/format'
@@ -229,13 +229,22 @@ export function FeaturedGrid({
     return matchCategory && matchSearch
   })
 
-  // Découpage Mobile : 4 items (2 lignes x 2 colonnes) puis bannière puis reste
+  // Découpage Mobile : 4 items (2 lignes x 2 colonnes) pour les Tacos Panés
   const mobileTop = filtered.slice(0, 4)
-  const mobileRest = filtered.slice(4)
 
-  // Découpage Desktop : 8 items (2 lignes x 4 colonnes) puis bannière puis reste
+  // Découpage Desktop : 8 items (2 lignes x 4 colonnes) pour Tacos Panés + Burgers & Tenders
   const desktopTop = filtered.slice(0, 8)
-  const desktopRest = filtered.slice(8)
+
+  // Les 4 produits phares éligibles à l'Offre Spéciale (-20% sur 2 lignes)
+  const specialOfferCodes = ['bg-complet', 'bg-crispy', 'tp-cordon-bleu', 'td-poulet']
+  const specialOfferProducts = specialOfferCodes
+    .map((code) => productList.find((p) => p.code === code) || CATALOG_PRODUCTS.find((p) => p.code === code))
+    .filter((p): p is Product => p !== undefined)
+    .map((product) => ({
+      ...product,
+      originalPrice: product.price,
+      discountedPrice: Math.round((product.price * 0.8) / 100) * 100,
+    }))
 
   return (
     <section aria-label="Les plus commandés" className="space-y-6">
@@ -282,58 +291,65 @@ export function FeaturedGrid({
           </div>
         </div>
       ) : isDefaultView ? (
-        /* VUE CATALOGUE PAR DÉFAUT : Découpage 2 lignes + Bannière Pleine Largeur + Reste */
-        <div>
-          {/* --- AFFICHAGE MOBILE (< 1024px) --- */}
-          <div className="lg:hidden space-y-6">
-            {/* Ligne 1 & 2 Mobile : 4 Tacos Panés (2 colonnes x 2 lignes) */}
-            <div className="mx-auto max-w-7xl px-4 sm:px-6">
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                {mobileTop.map((product) => (
-                  <ClassicProductCard key={product.code} product={product} onAdd={onAddToCart} />
-                ))}
-              </div>
+        /* VUE CATALOGUE PAR DÉFAUT : Grille Vedette + Bannière Pleine Largeur + 4 Offres Spéciales */
+        <div className="space-y-8">
+          {/* --- PARTIE 1 : VEDETTES DU CATALOGUE --- */}
+          {/* Mobile : 4 Tacos Panés (2 colonnes x 2 lignes) */}
+          <div className="lg:hidden mx-auto max-w-7xl px-4 sm:px-6">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              {mobileTop.map((product) => (
+                <ClassicProductCard key={product.code} product={product} onAdd={onAddToCart} />
+              ))}
             </div>
-
-            {/* Bannière Promotionnelle Pleine Largeur Mobile (w-full sans marges) */}
-            <SpecialOfferBanner />
-
-            {/* Reste des cartes Mobile */}
-            {mobileRest.length > 0 && (
-              <div id="menu-catalog-grid" className="mx-auto max-w-7xl px-4 sm:px-6">
-                <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                  {mobileRest.map((product) => (
-                    <ClassicProductCard key={product.code} product={product} onAdd={onAddToCart} />
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* --- AFFICHAGE DESKTOP (>= 1024px) --- */}
-          <div className="hidden lg:block space-y-8">
-            {/* Ligne 1 & 2 Desktop : 8 cartes (4 colonnes x 2 lignes : Tacos Panés + Burgers & Tenders) */}
-            <div className="mx-auto max-w-7xl px-8">
-              <div className="grid grid-cols-4 gap-4">
-                {desktopTop.map((product) => (
-                  <ClassicProductCard key={product.code} product={product} onAdd={onAddToCart} />
-                ))}
+          {/* Desktop : 8 cartes (4 colonnes x 2 lignes : Tacos Panés + Burgers & Tenders) */}
+          <div className="hidden lg:block mx-auto max-w-7xl px-8">
+            <div className="grid grid-cols-4 gap-4">
+              {desktopTop.map((product) => (
+                <ClassicProductCard key={product.code} product={product} onAdd={onAddToCart} />
+              ))}
+            </div>
+          </div>
+
+          {/* --- PARTIE 2 : BANNIÈRE PROMOTIONNELLE OFFICIELLE --- */}
+          <SpecialOfferBanner />
+
+          {/* --- PARTIE 3 : NOS 4 FORMULES & OFFRES SPÉCIALES (-20%) --- */}
+          <div id="special-offers-grid" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-1.5 pt-2">
+              <div>
+                <div className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-bmc-gold">
+                  <Sparkles className="size-3.5 text-amber-400" />
+                  <span>Sélection Éligible · 20% Déduits</span>
+                </div>
+                <h3 className="font-display text-lg sm:text-2xl font-black text-white mt-0.5">
+                  Nos 4 Formules & Offres Spéciales
+                </h3>
               </div>
+              <p className="text-xs sm:text-sm text-zinc-400 max-w-md">
+                Tarifs remisés de -20% applicables immédiatement sur vos spécialités BMC Food préférées.
+              </p>
             </div>
 
-            {/* Bannière Promotionnelle Pleine Largeur Desktop (w-full sans marges) */}
-            <SpecialOfferBanner />
-
-            {/* Reste des cartes Desktop */}
-            {desktopRest.length > 0 && (
-              <div id="menu-catalog-grid-desktop" className="mx-auto max-w-7xl px-8">
-                <div className="grid grid-cols-4 gap-4">
-                  {desktopRest.map((product) => (
-                    <ClassicProductCard key={product.code} product={product} onAdd={onAddToCart} />
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Grille des 4 offres spéciales : 2 colonnes x 2 lignes sur mobile, 4 colonnes sur desktop */}
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+              {specialOfferProducts.map((item) => (
+                <SpecialOfferProductCard
+                  key={item.code}
+                  product={item}
+                  originalPrice={item.originalPrice}
+                  discountedPrice={item.discountedPrice}
+                  onAdd={() =>
+                    onAddToCart({
+                      ...item,
+                      price: item.discountedPrice,
+                      name: `${item.name} (-20%)`,
+                    })
+                  }
+                />
+              ))}
+            </div>
           </div>
         </div>
       ) : (
@@ -351,12 +367,7 @@ export function FeaturedGrid({
 }
 
 /**
- * Carte Produit Classique (Format Dark Luxury v1.1).
- * - Fond sombre texturé ardoise
- * - Photo appétissante en haut
- * - Nom en blanc éclatant, hover or
- * - Prix à gauche en Or BMC (#FCB800)
- * - Bouton + en Or BMC brossé à droite
+ * Carte Produit Classique (Format Dark Luxury v1.1 avec animation d'entrée au scroll).
  */
 function ClassicProductCard({ product, onAdd }: { product: Product; onAdd: (p: Product) => void }) {
   const [added, setAdded] = useState(false)
@@ -370,8 +381,12 @@ function ClassicProductCard({ product, onAdd }: { product: Product; onAdd: (p: P
   return (
     <motion.article
       layout
-      whileHover={{ y: -3 }}
-      className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/85 p-3 shadow-lg backdrop-blur-xs transition-all hover:border-bmc-gold/40 hover:shadow-2xl sm:p-4 text-white"
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-25px' }}
+      transition={{ duration: 0.42, ease: 'easeOut' }}
+      whileHover={{ y: -4 }}
+      className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/85 p-3 shadow-lg backdrop-blur-xs transition-all hover:border-bmc-gold/50 hover:shadow-2xl hover:shadow-amber-500/10 sm:p-4 text-white"
     >
       <div>
         {/* Photo appétissante en haut */}
@@ -430,6 +445,109 @@ function ClassicProductCard({ product, onAdd }: { product: Product; onAdd: (p: P
             ) : (
               <motion.div key="plus" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
                 <Plus className="size-4 text-black stroke-[3]" />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.button>
+      </div>
+    </motion.article>
+  )
+}
+
+/**
+ * Carte Produit Éligible à l'Offre Spéciale (-20% déduit, prix barré et badge promotionnel).
+ */
+function SpecialOfferProductCard({
+  product,
+  originalPrice,
+  discountedPrice,
+  onAdd,
+}: {
+  product: Product
+  originalPrice: number
+  discountedPrice: number
+  onAdd: () => void
+}) {
+  const [added, setAdded] = useState(false)
+
+  const handleAdd = () => {
+    onAdd()
+    setAdded(true)
+    setTimeout(() => setAdded(false), 1400)
+  }
+
+  return (
+    <motion.article
+      layout
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-25px' }}
+      transition={{ duration: 0.45, ease: 'easeOut' }}
+      whileHover={{ y: -4 }}
+      className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-amber-500/35 bg-gradient-to-b from-zinc-900/95 via-zinc-900/85 to-black p-3 sm:p-4 shadow-xl hover:border-amber-400 hover:shadow-2xl hover:shadow-amber-500/10 text-white"
+    >
+      <div>
+        {/* Photo du plat avec badge -20% */}
+        <div className="relative aspect-4/3 w-full overflow-hidden rounded-xl bg-zinc-950 border border-amber-500/20">
+          <img
+            src={product.image_url}
+            alt={product.name}
+            width={200}
+            height={150}
+            loading="lazy"
+            decoding="async"
+            className="size-full object-cover transition-transform duration-500 ease-out group-hover:scale-106"
+          />
+
+          {/* Badge exclusif Offre Spéciale -20% */}
+          <span className="absolute left-2 top-2 flex items-center gap-1 rounded-md bg-gradient-to-r from-red-600 to-amber-600 px-2 py-0.5 text-[10px] sm:text-xs font-black uppercase text-white shadow-md">
+            <Tag className="size-3" />
+            -20%
+          </span>
+        </div>
+
+        {/* Nom & Description */}
+        <div className="mt-2.5 space-y-1">
+          <h4 className="font-display text-sm font-extrabold text-white group-hover:text-bmc-gold transition-colors leading-snug sm:text-base">
+            {product.name}
+          </h4>
+          <p className="line-clamp-2 text-[11px] text-zinc-400 leading-relaxed sm:text-xs">
+            {product.description}
+          </p>
+        </div>
+      </div>
+
+      {/* Prix avec remise & Bouton + */}
+      <div className="mt-3 flex items-center justify-between pt-2 border-t border-amber-500/20">
+        <div className="flex flex-col">
+          <span className="line-through text-zinc-500 text-[11px] sm:text-xs font-semibold tabular-nums">
+            {formatFcfa(originalPrice)}
+          </span>
+          <span className="font-display text-base sm:text-lg font-black tabular-nums text-bmc-gold leading-tight">
+            {formatFcfa(discountedPrice)}
+          </span>
+        </div>
+
+        {/* Bouton d'ajout direct */}
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.9 }}
+          onClick={handleAdd}
+          aria-label={`Ajouter ${product.name} en offre spéciale`}
+          className={`flex size-9 sm:size-10 items-center justify-center rounded-xl font-bold transition-all cursor-pointer ${
+            added
+              ? 'bg-bmc-success text-white shadow-sm'
+              : 'bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 text-black hover:brightness-110 shadow-lg shadow-amber-500/20'
+          }`}
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            {added ? (
+              <motion.div key="check" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                <Check className="size-4 sm:size-5 text-white" />
+              </motion.div>
+            ) : (
+              <motion.div key="plus" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                <Plus className="size-4 sm:size-5 text-black stroke-[3]" />
               </motion.div>
             )}
           </AnimatePresence>
