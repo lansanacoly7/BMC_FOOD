@@ -23,17 +23,57 @@ export function Footer({ onExploreMenu }: FooterProps) {
   }
 
   return (
-    <footer
-      aria-label="Pied de page institutionnel BMC Food"
-      className="hidden lg:block relative w-full mt-6 sm:mt-8 border-t border-amber-500/20 bg-gradient-to-b from-zinc-950 via-black to-black text-zinc-300 overflow-hidden"
-    >
-      {/* Halo doré d'ambiance en arrière-plan */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-48 bg-amber-500/10 blur-3xl rounded-full"
-      />
+    <>
+      {/* =====================================================================
+          PETIT FOOTER MOBILE DÉDIÉ (Visible uniquement sur mobile & tablette : lg:hidden)
+          Contient UNIQUEMENT l'élément demandé par Maimouna Sall :
+          Logo BMC Food + FAST-FOOD GOURMET · DAKAR + BMC FOOD DAKAR + descriptif officiel
+          ===================================================================== */}
+      <footer
+        aria-label="Pied de page mobile BMC Food"
+        className="lg:hidden relative w-full mt-6 border-t border-amber-500/20 bg-gradient-to-b from-zinc-950 via-black to-black text-zinc-300 px-4 pt-6 pb-28 text-left overflow-hidden"
+      >
+        <div className="relative mx-auto max-w-lg">
+          <div className="flex items-center gap-3.5 sm:gap-4">
+            <div className="relative shrink-0 p-1.5 rounded-2xl bg-gradient-to-br from-amber-500/20 via-zinc-900 to-black border border-amber-500/40 shadow-xl shadow-amber-500/10">
+              <img
+                src="/images/brand/logo.png"
+                alt="Logo officiel BMC Food Dakar"
+                width={80}
+                height={80}
+                className="size-14 sm:size-16 object-contain filter drop-shadow-[0_4px_16px_rgba(252,184,0,0.4)]"
+              />
+            </div>
+            <div>
+              <div className="inline-flex items-center gap-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.2em] text-bmc-gold">
+                <Sparkles className="size-2.5 sm:size-3 text-bmc-gold" />
+                <span>Fast-Food Gourmet · Dakar</span>
+              </div>
+              <h3 className="font-display text-lg sm:text-xl font-black uppercase tracking-tight text-white mt-0.5">
+                BMC FOOD <span className="bg-gradient-to-r from-bmc-gold to-amber-400 bg-clip-text text-transparent">Dakar</span>
+              </h3>
+              <p className="text-[11px] sm:text-xs text-zinc-300 mt-1 leading-snug">
+                Tacos panés signatures, Burgers gourmets saisis à la flamme & Poulet crispy préparés minute à la commande.
+              </p>
+            </div>
+          </div>
+        </div>
+      </footer>
 
-      <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8 space-y-10">
+      {/* =====================================================================
+          GRAND FOOTER INSTITUTIONNEL (Visible uniquement sur desktop : hidden lg:block)
+          ===================================================================== */}
+      <footer
+        aria-label="Pied de page institutionnel BMC Food"
+        className="hidden lg:block relative w-full mt-6 sm:mt-8 border-t border-amber-500/20 bg-gradient-to-b from-zinc-950 via-black to-black text-zinc-300 overflow-hidden"
+      >
+        {/* Halo doré d'ambiance en arrière-plan */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-48 bg-amber-500/10 blur-3xl rounded-full"
+        />
+
+        <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8 space-y-10">
         
         {/* =====================================================================
             LIGNE 1 : 3 COLONNES DE REDIRECTION, HORAIRES & ENGAGEMENTS
@@ -280,5 +320,6 @@ export function Footer({ onExploreMenu }: FooterProps) {
 
       </div>
     </footer>
+    </>
   )
 }
