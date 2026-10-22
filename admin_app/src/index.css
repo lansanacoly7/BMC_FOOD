@@ -40,6 +40,13 @@
   /* 04 · TYPOGRAPHIE (Page 7 du guide officiel) */
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+
+  /* ANIMATIONS PREMIUM */
+  --animate-shimmer-gold: shimmer-gold 2.5s ease-in-out infinite;
+  --animate-fade-in-up: fade-in-up 0.4s ease-out both;
+  --animate-pulse-gold: pulse-gold 2s ease-in-out infinite;
+  --animate-slide-in: slide-in 0.3s ease-out both;
+  --animate-count-up: count-up 0.6s ease-out both;
 }
 
 @layer base {
@@ -52,3 +59,129 @@
     @apply bg-bmc-charcoal font-sans text-bmc-offwhite antialiased;
   }
 }
+
+/* ─── PREMIUM ANIMATIONS ─── */
+
+@keyframes shimmer-gold {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(252, 184, 0, 0);
+  }
+  50% {
+    box-shadow: 0 0 20px 2px rgba(252, 184, 0, 0.15), 0 0 40px 4px rgba(252, 184, 0, 0.08);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-gold {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(252, 184, 0, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(252, 184, 0, 0);
+  }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes count-up {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Urgent order card shimmer */
+@keyframes urgent-border {
+  0%, 100% {
+    border-color: rgba(245, 158, 11, 0.3);
+  }
+  50% {
+    border-color: rgba(245, 158, 11, 0.7);
+  }
+}
+
+.animate-urgent-border {
+  animation: urgent-border 1.5s ease-in-out infinite;
+}
+
+/* ─── UTILITY CLASSES ─── */
+
+/* Hide scrollbar but keep scrollability */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Glass morphism card */
+.glass-card {
+  background: linear-gradient(135deg, rgba(24, 24, 27, 0.8), rgba(9, 9, 11, 0.9));
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card-hover:hover {
+  background: linear-gradient(135deg, rgba(24, 24, 27, 0.9), rgba(9, 9, 11, 0.95));
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* KPI card gradient borders */
+.kpi-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--kpi-accent, #FCB800), transparent);
+  opacity: 0.6;
+}
+
+/* Kanban column styling */
+.kanban-column {
+  min-height: 200px;
+}
+
+/* Premium gradient text */
+.text-gradient-gold {
+  background: linear-gradient(135deg, #FCB800, #F59E0B, #D97706);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Elapsed timer urgency */
+.timer-normal { color: #1DC8F2; }
+.timer-warning { color: #FCB800; }
+.timer-urgent { color: #CF4A08; }
+.timer-critical { color: #EF4444; animation: pulse 1s ease-in-out infinite; }
