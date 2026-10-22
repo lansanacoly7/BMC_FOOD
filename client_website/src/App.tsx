@@ -74,7 +74,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-dvh bg-zinc-950 text-zinc-100 pb-28 selection:bg-bmc-gold selection:text-black">
+    <div className="min-h-dvh bg-zinc-950 text-zinc-100 selection:bg-bmc-gold selection:text-black flex flex-col justify-between">
       {/* 
         1. EN-TÊTE OFFICIEL BMC FOOD AVEC NAVIGATION ACCUEIL / PLAT DU JOUR / MENU / OFFRES
       */}
