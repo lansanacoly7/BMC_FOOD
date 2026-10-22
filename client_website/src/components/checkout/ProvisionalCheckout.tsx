@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowLeft, MapPin } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Check, LoaderCircle, MapPin, Navigation } from 'lucide-react'
 import { motion } from 'motion/react'
 import { type FormEvent, useId, useState } from 'react'
 import { useCart } from '../../hooks/useCart'
@@ -33,6 +33,9 @@ export function ProvisionalCheckout({ onBack, onNewOrder }: ProvisionalCheckoutP
   const [selectedAreaId, setSelectedAreaId] = useState('')
   const [isWaveModalOpen, setIsWaveModalOpen] = useState(true)
   const [isOmModalOpen, setIsOmModalOpen] = useState(true)
+  const [isLocating, setIsLocating] = useState(false)
+  const [locationSuccess, setLocationSuccess] = useState(false)
+  const [locationError, setLocationError] = useState<string | null>(null)
 
   const selectedArea = selectedAreaId ? findDeliveryArea(selectedAreaId) : undefined
 
@@ -47,6 +50,62 @@ export function ProvisionalCheckout({ onBack, onNewOrder }: ProvisionalCheckoutP
     if (area && (!form.address || form.address.trim() === '')) {
       update('address', area.name)
     }
+  }
+
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError("La géolocalisation n'est pas supportée par votre navigateur.")
+      return
+    }
+
+    setIsLocating(true)
+    setLocationError(null)
+    setLocationSuccess(false)
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude
+        const lng = position.coords.longitude
+        const googleMapsUrl = `https://maps.google.com/?q=${lat.toFixed(6)},${lng.toFixed(6)}`
+
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+            { headers: { 'Accept-Language': 'fr' } }
+          )
+          if (response.ok) {
+            const data = await response.json()
+            const road = data.address?.road || data.address?.pedestrian || ''
+            const suburb = data.address?.suburb || data.address?.neighbourhood || data.address?.city_district || ''
+            const label = [road, suburb].filter(Boolean).join(', ')
+
+            if (label) {
+              update('address', `${label} (${googleMapsUrl})`)
+            } else {
+              update('address', `Position GPS : ${googleMapsUrl}`)
+            }
+          } else {
+            update('address', `Position GPS : ${googleMapsUrl}`)
+          }
+        } catch {
+          update('address', `Position GPS : ${googleMapsUrl}`)
+        } finally {
+          setIsLocating(false)
+          setLocationSuccess(true)
+          setTimeout(() => setLocationSuccess(false), 4000)
+        }
+      },
+      (err) => {
+        setIsLocating(false)
+        if (err.code === err.PERMISSION_DENIED) {
+          setLocationError('Autorisation refusée. Veuillez autoriser la localisation ou saisir votre adresse.')
+        } else {
+          setLocationError('Impossible de récupérer la position GPS. Saisissez votre adresse manuellement.')
+        }
+        setTimeout(() => setLocationError(null), 5000)
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    )
   }
 
   const handleSubmit = (event: FormEvent) => {
@@ -186,33 +245,63 @@ export function ProvisionalCheckout({ onBack, onNewOrder }: ProvisionalCheckoutP
               disabled={isSubmitting}
             />
 
-            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300">
-              Adresse exacte ou point de repère
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <label htmlFor="address-input" className="block text-xs font-bold uppercase tracking-wider text-zinc-300">
+                  Adresse exacte ou point de repère
+                </label>
+                <button
+                  type="button"
+                  onClick={handleGetLocation}
+                  disabled={isLocating || isSubmitting}
+                  aria-label="Prendre ma position sur Google Maps"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-white/10 hover:border-bmc-gold/50 px-2.5 py-1 text-[11px] font-bold text-bmc-gold hover:text-amber-300 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isLocating ? (
+                    <>
+                      <LoaderCircle className="size-3.5 animate-spin text-bmc-gold" />
+                      <span>Localisation…</span>
+                    </>
+                  ) : locationSuccess ? (
+                    <>
+                      <Check className="size-3.5 text-green-400 stroke-[3]" />
+                      <span className="text-green-400">Position capturée !</span>
+                    </>
+                  ) : (
+                    <>
+                      <Navigation className="size-3.5 text-bmc-gold" />
+                      <span>📍 Ma position Maps</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
               <input
+                id="address-input"
                 type="text"
                 autoComplete="street-address"
-                placeholder="Ex. Rue 14 x Boulevard de la République"
+                placeholder="Ex. Rue 14 x Boulevard de la République ou lien Maps"
                 value={form.address}
                 onChange={(e) => update('address', e.target.value)}
                 disabled={isSubmitting}
                 className={inputClass('address')}
               />
+
+              {locationError && (
+                <p className="mt-1 text-xs text-amber-400/90 font-medium">{locationError}</p>
+              )}
+
               {fieldError('address') && (
                 <span className="mt-1 block text-xs font-semibold text-red-400">{fieldError('address')}</span>
               )}
-            </label>
 
-            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300">
-              Instructions spéciales (optionnel)
-              <input
-                type="text"
-                placeholder="Ex. Sans oignons, sauce algérienne en plus…"
-                value={form.notes ?? ''}
-                onChange={(e) => update('notes', e.target.value)}
-                disabled={isSubmitting}
-                className={inputClass('notes')}
-              />
-            </label>
+              {form.address && form.address.includes('maps.google.com') && (
+                <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-zinc-400">
+                  <Check className="size-3.5 text-bmc-gold shrink-0" />
+                  <span>Position GPS Google Maps intégrée pour le livreur.</span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Card 2 : Choix du moyen de paiement */}
