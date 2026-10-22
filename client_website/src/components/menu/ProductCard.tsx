@@ -13,6 +13,7 @@ export interface ProductCardProps {
 export function ProductCard({ product, onAdd, onSelect }: ProductCardProps) {
   const [justAdded, setJustAdded] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
+  const [imgFailed, setImgFailed] = useState(false)
 
   const handleAddClick = (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation()
@@ -35,16 +36,22 @@ export function ProductCard({ product, onAdd, onSelect }: ProductCardProps) {
     >
       {/* 1. Conteneur Image avec ratio 4:3 et badges supérieurs (Calqué sur la Maquette) */}
       <div className="relative aspect-4/3 w-full overflow-hidden bg-zinc-950 flex items-center justify-center">
-        {product.image_url ? (
+        {product.image_url && !imgFailed ? (
           <img
             src={product.image_url}
             alt={product.name}
             loading="lazy"
+            onError={() => setImgFailed(true)}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-zinc-900 text-zinc-500 text-xs">
-            Photo BMC
+          <div className="flex h-full w-full flex-col items-center justify-center gap-1 bg-zinc-900">
+            <span className="text-2xl opacity-40">
+              {product.category_name?.toLowerCase().includes('boisson') ? '🥤' :
+               product.category_name?.toLowerCase().includes('burger') ? '🍔' :
+               product.category_name?.toLowerCase().includes('sauce') ? '🧴' : '🌯'}
+            </span>
+            <span className="text-[10px] text-zinc-600 text-center px-2 line-clamp-2">{product.name}</span>
           </div>
         )}
 
