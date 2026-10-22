@@ -44,22 +44,22 @@ export function SpecialOfferBanner({ onOrderNow }: SpecialOfferBannerProps) {
         />
       </picture>
 
-      {/* 2. Bouton interactif Or BMC posé au-dessus de l'image, en bas du texte à gauche */}
-      <div className="absolute left-[4%] sm:left-[5%] md:left-[6%] bottom-[8%] sm:bottom-[10%] md:bottom-[12%] z-10">
+      {/* 2. Bouton interactif Or BMC posé au-dessus de l'image, en bas du texte à gauche (taille imposante alignée sur le Hero) */}
+      <div className="absolute left-[4%] sm:left-[5%] md:left-[6%] bottom-[6%] sm:bottom-[8%] md:bottom-[10%] z-10">
         <motion.button
           type="button"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.96 }}
           onClick={(e) => {
             e.stopPropagation()
             handleAction()
           }}
           aria-label="Commander maintenant et profiter de l'offre spéciale -20%"
-          className="group/btn inline-flex items-center gap-1.5 sm:gap-2.5 rounded-full bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 px-3.5 py-1.5 xs:px-4 xs:py-2 sm:px-6 sm:py-2.5 md:px-7 md:py-3 text-[10px] xs:text-xs sm:text-sm font-black uppercase tracking-wider text-black shadow-xl shadow-amber-500/35 hover:brightness-110 hover:shadow-amber-500/60 cursor-pointer transition-all whitespace-nowrap"
+          className="group/btn inline-flex h-10 xs:h-12 sm:h-14 items-center justify-center gap-2 sm:gap-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 px-4 xs:px-6 sm:px-8 md:px-10 font-display text-xs xs:text-sm sm:text-base font-black uppercase tracking-wider text-black shadow-xl shadow-amber-500/40 hover:shadow-2xl hover:shadow-amber-500/60 hover:brightness-110 cursor-pointer transition-all whitespace-nowrap"
         >
           <span>Commander</span>
-          <span className="hidden xs:inline">Maintenant</span>
-          <ArrowRight className="size-3 sm:size-3.5 md:size-4 stroke-[3] transition-transform duration-300 group-hover/btn:translate-x-1" />
+          <span>Maintenant</span>
+          <ArrowRight className="size-3.5 sm:size-4 md:size-5 stroke-[3] transition-transform duration-300 group-hover/btn:translate-x-1" />
         </motion.button>
       </div>
     </section>
