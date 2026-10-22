@@ -146,54 +146,55 @@ export function DailySpecialBanner({
         className="mx-auto max-w-5xl space-y-3.5"
       >
         {/* EN-TÊTE CINÉMATIQUE OFFICIEL BMC FOOD (Inspiré de Savoir-Faire Artisanal) */}
-        <div className="text-center max-w-3xl mx-auto space-y-2.5 sm:space-y-3 mb-4 sm:mb-6">
+        <div className="text-center max-w-2xl mx-auto space-y-2 sm:space-y-3 mb-4 sm:mb-6 px-2">
+          {/* Badge Pilule Or (Une seule ligne garantie sur mobile) */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-3.5 py-1 text-[11px] sm:text-xs font-black uppercase tracking-widest text-bmc-gold backdrop-blur-sm"
+            className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-3 sm:px-3.5 py-1 text-[10px] sm:text-xs font-black uppercase tracking-widest text-bmc-gold backdrop-blur-sm whitespace-nowrap"
           >
-            <Sparkles className="size-3.5 text-bmc-gold animate-pulse" />
+            <Sparkles className="size-3 sm:size-3.5 text-bmc-gold animate-pulse shrink-0" />
             <span>
-              {isSpecial
-                ? 'Sélection du Chef · Recette du Jour'
-                : 'Les Plus Commandés · Coups de Cœur Dakar'}
+              {isSpecial ? 'Sélection du Chef · Dakar' : 'Coups de Cœur · Dakar'}
             </span>
           </motion.div>
 
+          {/* Titre Principal Cinématique (Pas de césure cassée de BEST-SELLERS) */}
           <motion.h2
             id={headingId}
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.08 }}
-            className="font-display text-2xl sm:text-3xl lg:text-4xl font-black uppercase tracking-tight text-white leading-tight"
+            className="font-display text-xl xs:text-2xl sm:text-3xl lg:text-4xl font-black uppercase tracking-tight text-white leading-tight"
           >
             {isSpecial ? (
               <>
-                La Création{' '}
-                <span className="bg-gradient-to-r from-amber-300 via-bmc-gold to-amber-500 bg-clip-text text-transparent">
-                  du Jour
-                </span>{' '}
-                à Dakar
+                Le Plat du Jour{' '}
+                <span className="whitespace-nowrap bg-gradient-to-r from-amber-300 via-bmc-gold to-amber-500 bg-clip-text text-transparent">
+                  de Dakar
+                </span>
               </>
             ) : (
               <>
-                Nos Incontournables{' '}
-                <span className="bg-gradient-to-r from-amber-300 via-bmc-gold to-amber-500 bg-clip-text text-transparent">
+                Les{' '}
+                <span className="whitespace-nowrap bg-gradient-to-r from-amber-300 via-bmc-gold to-amber-500 bg-clip-text text-transparent">
                   Best-Sellers
-                </span>
+                </span>{' '}
+                de Dakar
               </>
             )}
           </motion.h2>
 
+          {/* Sous-titre aéré et gourmand */}
           <motion.p
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.14 }}
-            className="text-xs sm:text-sm text-zinc-400 max-w-xl mx-auto leading-relaxed"
+            className="text-xs sm:text-sm text-zinc-400 max-w-lg mx-auto leading-relaxed"
           >
             {isSpecial
-              ? 'Une recette signature cuisinée chaque matin avec des ingrédients frais, disponible aujourd’hui en quantité limitée.'
-              : 'Découvrez nos recettes signatures plébiscitées à Dakar : tacos panés dorés, cheese-pull fondant et garnitures gourmandes préparées à la commande.'}
+              ? 'Une recette signature cuisinée chaque matin avec des ingrédients frais, servie minute en quantité limitée.'
+              : 'Nos recettes signatures les plus plébiscitées à Dakar : tacos panés dorés, cheese-pull fondant et burgers généreux.'}
           </motion.p>
         </div>
 
