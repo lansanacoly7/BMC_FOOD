@@ -1,4 +1,5 @@
-from django.db import transaction
+import time
+from django.db import OperationalError, transaction
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -310,12 +311,20 @@ class OrderListCreateView(APIView):
     def post(self, request):
         serializer = OrderCreateSerializer(data=request.data)
         if serializer.is_valid():
-            order = serializer.save()
-            return Response({
-                'success': True,
-                'message': 'Commande créée avec succès !',
-                'order': OrderSerializer(order).data
-            }, status=status.HTTP_201_CREATED)
+            for attempt in range(5):
+                try:
+                    order = serializer.save()
+                    order_data = OrderSerializer(order).data
+                    return Response({
+                        'success': True,
+                        'message': 'Commande créée avec succès !',
+                        'order': order_data
+                    }, status=status.HTTP_201_CREATED)
+                except OperationalError as e:
+                    if 'locked' in str(e).lower() and attempt < 4:
+                        time.sleep(0.05 + 0.05 * attempt)
+                        continue
+                    raise
         return error_response(
             first_message(serializer.errors) or 'Commande invalide.',
             errors=serializer.errors,

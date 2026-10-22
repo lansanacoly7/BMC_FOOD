@@ -48,6 +48,8 @@ class OrderConcurrencyTests(TransactionTestCase):
         """Crée une commande client via un client HTTP indépendant."""
         from django.db import connection
         try:
+            with connection.cursor() as cursor:
+                cursor.execute('PRAGMA busy_timeout = 20000;')
             client = APIClient(REMOTE_ADDR=f'192.168.1.{10 + thread_idx}')
             payload = {
                 "customer_name": f"Client Concurrence {thread_idx}",

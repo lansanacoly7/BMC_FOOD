@@ -49,6 +49,8 @@ class OrderSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.INT)
     def get_items_count(self, obj):
+        if hasattr(obj, '_precalculated_items_count'):
+            return obj._precalculated_items_count
         return sum(item.quantity for item in obj.items.all())
 
 
@@ -210,6 +212,7 @@ class OrderCreateSerializer(serializers.Serializer):
                         is_notified_to_admin=False,
                     )
                     OrderItem.objects.bulk_create([OrderItem(order=order, **line) for line in lines])
+                    order._precalculated_items_count = sum(line['quantity'] for line in lines)
                     return order
             except OperationalError as e:
                 # Verrou SQLite concurrent (I11) : brève attente et nouvelle tentative
