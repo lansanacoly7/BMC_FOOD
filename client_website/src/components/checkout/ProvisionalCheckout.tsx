@@ -1,16 +1,16 @@
-import { AlertTriangle, ArrowLeft } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, MapPin } from 'lucide-react'
 import { motion } from 'motion/react'
 import { type FormEvent, useId, useState } from 'react'
 import { useCart } from '../../hooks/useCart'
 import { useOrderSubmission } from '../../hooks/useOrderSubmission'
 import { findDeliveryArea } from '../../lib/delivery'
-import { formatFcfa } from '../../lib/format'
 import type { OrderCustomerDetails, OrderField } from '../../services/orders'
 import type { PaymentMethod } from '../../types'
 import { DeliveryZoneSelect } from './DeliveryZoneSelect'
 import { OrangeMoneyModal } from './OrangeMoneyModal'
 import { OrderConfirmation } from './OrderConfirmation'
 import { OrderSubmitButton } from './OrderSubmitButton'
+import { OrderTotals } from './OrderTotals'
 import { PaymentSelector } from './PaymentSelector'
 import { WavePaymentModal } from './WavePaymentModal'
 
@@ -21,6 +21,10 @@ interface ProvisionalCheckoutProps {
   onNewOrder: () => void
 }
 
+/**
+ * Écran « Finaliser la commande » (Univers Dark Luxury).
+ * Design 100% harmonisé avec le thème sombre, les contrastes dorés et les cartes Ardoise.
+ */
 export function ProvisionalCheckout({ onBack, onNewOrder }: ProvisionalCheckoutProps) {
   const formId = useId()
   const { items, subtotal } = useCart()
@@ -52,7 +56,7 @@ export function ProvisionalCheckout({ onBack, onNewOrder }: ProvisionalCheckoutP
     void submit(form)
   }
 
-  // Écran officiel de confirmation reproduisant à 100 % la page 12 de la charte graphique
+  // Écran officiel de confirmation reproduisant fidèlement la page 12 de la charte graphique
   if (status === 'success' && order) {
     const isWave = order.payment_method === 'wave'
     const isOm = order.payment_method === 'orange_money'
@@ -97,124 +101,142 @@ export function ProvisionalCheckout({ onBack, onNewOrder }: ProvisionalCheckoutP
 
   const fieldError = (field: OrderField) => error?.fieldErrors[field]
   const inputClass = (field: OrderField) =>
-    `mt-1 h-12 w-full rounded-xl border-[1.5px] bg-white px-3 focus:outline-none focus:ring-3 ${
+    `mt-1.5 h-12 w-full rounded-xl border bg-zinc-950/90 px-3.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 transition-all ${
       fieldError(field)
-        ? 'border-red-700 focus:ring-red-700/20'
-        : 'border-zinc-300 focus:border-bmc-orange-deep focus:ring-bmc-orange-deep/20'
+        ? 'border-red-500 focus:ring-red-500/25'
+        : 'border-white/15 focus:border-bmc-gold focus:ring-bmc-gold/25'
     }`
 
   return (
-    <section className="mx-auto flex min-h-dvh max-w-lg flex-col gap-5 px-4 pb-12 pt-5">
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={onBack}
-          disabled={isSubmitting}
-          aria-label="Revenir au menu"
-          className="grid size-11 place-items-center rounded-full bg-zinc-100 focus-visible:outline-2 focus-visible:outline-bmc-orange-deep disabled:opacity-50 cursor-pointer"
-        >
-          <ArrowLeft className="size-5" aria-hidden="true" />
-        </button>
-        <div>
-          <h1 className="font-display text-2xl font-extrabold text-zinc-900">Finaliser la commande</h1>
-          <p className="text-xs text-zinc-500">Paiement Wave, Orange Money & Espèces</p>
-        </div>
-      </div>
-
-      {error && (
-        <div role="alert" className="flex gap-3 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-800 border border-red-200">
-          <AlertTriangle className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-          <div className="flex flex-col gap-1">
-            <p className="font-semibold">{error.message}</p>
-            {error.itemErrors.map((message) => (
-              <p key={message}>{message}</p>
-            ))}
+    <div className="min-h-dvh bg-zinc-950 text-zinc-100 pb-16 pt-5 selection:bg-bmc-gold selection:text-black">
+      <section className="mx-auto flex max-w-lg flex-col gap-6 px-4">
+        {/* En-tête noir et or avec bouton retour contrasté */}
+        <div className="flex items-center gap-3.5">
+          <button
+            type="button"
+            onClick={onBack}
+            disabled={isSubmitting}
+            aria-label="Revenir au menu"
+            className="grid size-11 shrink-0 place-items-center rounded-full bg-zinc-900 border border-white/15 text-white hover:border-bmc-gold hover:text-bmc-gold transition-colors focus-visible:outline-2 focus-visible:outline-bmc-gold disabled:opacity-50 cursor-pointer shadow-md"
+          >
+            <ArrowLeft className="size-5" aria-hidden="true" />
+          </button>
+          <div>
+            <h1 className="font-display text-2xl font-black text-white">Finaliser la commande</h1>
+            <p className="text-xs font-semibold text-zinc-400">Paiement Wave, Orange Money & Espèces</p>
           </div>
         </div>
-      )}
 
-      <form id={formId} onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
-        {/* Coordonnées client */}
-        <div className="space-y-4 rounded-2xl bg-white p-4 shadow-xs border border-zinc-200/80">
-          <h2 className="font-display text-base font-bold text-zinc-900">Vos coordonnées</h2>
+        {error && (
+          <div role="alert" className="flex gap-3 rounded-2xl bg-red-950/80 px-4 py-3.5 text-sm text-red-200 border border-red-500/40 shadow-lg">
+            <AlertTriangle className="mt-0.5 size-5 shrink-0 text-red-400" aria-hidden="true" />
+            <div className="flex flex-col gap-1">
+              <p className="font-bold text-red-100">{error.message}</p>
+              {error.itemErrors.map((message) => (
+                <p key={message} className="text-xs text-red-300">{message}</p>
+              ))}
+            </div>
+          </div>
+        )}
 
-          <label className="block text-sm font-semibold text-zinc-800">
-            Nom et prénom
-            <input
-              type="text"
-              autoComplete="name"
-              placeholder="Ex. Aminata Diallo"
-              value={form.customer_name}
-              onChange={(e) => update('customer_name', e.target.value)}
+        <form id={formId} onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
+          {/* Card 1 : Coordonnées client */}
+          <div className="space-y-4.5 rounded-2xl bg-zinc-900/90 p-5 shadow-xl border border-white/10 backdrop-blur-xs">
+            <h2 className="font-display text-base font-extrabold text-white flex items-center gap-2">
+              <MapPin className="size-4 text-bmc-gold" />
+              Vos coordonnées de livraison
+            </h2>
+
+            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300">
+              Nom et prénom
+              <input
+                type="text"
+                autoComplete="name"
+                placeholder="Ex. Aminata Diallo"
+                value={form.customer_name}
+                onChange={(e) => update('customer_name', e.target.value)}
+                disabled={isSubmitting}
+                className={inputClass('customer_name')}
+              />
+              {fieldError('customer_name') && (
+                <span className="mt-1 block text-xs font-semibold text-red-400">{fieldError('customer_name')}</span>
+              )}
+            </label>
+
+            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300">
+              Téléphone sénégalais
+              <input
+                type="tel"
+                autoComplete="tel"
+                placeholder="Ex. 77 123 45 67"
+                value={form.phone}
+                onChange={(e) => update('phone', e.target.value)}
+                disabled={isSubmitting}
+                className={inputClass('phone')}
+              />
+              {fieldError('phone') && (
+                <span className="mt-1 block text-xs font-semibold text-red-400">{fieldError('phone')}</span>
+              )}
+            </label>
+
+            {/* Sélecteur de quartier de Dakar */}
+            <DeliveryZoneSelect
+              value={selectedAreaId}
+              onChange={handleAreaChange}
               disabled={isSubmitting}
-              className={inputClass('customer_name')}
             />
-            {fieldError('customer_name') && (
-              <span className="mt-1 block text-xs font-semibold text-red-700">{fieldError('customer_name')}</span>
-            )}
-          </label>
 
-          <label className="block text-sm font-semibold text-zinc-800">
-            Téléphone sénégalais
-            <input
-              type="tel"
-              autoComplete="tel"
-              placeholder="Ex. 77 123 45 67"
-              value={form.phone}
-              onChange={(e) => update('phone', e.target.value)}
+            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300">
+              Adresse exacte ou point de repère
+              <input
+                type="text"
+                autoComplete="street-address"
+                placeholder="Ex. Rue 14 x Boulevard de la République"
+                value={form.address}
+                onChange={(e) => update('address', e.target.value)}
+                disabled={isSubmitting}
+                className={inputClass('address')}
+              />
+              {fieldError('address') && (
+                <span className="mt-1 block text-xs font-semibold text-red-400">{fieldError('address')}</span>
+              )}
+            </label>
+
+            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300">
+              Instructions spéciales (optionnel)
+              <input
+                type="text"
+                placeholder="Ex. Sans oignons, sauce algérienne en plus…"
+                value={form.notes ?? ''}
+                onChange={(e) => update('notes', e.target.value)}
+                disabled={isSubmitting}
+                className={inputClass('notes')}
+              />
+            </label>
+          </div>
+
+          {/* Card 2 : Choix du moyen de paiement */}
+          <div className="rounded-2xl bg-zinc-900/90 p-5 shadow-xl border border-white/10 backdrop-blur-xs">
+            <PaymentSelector
+              value={form.payment_method}
+              onChange={(method: PaymentMethod) => update('payment_method', method)}
               disabled={isSubmitting}
-              className={inputClass('phone')}
             />
-            {fieldError('phone') && (
-              <span className="mt-1 block text-xs font-semibold text-red-700">{fieldError('phone')}</span>
-            )}
-          </label>
+          </div>
 
-          {/* Sélecteur de quartier de Dakar */}
-          <DeliveryZoneSelect
-            value={selectedAreaId}
-            onChange={handleAreaChange}
-            disabled={isSubmitting}
-          />
+          {/* Card 3 : Récapitulatif montant total avec frais de livraison */}
+          <OrderTotals subtotal={subtotal} deliveryFee={selectedArea?.fee} />
 
-          <label className="block text-sm font-semibold text-zinc-800">
-            Adresse exacte ou point de repère
-            <input
-              type="text"
-              autoComplete="street-address"
-              placeholder="Ex. Rue 14 x Boulevard de la République"
-              value={form.address}
-              onChange={(e) => update('address', e.target.value)}
-              disabled={isSubmitting}
-              className={inputClass('address')}
+          {/* Card 4 : Bouton de confirmation */}
+          <motion.div layout className="pt-1">
+            <OrderSubmitButton
+              isSubmitting={isSubmitting}
+              amount={subtotal + (selectedArea?.fee ?? 0)}
+              disabled={items.length === 0}
             />
-            {fieldError('address') && (
-              <span className="mt-1 block text-xs font-semibold text-red-700">{fieldError('address')}</span>
-            )}
-          </label>
-        </div>
-
-        {/* Choix du moyen de paiement */}
-        <div className="rounded-2xl bg-white p-4 shadow-xs border border-zinc-200/80">
-          <PaymentSelector
-            value={form.payment_method}
-            onChange={(method: PaymentMethod) => update('payment_method', method)}
-            disabled={isSubmitting}
-          />
-        </div>
-
-        {/* Récapitulatif total */}
-        <div className="flex items-baseline justify-between rounded-2xl bg-zinc-100 px-5 py-4">
-          <span className="font-semibold text-zinc-800">Total à payer</span>
-          <span className="font-display text-2xl font-extrabold tabular-nums text-zinc-950">
-            {formatFcfa(subtotal)}
-          </span>
-        </div>
-
-        <motion.div layout>
-          <OrderSubmitButton isSubmitting={isSubmitting} amount={subtotal} disabled={items.length === 0} />
-        </motion.div>
-      </form>
-    </section>
+          </motion.div>
+        </form>
+      </section>
+    </div>
   )
 }

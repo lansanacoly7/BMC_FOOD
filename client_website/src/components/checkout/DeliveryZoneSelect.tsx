@@ -17,8 +17,8 @@ interface DeliveryZoneSelectProps {
 }
 
 /**
- * Liste à choix du quartier de livraison, regroupée par zone, avec les frais payés par le client.
- * Liste native : sur téléphone, elle ouvre le sélecteur du système, plus confortable pour une cinquantaine de quartiers.
+ * Liste à choix du quartier de livraison (Univers Dark Luxury).
+ * Affiche les zones de Dakar et les frais calculés avec contraste élevé.
  */
 export function DeliveryZoneSelect({ value, onChange, disabled = false, error }: DeliveryZoneSelectProps) {
   const selectId = useId()
@@ -27,10 +27,10 @@ export function DeliveryZoneSelect({ value, onChange, disabled = false, error }:
 
   return (
     <div>
-      <label htmlFor={selectId} className="block text-sm font-medium">
+      <label htmlFor={selectId} className="block text-xs font-bold uppercase tracking-wider text-zinc-300">
         Quartier de livraison
       </label>
-      <div className="relative mt-1">
+      <div className="relative mt-1.5">
         <select
           id={selectId}
           value={value}
@@ -38,17 +38,17 @@ export function DeliveryZoneSelect({ value, onChange, disabled = false, error }:
           disabled={disabled}
           aria-invalid={error ? true : undefined}
           aria-describedby={hintId}
-          className={`h-12 w-full appearance-none rounded-xl border bg-white pl-3 pr-10 focus:outline-2 focus:outline-bmc-orange disabled:opacity-60 ${
-            error ? 'border-red-500' : 'border-zinc-300'
-          } ${value ? 'text-bmc-charcoal' : 'text-zinc-500'}`}
+          className={`h-12 w-full appearance-none rounded-xl border bg-zinc-950/90 pl-3.5 pr-10 text-sm focus:outline-none focus:border-bmc-gold focus:ring-2 focus:ring-bmc-gold/25 transition-all disabled:opacity-50 cursor-pointer ${
+            error ? 'border-red-500 text-red-200' : 'border-white/15'
+          } ${value ? 'text-white font-medium' : 'text-zinc-500'}`}
         >
-          <option value="" disabled>
+          <option value="" disabled className="bg-zinc-900 text-zinc-500">
             Choisissez votre quartier
           </option>
           {DELIVERY_ZONES.map((zone) => (
-            <optgroup key={zone.zone} label={`Zone ${zone.zone} — ${zone.label}`}>
+            <optgroup key={zone.zone} label={`Zone ${zone.zone} — ${zone.label}`} className="bg-zinc-900 font-bold text-bmc-gold">
               {zone.areas.map((option) => (
-                <option key={option.id} value={option.id}>
+                <option key={option.id} value={option.id} className="bg-zinc-950 text-white font-normal">
                   {option.name} · {option.fee === null ? 'prix sur appel' : formatOptionFee(option.fee)}
                 </option>
               ))}
@@ -56,32 +56,33 @@ export function DeliveryZoneSelect({ value, onChange, disabled = false, error }:
           ))}
         </select>
         <ChevronDown
-          className="pointer-events-none absolute right-3 top-1/2 size-5 -translate-y-1/2 text-zinc-500"
+          className="pointer-events-none absolute right-3.5 top-1/2 size-5 -translate-y-1/2 text-zinc-400"
           aria-hidden="true"
         />
       </div>
 
-      <p id={hintId} aria-live="polite" className="mt-2 flex items-center gap-2 text-sm">
+      <div id={hintId} aria-live="polite" className="mt-2 text-xs">
         {error ? (
-          <span className="text-red-600">{error}</span>
+          <span className="font-bold text-red-400">{error}</span>
         ) : area ? (
           area.fee === null ? (
-            <>
-              <Phone className="size-4 shrink-0 text-bmc-orange-deep" aria-hidden="true" />
+            <div className="flex items-center gap-2 rounded-xl bg-zinc-950/70 border border-white/10 px-3 py-2 text-zinc-300">
+              <Phone className="size-4 shrink-0 text-bmc-gold" aria-hidden="true" />
               <span>BMC Food vous appelle pour confirmer les frais de livraison.</span>
-            </>
+            </div>
           ) : (
-            <>
-              <Truck className="size-4 shrink-0 text-bmc-orange-deep" aria-hidden="true" />
-              <span>
-                Livraison {area.name} (zone {area.zone}) : <strong>{formatFcfa(area.fee)}</strong>
-              </span>
-            </>
+            <div className="flex items-center justify-between rounded-xl bg-zinc-950/70 border border-white/10 px-3 py-2 text-zinc-300">
+              <div className="flex items-center gap-2">
+                <Truck className="size-4 shrink-0 text-bmc-gold" aria-hidden="true" />
+                <span>Livraison {area.name} (zone {area.zone})</span>
+              </div>
+              <strong className="text-bmc-gold font-bold">{formatFcfa(area.fee)}</strong>
+            </div>
           )
         ) : (
-          <span className="text-zinc-500">Les frais de livraison sont à la charge du client.</span>
+          <span className="text-zinc-400">Les frais de livraison sont calculés selon le quartier sélectionné.</span>
         )}
-      </p>
+      </div>
     </div>
   )
 }
