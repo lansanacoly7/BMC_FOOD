@@ -1,20 +1,18 @@
 import { useState } from 'react'
 import { Header } from './components/ui/Header'
 import { MenuHero } from './components/home/MenuHero'
-import { DailySpecialBanner } from './components/client/DailySpecialBanner'
 import { MenuView } from './components/menu/MenuView'
 import { CartDrawer } from './components/cart/CartDrawer'
 import { StickyCartBar } from './components/home/StickyCartBar'
 import { Footer } from './components/home/Footer'
 import { ContactModal } from './components/contact/ContactModal'
-import { useDailySpecials } from './hooks/useDailySpecials'
 import type { CartItem, Product } from './types'
 
 export default function App() {
   const [items, setItems] = useState<CartItem[]>([])
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [isContactOpen, setIsContactOpen] = useState(false)
-  const { specials, isLoading: isSpecialsLoading } = useDailySpecials()
+
 
   const itemCount = items.reduce((count, item) => count + item.quantity, 0)
   const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
@@ -64,12 +62,6 @@ export default function App() {
 
       {/* 2. Conteneur principal de la Carte et des Offres */}
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 py-8 sm:px-6">
-        {/* Plat du Jour Vedette */}
-        <DailySpecialBanner
-          specials={specials}
-          isLoading={isSpecialsLoading}
-          onAdd={(p) => addToCart(p, 1)}
-        />
 
         {/* Page Menu avec Carrousel des plus commandés, rondelles et grille 2 colonnes */}
         <MenuView onAddToCart={addToCart} />
