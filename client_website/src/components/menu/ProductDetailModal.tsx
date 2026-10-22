@@ -16,9 +16,15 @@ export function ProductDetailModal({
   onClose,
   onAddToCart,
 }: ProductDetailModalProps) {
-  const [quantity, setQuantity] = useState(1)
+  const [quantity, setQuantity] = useState(0)
   const [favorite, setFavorite] = useState(false)
   const [justAdded, setJustAdded] = useState(false)
+
+  // Remise à zéro du compteur à chaque ouverture d'un nouveau plat
+  useEffect(() => {
+    setQuantity(0)
+    setJustAdded(false)
+  }, [product?.id])
 
   useEffect(() => {
     if (!product) return
@@ -35,12 +41,13 @@ export function ProductDetailModal({
   const toggleFavorite = () => setFavorite((v) => !v)
 
   const handleAdd = () => {
+    if (quantity < 1) return
     onAddToCart(product, quantity)
     setJustAdded(true)
     setTimeout(() => {
       setJustAdded(false)
       onClose()
-      setQuantity(1)
+      setQuantity(0)
     }, 500)
   }
 
@@ -157,8 +164,8 @@ export function ProductDetailModal({
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
-                    disabled={quantity === 1}
-                    onClick={() => setQuantity((v) => Math.max(1, v - 1))}
+                    disabled={quantity === 0}
+                    onClick={() => setQuantity((v) => Math.max(0, v - 1))}
                     aria-label="Diminuer la quantité"
                     className="flex size-9 items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 disabled:opacity-30 cursor-pointer transition-colors"
                   >
@@ -246,10 +253,13 @@ export function ProductDetailModal({
               whileTap={{ scale: 0.96 }}
               whileHover={{ scale: 1.02 }}
               onClick={handleAdd}
-              className={`flex-1 flex items-center justify-center gap-2.5 rounded-2xl py-3.5 px-6 font-display font-black text-sm sm:text-base transition-all cursor-pointer shadow-lg
+              disabled={quantity === 0 && !justAdded}
+              className={`flex-1 flex items-center justify-center gap-2.5 rounded-2xl py-3.5 px-6 font-display font-black text-sm sm:text-base transition-all cursor-pointer shadow-lg disabled:cursor-not-allowed
                 ${
                   justAdded
                     ? 'bg-emerald-500 text-white shadow-emerald-500/30'
+                    : quantity === 0
+                    ? 'bg-zinc-800 text-zinc-500 shadow-none'
                     : 'bg-bmc-gold hover:bg-yellow-400 text-black shadow-[0_4px_25px_rgba(252,184,0,0.4)]'
                 }`}
             >
