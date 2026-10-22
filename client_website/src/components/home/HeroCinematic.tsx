@@ -107,6 +107,14 @@ export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
     return () => clearInterval(timer)
   }, [isPaused])
 
+  // Préchargement immédiat en cache de toutes les animations WebP
+  useEffect(() => {
+    HERO_SCENES.forEach((scene) => {
+      const img = new Image()
+      img.src = scene.src
+    })
+  }, [])
+
   const activeScene = HERO_SCENES[currentIdx]
 
   return (
