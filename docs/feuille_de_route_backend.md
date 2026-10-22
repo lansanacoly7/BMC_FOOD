@@ -1,9 +1,10 @@
 # Feuille de Route & Guide de Travail — Faction Backend & API
 
-> **Responsable Faction** : Ibrahima Khalilou Diallo  
-> **Contributeur** : Pathé Fall (Assistance Backend)  
+> **Responsable Faction** : Pathé Fall (Responsable Backend) & Ibrahima Khalilou Diallo  
 > **Supervision & Validation PR** : Lansana Coly (Lead Technique)  
-> **Dépôt GitHub** : [https://github.com/lansanacoly7/BMC_FOOD](https://github.com/lansanacoly7/BMC_FOOD)
+> **Dépôt GitHub** : [https://github.com/lansanacoly7/BMC_FOOD](https://github.com/lansanacoly7/BMC_FOOD) | **Branches** : `feature/backend/*`  
+>  
+> **Répartition et suivi des tâches** : voir [repartition_taches_backend.md](repartition_taches_backend.md) et [Repartition taches_2.md](Repartition%20taches_2.md). Ce document reste la **référence des spécifications métier** (B1–B4).
 
 ---
 
