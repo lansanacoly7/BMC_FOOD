@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { Flame, Play, Pause, Volume2, VolumeX, ArrowRight, ShieldCheck, Sparkles, ChefHat, Layers } from 'lucide-react'
+import { Flame, Play, Pause, Volume2, VolumeX, ArrowRight, ShieldCheck, Sparkles, ChefHat } from 'lucide-react'
 import { motion } from 'motion/react'
 
 interface CulinaryVideoShowcaseProps {
@@ -7,10 +7,10 @@ interface CulinaryVideoShowcaseProps {
 }
 
 /**
- * Capsule Vidéo Culinaire Immersive BMC Food (Étape 3 du Benchmark New School Tacos)
- * - Cadre vidéo cinématique centré Dark Luxury avant le footer
- * - Valorisation du savoir-faire : Tacos pané croustillant d'exception à Dakar
- * - Contrôles interactifs (Play/Pause, Mute/Unmute) et badges de fabrication artisanale
+ * Capsule Vidéo Culinaire Immersive BMC Food
+ * - Cadre vidéo cinématique centré Dark Luxury
+ * - Action directe avec bouton Découvrir la Carte remonté sous la vidéo
+ * - Espacements optimisés et épurés avant le footer
  */
 export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcaseProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -35,45 +35,22 @@ export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcasePr
     setIsMuted(nextMuted)
   }
 
-  const pillars = [
-    {
-      icon: Sparkles,
-      title: 'Tortilla Toastée & Dorée',
-      desc: 'Cuite et pressée minute sur plaque chaude pour un maintien parfait et un croustillant net.',
-    },
-    {
-      icon: ChefHat,
-      title: 'Poulet Pané Mariné Maison',
-      desc: 'Blancs de poulet frais marinés aux épices douces et enrobés de panure ultra-crispy.',
-    },
-    {
-      icon: Layers,
-      title: 'Sauce Fromagère Onctueuse',
-      desc: 'Recette secrète crémeuse et généreuse préparée chaque jour par nos chefs.',
-    },
-    {
-      icon: Flame,
-      title: 'Gratinage & Finition',
-      desc: 'Option gratinage au four avec mozzarella et cheddar fondant pour une gourmandise maximale.',
-    },
-  ]
-
   return (
     <section
       aria-labelledby="culinary-showcase-title"
-      className="relative overflow-hidden bg-gradient-to-b from-zinc-950 via-zinc-900/90 to-zinc-950 py-16 sm:py-24 border-t border-white/5"
+      className="relative overflow-hidden bg-gradient-to-b from-zinc-950 via-zinc-900/80 to-zinc-950 pt-10 sm:pt-14 pb-4 sm:pb-6 border-t border-white/5"
     >
       {/* Halo d'ambiance or Dark Luxury en arrière-plan */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-1/3 -translate-x-1/2 -translate-y-1/2 size-[600px] rounded-full bg-amber-500/10 blur-[130px]"
+        className="pointer-events-none absolute left-1/2 top-1/3 -translate-x-1/2 -translate-y-1/2 size-[500px] rounded-full bg-amber-500/10 blur-[120px]"
       />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* EN-TÊTE DE LA SECTION */}
-        <div className="text-center max-w-3xl mx-auto space-y-4 mb-10 sm:mb-14">
+        <div className="text-center max-w-3xl mx-auto space-y-3 mb-6 sm:mb-8">
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-3.5 py-1 text-xs font-black uppercase tracking-widest text-bmc-gold backdrop-blur-sm"
@@ -84,11 +61,11 @@ export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcasePr
 
           <motion.h2
             id="culinary-showcase-title"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="font-display text-3xl sm:text-4xl lg:text-5xl font-black uppercase tracking-tight text-white leading-tight"
+            className="font-display text-2xl sm:text-3xl lg:text-4xl font-black uppercase tracking-tight text-white leading-tight"
           >
             L'Art du{' '}
             <span className="bg-gradient-to-r from-amber-300 via-bmc-gold to-amber-500 bg-clip-text text-transparent">
@@ -98,24 +75,24 @@ export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcasePr
           </motion.h2>
 
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.15 }}
-            className="text-sm sm:text-base text-zinc-300 max-w-2xl mx-auto leading-relaxed"
+            className="text-xs sm:text-sm text-zinc-300 max-w-2xl mx-auto leading-relaxed"
           >
             Une panure dorée ultra-croustillante, des viandes fraîches marinées selon notre recette secrète, 
-            et un cœur coulant de sauce fromagère onctueuse. Découvrez l'exigence culinaire signée BMC Food.
+            et un cœur coulant de sauce fromagère onctueuse.
           </motion.p>
         </div>
 
-        {/* CADRE VIDÉO CINÉMATIQUE CENTRÉ (Inspiré du benchmark New School Tacos) */}
+        {/* CADRE VIDÉO CINÉMATIQUE CENTRÉ */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 30 }}
+          initial={{ opacity: 0, scale: 0.96, y: 20 }}
           whileInView={{ opacity: 1, scale: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
-          className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl border border-amber-500/30 bg-black shadow-[0_0_60px_rgba(252,184,0,0.12)] group"
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl border border-amber-500/30 bg-black shadow-[0_0_50px_rgba(252,184,0,0.12)] group"
         >
           {/* Lecteur Vidéo */}
           <div className="relative aspect-video w-full overflow-hidden bg-black">
@@ -172,32 +149,8 @@ export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcasePr
           </div>
         </motion.div>
 
-        {/* 4 PILIERS DU PRODUIT (Micro-cartes façon New School Tacos) */}
-        <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto">
-          {pillars.map((pillar, idx) => (
-            <motion.div
-              key={pillar.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 * idx }}
-              className="rounded-2xl border border-white/10 bg-zinc-900/60 p-4 sm:p-5 backdrop-blur-sm transition-all hover:border-amber-500/40 hover:bg-zinc-900/90 hover:-translate-y-1"
-            >
-              <div className="size-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-bmc-gold mb-3">
-                <pillar.icon className="size-5 text-bmc-gold" />
-              </div>
-              <h3 className="font-display text-sm font-black uppercase tracking-tight text-white mb-1.5">
-                {pillar.title}
-              </h3>
-              <p className="text-xs text-zinc-400 leading-relaxed">
-                {pillar.desc}
-              </p>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* BOUTON D'ACTION PRINCIPAL VERS LE MENU */}
-        <div className="mt-12 text-center space-y-3">
+        {/* BOUTON D'ACTION REMONTÉ DIRECTEMENT SOUS LA VIDÉO */}
+        <div className="mt-6 sm:mt-8 text-center space-y-2.5">
           <motion.button
             type="button"
             onClick={onExploreMenu}
