@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { apiRequest } from '../services/api'
 import type { MenuCategory, MenuResponse, Product } from '../types'
+import { getProductImageUrl } from '../lib/productImages'
 import { getFallbackMenuCategories, FALLBACK_PRODUCTS } from '../data/mockMenu'
 
 export interface MenuState {
@@ -36,8 +37,20 @@ export function useMenu(): MenuState {
         })
         if (controller.signal.aborted) return
         if (response.success && response.categories?.length > 0) {
-          setCategories(response.categories)
-          setItems(response.items ?? response.categories.flatMap((c) => c.items))
+          const rawItems = response.items ?? response.categories.flatMap((c) => c.items)
+          const enrichedItems = rawItems.map((p) => ({
+            ...p,
+            image_url: getProductImageUrl(p),
+          }))
+          const enrichedCategories = response.categories.map((c) => ({
+            ...c,
+            items: c.items.map((p) => ({
+              ...p,
+              image_url: getProductImageUrl(p),
+            })),
+          }))
+          setCategories(enrichedCategories)
+          setItems(enrichedItems)
           setIsUsingFallback(false)
           setError(null)
         } else {

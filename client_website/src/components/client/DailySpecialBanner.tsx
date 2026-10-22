@@ -10,6 +10,7 @@ import {
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useId, useState } from 'react'
 import { formatFcfa } from '../../lib/format'
+import { getProductImageUrl } from '../../lib/productImages'
 import type { Product } from '../../types'
 
 const ADDED_FEEDBACK_MS = 1600
@@ -213,7 +214,7 @@ export function DailySpecialBanner({
                   className="relative size-24 xs:size-28 sm:size-auto sm:w-84 lg:w-[420px] xl:w-[460px] sm:h-54 lg:h-60 overflow-hidden rounded-2xl border border-white/15 bg-zinc-900 shadow-xl shadow-black/80"
                 >
                   <img
-                    src={currentProduct.image_url || currentGif}
+                    src={getProductImageUrl(currentProduct) || currentGif}
                     alt={currentProduct.name}
                     width={460}
                     height={240}

@@ -1,7 +1,8 @@
-import { Minus, Plus, Trash2, UtensilsCrossed } from 'lucide-react'
+import { Minus, Plus, Trash2 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { MAX_ITEM_QUANTITY } from '../../context/cart'
 import { formatFcfa } from '../../lib/format'
+import { getProductImageUrl } from '../../lib/productImages'
 import type { CartItem } from '../../types'
 
 interface CartItemRowProps {
@@ -27,21 +28,21 @@ export function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowPro
       className="flex gap-3 py-4 text-zinc-100"
     >
       <div className="size-16 shrink-0 overflow-hidden rounded-2xl border border-white/15 bg-zinc-900">
-        {product.image_url ? (
-          <img
-            src={product.image_url}
-            alt={product.name}
-            width={64}
-            height={64}
-            loading="lazy"
-            decoding="async"
-            className="size-full object-cover"
-          />
-        ) : (
-          <div className="grid size-full place-items-center text-bmc-gold">
-            <UtensilsCrossed className="size-6" aria-hidden="true" />
-          </div>
-        )}
+        <img
+          src={getProductImageUrl(product)}
+          alt={product.name}
+          width={64}
+          height={64}
+          loading="lazy"
+          decoding="async"
+          onError={(e) => {
+            const target = e.currentTarget
+            if (target.src !== '/images/products/tacos-viande-pane.webp') {
+              target.src = '/images/products/tacos-viande-pane.webp'
+            }
+          }}
+          className="size-full object-cover"
+        />
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">

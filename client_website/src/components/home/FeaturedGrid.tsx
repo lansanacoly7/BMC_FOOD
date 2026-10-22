@@ -2,6 +2,7 @@ import { Check, Plus, Star } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useState } from 'react'
 import { formatFcfa } from '../../lib/format'
+import { getProductImageUrl } from '../../lib/productImages'
 import type { Product } from '../../types'
 import { SpecialOfferBanner } from './SpecialOfferBanner'
 
@@ -359,6 +360,8 @@ export function FeaturedGrid({
  */
 function ClassicProductCard({ product, onAdd }: { product: Product; onAdd: (p: Product) => void }) {
   const [added, setAdded] = useState(false)
+  const initialImage = getProductImageUrl(product)
+  const [imageSrc, setImageSrc] = useState(initialImage)
 
   const handleAdd = () => {
     onAdd(product)
@@ -376,12 +379,17 @@ function ClassicProductCard({ product, onAdd }: { product: Product; onAdd: (p: P
         {/* Photo appétissante en haut */}
         <div className="relative aspect-4/3 w-full overflow-hidden rounded-xl bg-zinc-950 border border-white/5">
           <img
-            src={product.image_url}
+            src={imageSrc}
             alt={product.name}
             width={200}
             height={150}
             loading="lazy"
             decoding="async"
+            onError={() => {
+              if (imageSrc !== '/images/products/tacos-viande-pane.webp') {
+                setImageSrc('/images/products/tacos-viande-pane.webp')
+              }
+            }}
             className="size-full object-cover transition-transform duration-500 ease-out group-hover:scale-106"
           />
           {product.popular && (
