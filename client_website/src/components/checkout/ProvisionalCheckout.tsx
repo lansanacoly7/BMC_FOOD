@@ -1,14 +1,15 @@
-import { AlertTriangle, ArrowLeft, Check } from 'lucide-react'
+import { AlertTriangle, ArrowLeft } from 'lucide-react'
 import { motion } from 'motion/react'
 import { type FormEvent, useId, useState } from 'react'
 import { useCart } from '../../hooks/useCart'
 import { useOrderSubmission } from '../../hooks/useOrderSubmission'
+import { findDeliveryArea } from '../../lib/delivery'
 import { formatFcfa } from '../../lib/format'
-import { PAYMENT_METHOD_LABELS } from '../../lib/payments'
 import type { OrderCustomerDetails, OrderField } from '../../services/orders'
 import type { PaymentMethod } from '../../types'
 import { DeliveryZoneSelect } from './DeliveryZoneSelect'
 import { OrangeMoneyModal } from './OrangeMoneyModal'
+import { OrderConfirmation } from './OrderConfirmation'
 import { OrderSubmitButton } from './OrderSubmitButton'
 import { PaymentSelector } from './PaymentSelector'
 import { WavePaymentModal } from './WavePaymentModal'
@@ -28,7 +29,8 @@ export function ProvisionalCheckout({ onBack, onNewOrder }: ProvisionalCheckoutP
   const [selectedAreaId, setSelectedAreaId] = useState('')
   const [isWaveModalOpen, setIsWaveModalOpen] = useState(true)
   const [isOmModalOpen, setIsOmModalOpen] = useState(true)
-  const [paymentDone, setPaymentDone] = useState(false)
+
+  const selectedArea = selectedAreaId ? findDeliveryArea(selectedAreaId) : undefined
 
   const update = (field: OrderField, value: string) => {
     setForm((current) => ({ ...current, [field]: value }))
@@ -37,9 +39,9 @@ export function ProvisionalCheckout({ onBack, onNewOrder }: ProvisionalCheckoutP
 
   const handleAreaChange = (areaId: string) => {
     setSelectedAreaId(areaId)
-    // Pré-remplit ou complète l'adresse avec le nom du quartier
-    if (!form.address || form.address.trim() === '') {
-      update('address', areaId.replace(/-/g, ' '))
+    const area = findDeliveryArea(areaId)
+    if (area && (!form.address || form.address.trim() === '')) {
+      update('address', area.name)
     }
   }
 
@@ -47,113 +49,48 @@ export function ProvisionalCheckout({ onBack, onNewOrder }: ProvisionalCheckoutP
     event.preventDefault()
     setIsWaveModalOpen(true)
     setIsOmModalOpen(true)
-    setPaymentDone(false)
     void submit(form)
   }
 
-  // Écran de confirmation après soumission
+  // Écran officiel de confirmation reproduisant à 100 % la page 12 de la charte graphique
   if (status === 'success' && order) {
     const isWave = order.payment_method === 'wave'
     const isOm = order.payment_method === 'orange_money'
 
     return (
       <>
-        {/* Simulation Wave en superposition si Wave a été choisi et pas encore validé */}
+        {/* Simulation Wave en superposition avant la confirmation si Wave choisi */}
         {isWave && (
           <WavePaymentModal
             isOpen={isWaveModalOpen}
             amount={order.total_amount}
             orderRef={order.order_ref}
             onClose={() => setIsWaveModalOpen(false)}
-            onConfirm={() => {
-              setIsWaveModalOpen(false)
-              setPaymentDone(true)
-            }}
+            onConfirm={() => setIsWaveModalOpen(false)}
           />
         )}
 
-        {/* Simulation Orange Money en superposition si Orange Money a été choisi */}
+        {/* Simulation Orange Money en superposition si Orange Money choisi */}
         {isOm && (
           <OrangeMoneyModal
             isOpen={isOmModalOpen}
             amount={order.total_amount}
             orderRef={order.order_ref}
             onClose={() => setIsOmModalOpen(false)}
-            onConfirm={() => {
-              setIsOmModalOpen(false)
-              setPaymentDone(true)
-            }}
+            onConfirm={() => setIsOmModalOpen(false)}
           />
         )}
 
-        <section className="flex min-h-dvh flex-col items-center gap-5 bg-bmc-charcoal px-5 pb-8 pt-10 text-center text-white">
-          <p className="font-display text-3xl font-extrabold text-white">BMC Food</p>
-          <div className="flex items-center gap-3">
-            <span className="grid size-11 place-items-center rounded-full bg-bmc-gold text-bmc-charcoal">
-              <Check className="size-6" strokeWidth={3} aria-hidden="true" />
-            </span>
-            <h1 className="font-display text-2xl font-extrabold">
-              {paymentDone ? 'Paiement confirmé & Commande transmise !' : 'Commande enregistrée !'}
-            </h1>
-          </div>
-
-          <div className="my-auto flex w-full max-w-sm flex-col gap-3 rounded-2xl bg-zinc-900/60 p-4 border border-white/10">
-            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">Référence de commande</p>
-            <p className="font-display text-4xl font-extrabold text-bmc-gold">{order.order_ref}</p>
-            <ul className="mt-2 flex flex-col gap-1.5 border-y border-white/15 py-3 text-sm text-left">
-              {order.items.map((line) => (
-                <li key={line.id} className="flex justify-between gap-3 text-zinc-300">
-                  <span>
-                    {line.quantity} × {line.item_name}
-                  </span>
-                  <span className="tabular-nums font-semibold">{formatFcfa(line.subtotal)}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">
-              Total · {PAYMENT_METHOD_LABELS[order.payment_method]}
-            </p>
-            <p className="font-display text-3xl font-extrabold tabular-nums text-white">
-              {formatFcfa(order.total_amount)}
-            </p>
-
-            {isWave && !paymentDone && (
-              <button
-                type="button"
-                onClick={() => setIsWaveModalOpen(true)}
-                className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-wave px-4 py-2.5 font-bold text-white shadow-md"
-              >
-                Ouvrir la simulation Wave ({formatFcfa(order.total_amount)})
-              </button>
-            )}
-
-            {isOm && !paymentDone && (
-              <button
-                type="button"
-                onClick={() => setIsOmModalOpen(true)}
-                className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-orange-money px-4 py-2.5 font-bold text-black shadow-md"
-              >
-                Ouvrir la simulation Orange Money ({formatFcfa(order.total_amount)})
-              </button>
-            )}
-          </div>
-
-          <div className="w-full max-w-sm space-y-3">
-            <p className="text-xs text-zinc-400">
-              Cuisine prévenue · Assistance : <a href="tel:+221778561313" className="text-bmc-gold underline">77 856 13 13</a>
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                reset()
-                onNewOrder()
-              }}
-              className="h-12 w-full rounded-2xl bg-white/10 font-semibold text-white hover:bg-white/20 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold cursor-pointer"
-            >
-              Passer une autre commande
-            </button>
-          </div>
-        </section>
+        {/* Reproduction exacte de la page 12 de la charte graphique */}
+        <OrderConfirmation
+          order={order}
+          deliveryAreaName={selectedArea?.name}
+          deliveryFee={selectedArea?.fee}
+          onNewOrder={() => {
+            reset()
+            onNewOrder()
+          }}
+        />
       </>
     )
   }
