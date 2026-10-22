@@ -25,7 +25,7 @@ export function Footer({ onExploreMenu }: FooterProps) {
   return (
     <footer
       aria-label="Pied de page institutionnel BMC Food"
-      className="relative w-full mt-6 sm:mt-8 border-t border-amber-500/20 bg-gradient-to-b from-zinc-950 via-black to-black text-zinc-300 overflow-hidden"
+      className="hidden lg:block relative w-full mt-6 sm:mt-8 border-t border-amber-500/20 bg-gradient-to-b from-zinc-950 via-black to-black text-zinc-300 overflow-hidden"
     >
       {/* Halo doré d'ambiance en arrière-plan */}
       <div
