@@ -145,9 +145,57 @@ export function DailySpecialBanner({
         onMouseLeave={() => setIsPaused(false)}
         className="mx-auto max-w-5xl space-y-3.5"
       >
-        <h2 id={headingId} className="sr-only">
-          {isSpecial ? 'Plat du jour' : 'Carrousel des Best-Sellers BMC Food'}
-        </h2>
+        {/* EN-TÊTE CINÉMATIQUE OFFICIEL BMC FOOD (Inspiré de Savoir-Faire Artisanal) */}
+        <div className="text-center max-w-3xl mx-auto space-y-2.5 sm:space-y-3 mb-4 sm:mb-6">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-3.5 py-1 text-[11px] sm:text-xs font-black uppercase tracking-widest text-bmc-gold backdrop-blur-sm"
+          >
+            <Sparkles className="size-3.5 text-bmc-gold animate-pulse" />
+            <span>
+              {isSpecial
+                ? 'Sélection du Chef · Recette du Jour'
+                : 'Les Plus Commandés · Coups de Cœur Dakar'}
+            </span>
+          </motion.div>
+
+          <motion.h2
+            id={headingId}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08 }}
+            className="font-display text-2xl sm:text-3xl lg:text-4xl font-black uppercase tracking-tight text-white leading-tight"
+          >
+            {isSpecial ? (
+              <>
+                La Création{' '}
+                <span className="bg-gradient-to-r from-amber-300 via-bmc-gold to-amber-500 bg-clip-text text-transparent">
+                  du Jour
+                </span>{' '}
+                à Dakar
+              </>
+            ) : (
+              <>
+                Nos Incontournables{' '}
+                <span className="bg-gradient-to-r from-amber-300 via-bmc-gold to-amber-500 bg-clip-text text-transparent">
+                  Best-Sellers
+                </span>
+              </>
+            )}
+          </motion.h2>
+
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.14 }}
+            className="text-xs sm:text-sm text-zinc-400 max-w-xl mx-auto leading-relaxed"
+          >
+            {isSpecial
+              ? 'Une recette signature cuisinée chaque matin avec des ingrédients frais, disponible aujourd’hui en quantité limitée.'
+              : 'Découvrez nos recettes signatures plébiscitées à Dakar : tacos panés dorés, cheese-pull fondant et garnitures gourmandes préparées à la commande.'}
+          </motion.p>
+        </div>
 
         {/* 
           CARTE MAJESTUEUSE DU CARROUSEL — DISPOSITION CÔTE À CÔTE SANS AUCUN CHEVAUCHEMENT
