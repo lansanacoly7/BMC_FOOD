@@ -6,21 +6,30 @@ interface TopHeaderProps {
   onOpenCart: () => void
   onToggleMenu?: () => void
   onSelectCategory?: (categoryId: string) => void
+  currentPage?: 'home' | 'menu'
+  onNavigate?: (page: 'home' | 'menu') => void
 }
 
 /**
  * En-tête officiel BMC Food (Desktop, Tablette & Mobile).
  * Logo officiel mis en valeur à GAUCHE avec contraste lumineux pour une visibilité parfaite.
  */
-export function TopHeader({ cartItemCount, onOpenCart, onToggleMenu, onSelectCategory }: TopHeaderProps) {
+export function TopHeader({
+  cartItemCount,
+  onOpenCart,
+  onToggleMenu,
+  currentPage = 'home',
+  onNavigate,
+}: TopHeaderProps) {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-zinc-950/95 backdrop-blur-md transition-all">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        {/* GAUCHE : Logo officiel BMC Food posé naturellement dans le header (sans conteneur carré) */}
+        {/* GAUCHE : Logo officiel BMC Food posé naturellement dans le header */}
         <div className="flex items-center">
-          <a
-            href="/"
-            className="group flex items-center gap-3 focus-visible:outline-2 focus-visible:outline-bmc-gold rounded-lg py-1"
+          <button
+            type="button"
+            onClick={() => onNavigate?.('home')}
+            className="group flex items-center gap-3 focus-visible:outline-2 focus-visible:outline-bmc-gold rounded-lg py-1 cursor-pointer text-left"
             aria-label="BMC Food — Accueil"
           >
             <img
@@ -38,38 +47,33 @@ export function TopHeader({ cartItemCount, onOpenCart, onToggleMenu, onSelectCat
                 Le Vrai Goût du Plaisir
               </span>
             </div>
-          </a>
+          </button>
         </div>
 
-        {/* CENTRE (Desktop & Tablette) : Liens rapides */}
+        {/* CENTRE (Desktop & Tablette) : Liens de navigation Accueil & Menu */}
         <nav aria-label="Navigation principale" className="hidden lg:flex items-center gap-6">
           <button
             type="button"
-            onClick={() => onSelectCategory?.('tacos-panes')}
-            className="text-xs font-bold uppercase tracking-wider text-zinc-300 hover:text-bmc-gold transition-colors cursor-pointer"
+            onClick={() => onNavigate?.('home')}
+            className={`text-xs font-black uppercase tracking-wider transition-all cursor-pointer relative py-1 ${
+              currentPage === 'home'
+                ? 'text-bmc-gold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-bmc-gold'
+                : 'text-zinc-300 hover:text-white'
+            }`}
           >
-            Tacos Panés
+            Accueil
           </button>
+
           <button
             type="button"
-            onClick={() => onSelectCategory?.('burgers')}
-            className="text-xs font-bold uppercase tracking-wider text-zinc-300 hover:text-bmc-gold transition-colors cursor-pointer"
+            onClick={() => onNavigate?.('menu')}
+            className={`text-xs font-black uppercase tracking-wider transition-all cursor-pointer relative py-1 ${
+              currentPage === 'menu'
+                ? 'text-bmc-gold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-bmc-gold'
+                : 'text-zinc-300 hover:text-white'
+            }`}
           >
-            Burgers
-          </button>
-          <button
-            type="button"
-            onClick={() => onSelectCategory?.('boissons')}
-            className="text-xs font-bold uppercase tracking-wider text-zinc-300 hover:text-bmc-gold transition-colors cursor-pointer"
-          >
-            Boissons
-          </button>
-          <button
-            type="button"
-            onClick={() => onSelectCategory?.('all')}
-            className="text-xs font-bold uppercase tracking-wider text-zinc-300 hover:text-bmc-gold transition-colors cursor-pointer"
-          >
-            Toute la Carte
+            Menu & La Carte
           </button>
 
           {/* Badge Horaires Dakar */}

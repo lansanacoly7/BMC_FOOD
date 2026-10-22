@@ -6,13 +6,14 @@ interface NavMenuDrawerProps {
   isOpen: boolean
   onClose: () => void
   onSelectCategory: (categoryId: string) => void
+  onNavigate?: (page: 'home' | 'menu') => void
 }
 
 /**
  * Tiroir latéral d'informations et navigation BMC Food Dakar.
  * Déclenché par le bouton menu hamburger de l'en-tête (TopHeader).
  */
-export function NavMenuDrawer({ isOpen, onClose, onSelectCategory }: NavMenuDrawerProps) {
+export function NavMenuDrawer({ isOpen, onClose, onSelectCategory, onNavigate }: NavMenuDrawerProps) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -27,7 +28,7 @@ export function NavMenuDrawer({ isOpen, onClose, onSelectCategory }: NavMenuDraw
             aria-hidden="true"
           />
 
-          {/* Panneau coulissant depuis la DROITE (origine naturelle du bouton hamburger) */}
+          {/* Panneau coulissant depuis la DROITE */}
           <motion.aside
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
@@ -59,6 +60,30 @@ export function NavMenuDrawer({ isOpen, onClose, onSelectCategory }: NavMenuDraw
                   className="flex size-9 items-center justify-center rounded-full bg-white/10 text-zinc-300 hover:bg-white/20 hover:text-white cursor-pointer"
                 >
                   <X className="size-5" />
+                </button>
+              </div>
+
+              {/* Navigation principale Mobile */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onNavigate?.('home')
+                    onClose()
+                  }}
+                  className="rounded-xl border border-white/10 bg-zinc-900/90 py-2.5 px-3 text-center text-xs font-black uppercase tracking-wider text-zinc-200 hover:border-bmc-gold hover:text-bmc-gold transition-colors cursor-pointer"
+                >
+                  Accueil
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onNavigate?.('menu')
+                    onClose()
+                  }}
+                  className="rounded-xl border border-bmc-gold/40 bg-zinc-900/90 py-2.5 px-3 text-center text-xs font-black uppercase tracking-wider text-bmc-gold hover:border-bmc-gold hover:bg-bmc-gold/10 transition-colors cursor-pointer"
+                >
+                  La Carte
                 </button>
               </div>
 
