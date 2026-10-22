@@ -4,8 +4,6 @@ import { DailySpecialBanner } from './components/client/DailySpecialBanner'
 import { TopHeader } from './components/home/TopHeader'
 import { HeroCinematic } from './components/home/HeroCinematic'
 import { FeaturedGrid } from './components/home/FeaturedGrid'
-import { StickyCartBar } from './components/home/StickyCartBar'
-import { FloatingCartButton } from './components/home/FloatingCartButton'
 import { NavMenuDrawer } from './components/home/NavMenuDrawer'
 import { Footer } from './components/home/Footer'
 import { CulinaryVideoShowcase } from './components/home/CulinaryVideoShowcase'
@@ -27,7 +25,6 @@ export default function App() {
   const hasDailySpecial = specials.length > 0
 
   const itemCount = items.reduce((count, item) => count + item.quantity, 0)
-  const totalAmount = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
 
   const handleNavigate = (page: 'home' | 'menu') => {
     if (page === 'menu') {
@@ -135,25 +132,7 @@ export default function App() {
       {/* Capsule Vidéo Culinaire Immersive (« L'Art du Tacos Pané » - Étape 3 Benchmark) */}
       <CulinaryVideoShowcase onExploreMenu={() => handleNavigate('menu')} />
 
-      {/* 
-        6. BARRE PANIER FLOTTANTE (« Pensé pour le pouce »)
-      */}
-      <StickyCartBar
-        itemCount={itemCount}
-        totalAmount={totalAmount}
-        onOpenCart={() => setIsCartOpen(true)}
-        isVisible={!isCartOpen}
-      />
-
-      {/* 6.bis BULLE PANIER FLOTTANTE EN BAS À DROITE */}
-      <FloatingCartButton
-        itemCount={itemCount}
-        totalAmount={totalAmount}
-        onOpenCart={() => setIsCartOpen(true)}
-        isVisible={!isCartOpen}
-      />
-
-      {/* 7. TIROIR PANIER COULISSANT */}
+      {/* TIROIR PANIER COULISSANT (Géré par Pape Alioune) */}
       <CartDrawer
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
