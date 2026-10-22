@@ -72,15 +72,15 @@
   * **Sur Mobile (360 px - 414 px)** :
     * Deux colonnes sur deux lignes affichant exactement les **4 Tacos Panés signatures** : *Tacos Viande Pané*, *Tacos Poulet Pané*, *Tacos Mixte Pané*, *Tacos Cordon Bleu Pané*.
     * Insertion immédiate de la bannière promotionnelle occupant **toute la largeur de l'écran (`w-full`)** sans aucune marge vide sur les côtés.
-    * **Agencement Strict sur UNE SEULE LIGNE (côte à côte / side-by-side)** : textes, badge, code promo et bouton d'action à gauche (colonne 7/12) et photo culinaire nette à droite (colonne 5/12). Fin de l'empilement haut/bas avec typographies affinées (`text-sm`, `text-[10px]`) et image calibrée (`aspect-4/3 max-w-[145px]`).
+    * **Visuel Officiel Google Flow Intégré** : image panoramique haute définition avec badge pinceau *Offre Spéciale*, titre *-20% SUR VOTRE PREMIÈRE COMMANDE* et composition gourmande (burger, tenders croustillants, frites et dip).
+    * **Bouton Interactif Superposé** : bouton Or BMC brossé *Commander Maintenant →* positionné directement sous le texte dans la zone dédiée, tactilement calibré pour le pouce.
     * Continuation fluide du catalogue en dessous (Burgers, Tenders, Frites, Sauces, Boissons).
   * **Sur Web / Desktop (1024 px - 1440 px+)** :
     * Quatre colonnes sur deux lignes affichant **8 cartes signatures** : Ligne 1 avec les 4 Tacos Panés, Ligne 2 avec les Burgers gourmands et Tenders dorés.
-    * Insertion de la bannière promotionnelle occupant **toute la largeur de l'écran (`w-full`)** avec dégradé Dark Luxury, typography or brossé et visuel culinaire haute définition.
+    * Insertion de la bannière promotionnelle occupant **toute la largeur de l'écran (`w-full`)** avec dégradé Dark Luxury, animation de zoom subtile au survol et bouton interactif Or BMC.
     * Poursuite des autres produits sous la bannière.
 * **Respect de l'Offre Réelle BMC Food** :
-  * Visuel culinaire adapté représentant nos spécialités phares (Burger double steak fondant, Tenders croustillants, frites dorées et sauce dip).
-  * Offre de bienvenue : -20% sur la première commande dès 5 000 FCFA avec le code promo `BIENVENUE20`.
+  * Visuel culinaire officiel Google Flow conforme à la charte et aux spécialités réelles de l'enseigne.
 
 ---
 
