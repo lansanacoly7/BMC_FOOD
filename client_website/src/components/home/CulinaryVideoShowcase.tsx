@@ -5,7 +5,6 @@ import {
   Volume2,
   VolumeX,
   ArrowRight,
-  ShieldCheck,
   Sparkles,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
@@ -281,11 +280,6 @@ export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcasePr
             <span className="hidden sm:inline">Découvrir la Carte & Commander</span>
             <ArrowRight className="size-3.5 sm:size-4 transition-transform group-hover:translate-x-1" />
           </motion.button>
-
-          <p className="flex items-center justify-center gap-1.5 text-[11px] sm:text-xs text-zinc-400">
-            <ShieldCheck className="size-3 text-emerald-400" />
-            <span>Livraison express à Dakar en 30-45 min · Emballage isotherme premium</span>
-          </p>
         </div>
       </div>
     </section>
