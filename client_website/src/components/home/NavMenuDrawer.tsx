@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Clock, MapPin, Phone, PhoneCall, X, Home, Sparkles, UtensilsCrossed, Tag } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 
@@ -17,6 +18,7 @@ interface NavMenuDrawerProps {
  * - Icônes Lucide officielles (zéro emoji)
  * - Navigation complète et sans répétitions (Accueil, Plat du Jour ou Best-Sellers, Menu, Nos Offres)
  * - Contacts et horaires officiels
+ * - Verrouillage strict du défilement de l'arrière-plan avec overscroll-contain
  */
 export function NavMenuDrawer({
   isOpen,
@@ -27,27 +29,46 @@ export function NavMenuDrawer({
   onSelectDailySpecial,
   onSelectOffers,
 }: NavMenuDrawerProps) {
+  // Verrouillage hermétique du défilement de la page en arrière-plan lorsque le tiroir est ouvert
+  useEffect(() => {
+    if (!isOpen) return
+
+    const previousBodyOverflow = document.body.style.overflow
+    const previousBodyTouchAction = document.body.style.touchAction
+    const previousHtmlOverflow = document.documentElement.style.overflow
+
+    document.body.style.overflow = 'hidden'
+    document.body.style.touchAction = 'none'
+    document.documentElement.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow
+      document.body.style.touchAction = previousBodyTouchAction
+      document.documentElement.style.overflow = previousHtmlOverflow
+    }
+  }, [isOpen])
+
   return (
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          {/* Arrière-plan assombri avec flou */}
+          {/* Arrière-plan assombri avec flou et touch-none pour bloquer toute propagation */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/70 backdrop-blur-xs"
+            className="fixed inset-0 bg-black/70 backdrop-blur-xs touch-none"
             aria-hidden="true"
           />
 
-          {/* Panneau coulissant depuis la DROITE */}
+          {/* Panneau coulissant depuis la DROITE avec défilement autonome confiné */}
           <motion.aside
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 26, stiffness: 280 }}
-            className="relative z-10 flex h-full w-[85%] max-w-xs flex-col justify-between bg-zinc-950 p-5 text-white shadow-2xl border-l border-white/10 overflow-y-auto"
+            className="relative z-10 flex h-dvh max-h-dvh w-[85%] max-w-xs flex-col justify-between bg-zinc-950 p-5 text-white shadow-2xl border-l border-white/10 overflow-y-auto overscroll-y-contain overscroll-contain touch-pan-y"
             aria-label="Menu principal"
           >
             <div className="space-y-6">
