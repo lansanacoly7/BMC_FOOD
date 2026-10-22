@@ -53,7 +53,7 @@ export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
         3. CONTENU TEXTE ÉQUILIBRÉ & CALIBRÉ UI/UX MOBILE & DESKTOP
       */}
       <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-14">
-        <div className="max-w-2xl text-left">
+        <div className="max-w-2xl text-left pl-3 sm:pl-6 md:pl-10 lg:pl-12">
           {/* Sur-titre Or officiel BMC FOOD */}
           <motion.div
             initial={{ opacity: 0, y: -8 }}
