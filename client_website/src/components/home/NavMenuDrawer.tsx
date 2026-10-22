@@ -143,7 +143,6 @@ export function NavMenuDrawer({
                     <Sparkles className="size-4.5 text-bmc-gold" />
                     <span>{hasDailySpecial ? 'Plat du Jour' : 'Best-Sellers'}</span>
                   </div>
-                  <span className="text-xs text-bmc-gold">Voir</span>
                 </button>
 
                 {/* 3. Menu & La Carte */}
@@ -180,13 +179,12 @@ export function NavMenuDrawer({
                     }
                     onClose()
                   }}
-                  className="w-full flex items-center justify-between rounded-xl px-3.5 py-2.5 text-left text-xs font-bold text-amber-400 hover:bg-amber-500/10 cursor-pointer"
+                  className="w-full flex items-center justify-between rounded-xl px-3.5 py-3 text-left text-sm font-black text-zinc-200 hover:bg-white/10 transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <Tag className="size-4 text-bmc-gold" />
+                    <Tag className="size-4.5 text-bmc-gold" />
                     <span>Nos Offres</span>
                   </div>
-                  <span>→</span>
                 </button>
               </div>
 
