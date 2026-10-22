@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowLeft, Check, LoaderCircle, MapPin, Navigation } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Check, Crosshair, ExternalLink, LoaderCircle, MapPin } from 'lucide-react'
 import { motion } from 'motion/react'
 import { type FormEvent, useId, useState } from 'react'
 import { useCart } from '../../hooks/useCart'
@@ -245,60 +245,111 @@ export function ProvisionalCheckout({ onBack, onNewOrder }: ProvisionalCheckoutP
               disabled={isSubmitting}
             />
 
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between gap-2">
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
                 <label htmlFor="address-input" className="block text-xs font-bold uppercase tracking-wider text-zinc-300">
                   Adresse exacte ou point de repère
                 </label>
-                <button
-                  type="button"
-                  onClick={handleGetLocation}
-                  disabled={isLocating || isSubmitting}
-                  aria-label="Prendre ma position sur Google Maps"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-white/10 hover:border-bmc-gold/50 px-2.5 py-1 text-[11px] font-bold text-bmc-gold hover:text-amber-300 transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {isLocating ? (
-                    <>
-                      <LoaderCircle className="size-3.5 animate-spin text-bmc-gold" />
-                      <span>Localisation…</span>
-                    </>
-                  ) : locationSuccess ? (
-                    <>
-                      <Check className="size-3.5 text-green-400 stroke-[3]" />
-                      <span className="text-green-400">Position capturée !</span>
-                    </>
-                  ) : (
-                    <>
-                      <Navigation className="size-3.5 text-bmc-gold" />
-                      <span>📍 Ma position Maps</span>
-                    </>
-                  )}
-                </button>
+                <span className="text-[11px] text-zinc-400">Pour le livreur</span>
               </div>
 
-              <input
-                id="address-input"
-                type="text"
-                autoComplete="street-address"
-                placeholder="Ex. Rue 14 x Boulevard de la République ou lien Maps"
-                value={form.address}
-                onChange={(e) => update('address', e.target.value)}
-                disabled={isSubmitting}
-                className={inputClass('address')}
-              />
+              {/* Bouton d'action principal Google Maps : visible, premium et ultra-professionnel */}
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleGetLocation}
+                disabled={isLocating || isSubmitting}
+                aria-label="Prendre ma position sur Google Maps"
+                className={`group flex w-full items-center justify-between gap-3 rounded-2xl border p-3.5 transition-all cursor-pointer shadow-md ${
+                  locationSuccess
+                    ? 'border-emerald-500/60 bg-emerald-950/40 text-emerald-200 shadow-emerald-500/10'
+                    : 'border-bmc-gold/40 bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 hover:border-bmc-gold hover:shadow-lg hover:shadow-bmc-gold/15 text-white'
+                }`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className={`grid size-10 shrink-0 place-items-center rounded-xl border transition-all ${
+                      locationSuccess
+                        ? 'border-emerald-500/50 bg-emerald-500/20 text-emerald-300'
+                        : 'border-bmc-gold/40 bg-bmc-gold/10 text-bmc-gold group-hover:bg-gradient-to-r group-hover:from-bmc-gold group-hover:to-amber-400 group-hover:text-black group-hover:shadow-md'
+                    }`}
+                  >
+                    {isLocating ? (
+                      <LoaderCircle className="size-5 animate-spin text-bmc-gold" />
+                    ) : locationSuccess ? (
+                      <Check className="size-5 stroke-[2.5]" />
+                    ) : (
+                      <Crosshair className="size-5 stroke-[2.2]" />
+                    )}
+                  </div>
+                  <div className="text-left min-w-0">
+                    <p className="font-display text-sm font-extrabold text-white truncate group-hover:text-amber-200 transition-colors">
+                      {isLocating
+                        ? 'Recherche de votre position GPS…'
+                        : locationSuccess
+                        ? 'Position Google Maps enregistrée'
+                        : 'Prendre ma position via Google Maps'}
+                    </p>
+                    <p className="text-xs text-zinc-400 truncate">
+                      {locationSuccess
+                        ? 'Coordonnées GPS associées à votre commande'
+                        : 'Localisation automatique pour guider le livreur'}
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-black uppercase tracking-wider transition-all shadow-sm ${
+                    locationSuccess
+                      ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/40'
+                      : 'bg-gradient-to-r from-bmc-gold to-amber-400 text-black shadow-bmc-gold/20 group-hover:brightness-110'
+                  }`}
+                >
+                  {isLocating ? 'En cours…' : locationSuccess ? 'Capturé ✓' : 'Localiser'}
+                </div>
+              </motion.button>
+
+              {/* Champ texte d'adresse (permettant aussi d'ajouter un complément comme étage ou villa) */}
+              <div className="relative">
+                <input
+                  id="address-input"
+                  type="text"
+                  autoComplete="street-address"
+                  placeholder="Ex. Rue 14 x Boulevard de la République, Villa 42…"
+                  value={form.address}
+                  onChange={(e) => update('address', e.target.value)}
+                  disabled={isSubmitting}
+                  className={inputClass('address')}
+                />
+              </div>
 
               {locationError && (
-                <p className="mt-1 text-xs text-amber-400/90 font-medium">{locationError}</p>
+                <div className="flex items-center gap-2 rounded-xl bg-amber-950/40 border border-amber-500/30 px-3 py-2 text-xs text-amber-300">
+                  <AlertTriangle className="size-4 shrink-0 text-amber-400" />
+                  <span>{locationError}</span>
+                </div>
               )}
 
               {fieldError('address') && (
-                <span className="mt-1 block text-xs font-semibold text-red-400">{fieldError('address')}</span>
+                <span className="block text-xs font-semibold text-red-400">{fieldError('address')}</span>
               )}
 
               {form.address && form.address.includes('maps.google.com') && (
-                <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-zinc-400">
-                  <Check className="size-3.5 text-bmc-gold shrink-0" />
-                  <span>Position GPS Google Maps intégrée pour le livreur.</span>
+                <div className="flex items-center justify-between rounded-xl bg-zinc-950 border border-emerald-500/30 px-3.5 py-2.5 text-xs text-zinc-300 shadow-sm">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Check className="size-4 text-emerald-400 shrink-0" />
+                    <span className="truncate font-medium text-emerald-200">Point GPS Google Maps actif pour la livraison</span>
+                  </div>
+                  <a
+                    href={form.address.match(/https:\/\/maps\.google\.com\S+/)?.[0]?.replace(')', '') || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 text-xs font-bold text-bmc-gold hover:text-amber-300 transition-colors flex items-center gap-1 ml-2"
+                  >
+                    <span>Vérifier</span>
+                    <ExternalLink className="size-3.5" />
+                  </a>
                 </div>
               )}
             </div>
