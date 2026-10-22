@@ -7,11 +7,12 @@ interface HeroCinematicProps {
 }
 
 /**
- * Hero Cinématique BMC Food — Version Visuel Officiel hero_banner.webp (Maimouna Sall) :
- * - Arrière-plan complet avec le visuel officiel hero_banner.webp (sans animation vidéo).
- * - Net, élégant, Dark Luxury avec voile sombre protecteur à gauche pour une lisibilité parfaite des textes.
- * - Texte aéré avec décalage maîtrisé à droite.
- * - Bouton unique Or brossé « Explorer le Menu ».
+ * Hero Cinématique BMC Food — Version Vidéo Unique Slow Motion Officielle (Maimouna Sall) :
+ * - Vidéo MP4 officielle unique bmc_video_hero.mp4 en arrière-plan complet plein écran (SANS BOÎTE / SANS CADRE).
+ * - Net, fluide, contraste natif 100% sur fond noir sans animations WebP ni multi-scènes.
+ * - Voile dégradé protecteur à GAUCHE pour assurer la parfaite lisibilité des textes.
+ * - Texte aéré avec décalage maîtrisé à droite (pl-3 sm:pl-6 md:pl-10 lg:pl-12).
+ * - Bouton unique Or brossé « Explorer le Menu » qui fait défiler la carte en douceur.
  */
 export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
   return (
@@ -20,34 +21,36 @@ export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
       className="relative isolate w-full overflow-hidden bg-black text-white"
     >
       {/* 
-        1. IMAGE HERO_BANNER.WEBP EN ARRIÈRE-PLAN COMPLET (SANS ANIMATION VIDÉO)
+        1. VIDÉO UNIQUE SLOW MOTION EN BACKGROUND COMPLET (PREND TOUTE LA LARGEUR ET HAUTEUR SANS CADRE)
       */}
       <div aria-hidden="true" className="absolute inset-0 -z-20 overflow-hidden bg-black">
-        <img
-          src="/images/hero/hero_banner.webp"
-          alt="Spécialités Signatures BMC Food Dakar"
-          width={1200}
-          height={670}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
           className="size-full object-cover object-center filter contrast-105"
-          loading="eager"
-        />
+        >
+          <source src="/images/hero/bmc_video_hero.mp4" type="video/mp4" />
+        </video>
       </div>
 
       {/* 
         2. DÉGRADÉ LATÉRAL CINÉMA (SCRIM)
-        Voile sombre progressif à gauche sous le texte, laissant le visuel totalement libre et visible à droite
+        Voile sombre progressif à gauche sous le texte, laissant la vidéo totalement libre et visible à droite
       */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-black/95 via-black/70 to-black/15 sm:w-4/5 lg:w-3/5"
+        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-black/90 via-black/60 to-black/10 sm:w-4/5 lg:w-3/5"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-black via-transparent to-black/35"
+        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-black via-transparent to-black/30"
       />
 
       {/* 
-        3. CONTENU TEXTE ÉQUILIBRÉ & CALIBRÉ (AVEC DÉCALAGE MAÎTRISÉ À DROITE)
+        3. CONTENU TEXTE ÉQUILIBRÉ & CALIBRÉ UI/UX MOBILE & DESKTOP (DÉCALAGE LÉGER À DROITE)
       */}
       <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-14">
         <div className="max-w-2xl text-left pl-3 sm:pl-6 md:pl-10 lg:pl-12">
