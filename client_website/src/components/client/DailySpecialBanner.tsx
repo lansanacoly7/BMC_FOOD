@@ -214,8 +214,8 @@ export function DailySpecialBanner({
               exit="exit"
               className="mt-3 sm:mt-4 flex flex-row items-center justify-between gap-3 sm:gap-6 lg:gap-8"
             >
-              {/* 1. GAUCHE : TITRE, DESCRIPTIF ET PRIX EN GRAND OR */}
-              <div className="min-w-0 flex-1 pr-1 sm:pr-2 space-y-1.5 sm:space-y-3">
+              {/* 1. GAUCHE : TITRE, DESCRIPTIF, GRAND TARIF OR ET BOUTON DESKTOP */}
+              <div className="min-w-0 flex-1 pr-1.5 sm:pr-4 space-y-1.5 sm:space-y-3">
                 <h3 className="font-display text-sm xs:text-base sm:text-2xl lg:text-3xl font-black leading-tight text-white tracking-tight">
                   {currentProduct.name}
                 </h3>
@@ -225,23 +225,34 @@ export function DailySpecialBanner({
                   {formatDescription(currentProduct.description)}
                 </div>
 
-                {/* Bloc Tarif Or mis en valeur sous le texte */}
-                <div className="pt-1.5 sm:pt-2">
-                  <span className="block text-[8px] sm:text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                    Tarif
-                  </span>
-                  <p className="font-display text-base xs:text-lg sm:text-2xl lg:text-3xl font-black tabular-nums text-bmc-gold leading-none whitespace-nowrap mt-0.5">
-                    {formatFcfa(currentProduct.price)}
-                  </p>
+                {/* Bloc Tarif Or valorisé & Bouton d'achat Desktop */}
+                <div className="pt-2 sm:pt-3 flex flex-col sm:flex-row sm:items-center sm:gap-6">
+                  <div>
+                    <span className="block text-[8px] xs:text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                      Tarif
+                    </span>
+                    <p className="font-display text-xl xs:text-2xl sm:text-3xl lg:text-4xl font-black tabular-nums text-bmc-gold drop-shadow-[0_2px_14px_rgba(252,184,0,0.4)] leading-none whitespace-nowrap mt-0.5">
+                      {formatFcfa(currentProduct.price)}
+                    </p>
+                  </div>
+
+                  {/* Bouton Desktop majestueux placé directement dans le flux d'achat */}
+                  <div className="hidden sm:block">
+                    <AddButton
+                      product={currentProduct}
+                      onAdd={onAdd}
+                      className="h-12 sm:h-13 lg:h-14 px-7 lg:px-9 text-xs sm:text-sm font-black rounded-xl sm:rounded-2xl shadow-xl shadow-bmc-gold/30 hover:scale-105"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* 2. DROITE : VISUEL DU PLAT NETTEMENT AGRANDI ET MIS EN VALEUR */}
+              {/* 2. DROITE : VISUEL DU PLAT AGRANDI SUBTILEMENT VERS LA GAUCHE ET EN HAUTEUR */}
               <div className="relative shrink-0 flex justify-end">
                 <motion.div
                   whileHover={{ scale: 1.025 }}
                   transition={{ duration: 0.2 }}
-                  className="relative w-32 xs:w-40 sm:w-84 lg:w-[420px] xl:w-[460px] h-28 xs:h-34 sm:h-54 lg:h-60 overflow-hidden rounded-2xl border border-white/15 bg-zinc-900 shadow-xl shadow-black/80"
+                  className="relative w-36 xs:w-44 sm:w-84 lg:w-[420px] xl:w-[460px] h-32 xs:h-38 sm:h-54 lg:h-60 overflow-hidden rounded-2xl border border-white/15 bg-zinc-900 shadow-xl shadow-black/80"
                 >
                   <img
                     src={currentProduct.image_url || currentGif}
@@ -256,16 +267,20 @@ export function DailySpecialBanner({
             </motion.div>
           </AnimatePresence>
 
-          {/* 3. LIGNE SÉPARATRICE ET ZONE INFÉRIEURE : BOUTON COMMANDER ET DOTS */}
+          {/* 3. LIGNE SÉPARATRICE ET ZONE INFÉRIEURE : BOUTON MOBILE + DOTS */}
           <div className="mt-3.5 sm:mt-5 pt-3 sm:pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
-            {/* Bouton d'action étendu et ergonomique sur mobile */}
-            <div className="w-full sm:w-auto">
-              <AddButton product={currentProduct} onAdd={onAdd} className="w-full sm:w-auto" />
+            {/* Bouton d'action Mobile étendu plein cadre */}
+            <div className="w-full sm:hidden">
+              <AddButton
+                product={currentProduct}
+                onAdd={onAdd}
+                className="w-full h-11 xs:h-12 text-xs xs:text-sm px-4"
+              />
             </div>
 
-            {/* Dots de pagination dorés */}
+            {/* Dots de pagination dorés élégamment centrés */}
             {productList.length > 1 && (
-              <div className="flex items-center justify-center gap-2">
+              <div className="w-full flex items-center justify-center gap-2">
                 {productList.map((_, idx) => (
                   <button
                     key={idx}
@@ -318,7 +333,7 @@ function AddButton({
       whileTap={{ scale: 0.96 }}
       onClick={handleClick}
       aria-label={`Ajouter ${product.name} au panier`}
-      className={`inline-flex h-10 xs:h-11 sm:h-12 items-center justify-center gap-1.5 sm:gap-2 rounded-xl bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 px-4 sm:px-8 font-display text-xs sm:text-sm font-black uppercase tracking-wider text-black shadow-md shadow-bmc-gold/25 hover:brightness-110 cursor-pointer transition-all shrink-0 whitespace-nowrap ${className}`}
+      className={`group inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 font-display font-black uppercase tracking-wider text-black shadow-lg shadow-bmc-gold/25 hover:shadow-xl hover:shadow-bmc-gold/40 hover:brightness-105 cursor-pointer transition-all shrink-0 whitespace-nowrap active:scale-95 ${className}`}
     >
       <AnimatePresence mode="wait" initial={false}>
         {justAdded ? (
