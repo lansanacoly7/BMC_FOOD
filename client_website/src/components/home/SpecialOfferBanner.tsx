@@ -67,9 +67,9 @@ export function SpecialOfferBanner({ onOrderNow, isVisible = true }: SpecialOffe
 
         {/* CONTENU SUPERPOSÉ EN HTML DYNAMIQUE CONFORME À L'IMAGE DE RÉFÉRENCE */}
         <div className="absolute inset-0 z-10 pointer-events-none">
-          {/* 1. Titre manuscrit « Offre Spéciale » centré dans le corps du coup de pinceau jaune */}
-          <div className="absolute top-[21%] sm:top-[22%] -translate-y-1/2 left-[4%] sm:left-[5%] md:left-[6%] w-[48%] sm:w-[45%] md:w-[42%] -rotate-[2.5deg]">
-            <span className="block font-script text-base xs:text-xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-normal text-zinc-950 leading-none drop-shadow-xs select-none">
+          {/* 1. Titre manuscrit « Offre Spéciale » agrandi pour occuper pleinement la tache de peinture jaune */}
+          <div className="absolute top-[21%] sm:top-[22%] -translate-y-1/2 left-[3.5%] sm:left-[4.5%] md:left-[5%] w-[55%] sm:w-[52%] md:w-[48%] -rotate-[2.5deg]">
+            <span className="block font-script text-2xl xs:text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl 2xl:text-[104px] font-bold tracking-normal text-black leading-none drop-shadow-xs select-none whitespace-nowrap">
               Offre Spéciale
             </span>
           </div>
