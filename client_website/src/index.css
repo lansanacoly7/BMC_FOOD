@@ -1,0 +1,53 @@
+@import 'tailwindcss';
+
+/*
+ * Charte graphique officielle BMC Food v1.1 (Charte_graphique_BMC_Food.pdf).
+ * Configuration des Design Tokens Tailwind v4 (@theme).
+ */
+@theme {
+  /* 03 · COULEURS PRINCIPALES (Page 6 du guide officiel) */
+  /* Or officiel du logo : toque, Plat du Jour, prix, éléments dorés */
+  --color-bmc-gold: #FCB800;
+  /* Noir BMC : fonds premium, menus */
+  --color-bmc-black: #0C0C0D;
+  /* Orange braise : bouton d'action principal (texte blanc, contraste certifié 4,5:1) */
+  --color-bmc-orange-braise: #CF4A08;
+  /* Orange flamme : visuels d'ambiance et illustrations */
+  --color-bmc-orange-flame: #F97316;
+  /* Charbon : textes principaux, interface admin */
+  --color-bmc-charcoal: #18181B;
+  /* Blanc cassé : fond du site client */
+  --color-bmc-offwhite: #FAFAFA;
+  /* Gris clair : zones en retrait et fonds discrets */
+  --color-bmc-lightgray: #F4F4F5;
+
+  /* COULEURS FONCTIONNELLES & ACCESSIBILITÉ (Page 6 & 16) */
+  /* Orange profond : liens, contour de focus accessible */
+  --color-bmc-orange-deep: #C2410C;
+  /* Texte secondaire : descriptions, bordures de champs */
+  --color-bmc-text-muted: #71717A;
+  /* Succès : commande envoyée */
+  --color-bmc-success: #15803D;
+  /* Erreur : champ invalide, alerte */
+  --color-bmc-error: #B91C1C;
+  /* Moyens de paiement Sénégal */
+  --color-payment-wave: #1DC8F2;
+  --color-payment-om: #FF7900;
+
+  /* Alias sémantique du bouton principal */
+  --color-bmc-orange: #CF4A08;
+
+  /* 04 · TYPOGRAPHIE (Page 7 du guide officiel) */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-zinc-950 font-sans text-zinc-100 antialiased selection:bg-bmc-gold selection:text-black;
+  }
+}
