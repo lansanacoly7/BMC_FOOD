@@ -324,25 +324,26 @@ export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcasePr
           </div>
         </motion.div>
 
-        {/* BOUTON D'ACTION REMONTÉ DIRECTEMENT SOUS LA VIDÉO */}
-        <div className="mt-6 sm:mt-8 text-center space-y-2.5">
+        {/* BOUTON D'ACTION COMPACT & DISCRET SOUS LA VIDÉO */}
+        <div className="mt-5 sm:mt-7 text-center space-y-2">
           <motion.button
             type="button"
             onClick={onExploreMenu}
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            whileHover={{ scale: 1.04 }}
+            whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.98 }}
-            className="group inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-amber-400 via-bmc-gold to-amber-500 px-8 py-3.5 text-sm font-black uppercase tracking-wider text-black shadow-[0_10px_30px_rgba(252,184,0,0.35)] transition-all cursor-pointer hover:shadow-[0_15px_40px_rgba(252,184,0,0.5)]"
+            className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-bmc-gold to-amber-500 px-5 sm:px-7 py-2 sm:py-2.5 text-xs sm:text-sm font-black uppercase tracking-wider text-black shadow-md shadow-bmc-gold/20 transition-all cursor-pointer hover:shadow-lg hover:shadow-bmc-gold/30 hover:brightness-105"
           >
-            <span>Découvrir la Carte & Commander</span>
-            <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+            <span>Voir la Carte</span>
+            <span className="hidden sm:inline">& Commander</span>
+            <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
           </motion.button>
 
-          <p className="flex items-center justify-center gap-2 text-xs text-zinc-400">
-            <ShieldCheck className="size-3.5 text-emerald-400" />
-            <span>Livraison express à Dakar en 30-45 min · Emballage isotherme premium</span>
+          <p className="flex items-center justify-center gap-1.5 text-[11px] sm:text-xs text-zinc-400">
+            <ShieldCheck className="size-3 text-emerald-400" />
+            <span>Livraison express à Dakar en 30-45 min</span>
           </p>
         </div>
       </div>
