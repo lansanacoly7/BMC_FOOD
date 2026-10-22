@@ -6,6 +6,7 @@ import { HeroCinematic } from './components/home/HeroCinematic'
 import { CategoryPills } from './components/home/CategoryPills'
 import { FeaturedGrid } from './components/home/FeaturedGrid'
 import { StickyCartBar } from './components/home/StickyCartBar'
+import { FloatingCartButton } from './components/home/FloatingCartButton'
 import { NavMenuDrawer } from './components/home/NavMenuDrawer'
 import { Footer } from './components/home/Footer'
 import { useDailySpecials } from './hooks/useDailySpecials'
@@ -117,6 +118,14 @@ export default function App() {
         6. BARRE PANIER FLOTTANTE (« Pensé pour le pouce », Page 11, Point 6)
       */}
       <StickyCartBar
+        itemCount={itemCount}
+        totalAmount={totalAmount}
+        onOpenCart={() => setIsCartOpen(true)}
+        isVisible={!isCartOpen}
+      />
+
+      {/* 6.bis BULLE PANIER FLOTTANTE EN BAS À DROITE (Demandée par Maimouna Sall) */}
+      <FloatingCartButton
         itemCount={itemCount}
         totalAmount={totalAmount}
         onOpenCart={() => setIsCartOpen(true)}

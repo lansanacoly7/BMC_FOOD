@@ -1,9 +1,8 @@
-import { Menu, Phone, ShoppingBag } from 'lucide-react'
-import { motion } from 'motion/react'
+import { Menu, Phone } from 'lucide-react'
 
 interface TopHeaderProps {
-  cartItemCount: number
-  onOpenCart: () => void
+  cartItemCount?: number
+  onOpenCart?: () => void
   onToggleMenu?: () => void
   onSelectCategory?: (categoryId: string) => void
 }
@@ -12,7 +11,7 @@ interface TopHeaderProps {
  * En-tête officiel BMC Food (Desktop, Tablette & Mobile).
  * Logo officiel mis en valeur à GAUCHE avec contraste lumineux pour une visibilité parfaite.
  */
-export function TopHeader({ cartItemCount, onOpenCart, onToggleMenu, onSelectCategory }: TopHeaderProps) {
+export function TopHeader({ onToggleMenu, onSelectCategory }: TopHeaderProps) {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-zinc-950/95 backdrop-blur-md transition-all">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -91,27 +90,7 @@ export function TopHeader({ cartItemCount, onOpenCart, onToggleMenu, onSelectCat
             <span>77 856 13 13</span>
           </a>
 
-          {/* Bouton Panier avec pastille braise animée */}
-          <motion.button
-            type="button"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onOpenCart}
-            aria-label={`Voir le panier (${cartItemCount} articles)`}
-            className="relative flex h-10 items-center gap-2 rounded-full bg-zinc-900 px-3.5 text-zinc-200 border border-white/10 hover:border-bmc-gold hover:text-white transition-all cursor-pointer shadow-md"
-          >
-            <ShoppingBag className="size-4.5 text-bmc-gold" aria-hidden="true" />
-            <span className="hidden sm:inline text-xs font-bold">Panier</span>
-            {cartItemCount > 0 && (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="flex size-5 items-center justify-center rounded-full bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 font-display text-[11px] font-black text-black shadow-md shadow-bmc-gold/40"
-              >
-                {cartItemCount}
-              </motion.span>
-            )}
-          </motion.button>
+
 
           {/* Bouton Menu (Mobile & Tablette) */}
           <button
