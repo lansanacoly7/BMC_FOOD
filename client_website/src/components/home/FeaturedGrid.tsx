@@ -176,6 +176,7 @@ interface FeaturedGridProps {
   activeCategory: string
   searchQuery: string
   onSeeAll?: () => void
+  hasSpecialOffers?: boolean
 }
 
 /**
@@ -183,6 +184,7 @@ interface FeaturedGridProps {
  * Spécifications validées par Maimouna Sall :
  * - Mobile : 2 colonnes x 2 lignes (les 4 Tacos Panés) -> Bannière Promo Pleine Largeur (w-full) -> Reste des cartes
  * - Desktop : 4 colonnes x 2 lignes (8 cartes : Tacos Panés + Burgers & Tenders) -> Bannière Promo Pleine Largeur (w-full) -> Reste des cartes
+ * - Conditionnement dynamique via hasSpecialOffers
  */
 export function FeaturedGrid({
   products = CATALOG_PRODUCTS,
@@ -191,6 +193,7 @@ export function FeaturedGrid({
   activeCategory,
   searchQuery,
   onSeeAll,
+  hasSpecialOffers = true,
 }: FeaturedGridProps) {
   const productList = products.length > 0 ? products : CATALOG_PRODUCTS
 
@@ -311,8 +314,8 @@ export function FeaturedGrid({
           {/* Mobile : 4 Tacos Panés (2 colonnes x 2 lignes) */}
           <div className="lg:hidden mx-auto max-w-7xl px-4 sm:px-6">
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              {mobileTop.map((product) => (
-                <ClassicProductCard key={product.code} product={product} onAdd={onAddToCart} />
+              {mobileTop.map((product, idx) => (
+                <ClassicProductCard key={product.code} product={product} onAdd={onAddToCart} index={idx} />
               ))}
             </div>
           </div>
@@ -320,77 +323,81 @@ export function FeaturedGrid({
           {/* Desktop : 8 cartes (4 colonnes x 2 lignes : Tacos Panés + Burgers & Tenders) */}
           <div className="hidden lg:block mx-auto max-w-7xl px-8">
             <div className="grid grid-cols-4 gap-4">
-              {desktopTop.map((product) => (
-                <ClassicProductCard key={product.code} product={product} onAdd={onAddToCart} />
+              {desktopTop.map((product, idx) => (
+                <ClassicProductCard key={product.code} product={product} onAdd={onAddToCart} index={idx} />
               ))}
             </div>
           </div>
 
-          {/* --- PARTIE 2 : BANNIÈRE PROMOTIONNELLE OFFICIELLE --- */}
-          <SpecialOfferBanner />
+          {/* --- PARTIE 2 : BANNIÈRE PROMOTIONNELLE OFFICIELLE (Conditionnée) --- */}
+          {hasSpecialOffers && <SpecialOfferBanner />}
 
-          {/* --- PARTIE 3 : NOS OFFRES SPÉCIALES (-20%) --- */}
-          <div id="special-offers-grid" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-1.5 pt-2">
-              <div>
-                <div className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-bmc-gold">
-                  <Sparkles className="size-3.5 text-amber-400" />
-                  <span>Sélection Éligible · 20% Déduits</span>
+          {/* --- PARTIE 3 : NOS OFFRES SPÉCIALES (-20%) (Conditionnée) --- */}
+          {hasSpecialOffers && (
+            <div id="special-offers-grid" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-1.5 pt-2">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-bmc-gold">
+                    <Sparkles className="size-3.5 text-amber-400" />
+                    <span>Sélection Éligible · 20% Déduits</span>
+                  </div>
+                  <h3 className="font-display text-lg sm:text-2xl font-black text-white mt-0.5">
+                    Nos Formules & Offres Spéciales
+                  </h3>
                 </div>
-                <h3 className="font-display text-lg sm:text-2xl font-black text-white mt-0.5">
-                  Nos Formules & Offres Spéciales
-                </h3>
+                <p className="text-xs sm:text-sm text-zinc-400 max-w-md">
+                  Tarifs remisés de -20% applicables immédiatement sur vos spécialités BMC Food préférées.
+                </p>
               </div>
-              <p className="text-xs sm:text-sm text-zinc-400 max-w-md">
-                Tarifs remisés de -20% applicables immédiatement sur vos spécialités BMC Food préférées.
-              </p>
-            </div>
 
-            {/* Version Mobile : 4 cartes (2 colonnes x 2 lignes) */}
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:hidden">
-              {mobileSpecialOffers.map((item) => (
-                <SpecialOfferProductCard
-                  key={item.code}
-                  product={item}
-                  originalPrice={item.originalPrice}
-                  discountedPrice={item.discountedPrice}
-                  onAdd={() =>
-                    onAddToCart({
-                      ...item,
-                      price: item.discountedPrice,
-                      name: `${item.name} (-20%)`,
-                    })
-                  }
-                />
-              ))}
-            </div>
+              {/* Version Mobile : 4 cartes (2 colonnes x 2 lignes) */}
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:hidden">
+                {mobileSpecialOffers.map((item, idx) => (
+                  <SpecialOfferProductCard
+                    key={item.code}
+                    product={item}
+                    originalPrice={item.originalPrice}
+                    discountedPrice={item.discountedPrice}
+                    index={idx}
+                    onAdd={() =>
+                      onAddToCart({
+                        ...item,
+                        price: item.discountedPrice,
+                        name: `${item.name} (-20%)`,
+                      })
+                    }
+                  />
+                ))}
+              </div>
 
-            {/* Version Desktop : 8 cartes sur 2 lignes complètes (4 colonnes x 2 lignes) */}
-            <div className="hidden lg:grid grid-cols-4 gap-4">
-              {desktopSpecialOffers.map((item) => (
-                <SpecialOfferProductCard
-                  key={item.code}
-                  product={item}
-                  originalPrice={item.originalPrice}
-                  discountedPrice={item.discountedPrice}
-                  onAdd={() =>
-                    onAddToCart({
-                      ...item,
-                      price: item.discountedPrice,
-                      name: `${item.name} (-20%)`,
-                    })
-                  }
-                />
-              ))}
+              {/* Version Desktop : 8 cartes sur 2 lignes complètes (4 colonnes x 2 lignes) */}
+              <div className="hidden lg:grid grid-cols-4 gap-4">
+                {desktopSpecialOffers.map((item, idx) => (
+                  <SpecialOfferProductCard
+                    key={item.code}
+                    product={item}
+                    originalPrice={item.originalPrice}
+                    discountedPrice={item.discountedPrice}
+                    index={idx}
+                    onAdd={() =>
+                      onAddToCart({
+                        ...item,
+                        price: item.discountedPrice,
+                        name: `${item.name} (-20%)`,
+                      })
+                    }
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       ) : (
         /* VUE FILTRÉE PAR CATÉGORIE OU RECHERCHE : Grille continue sans bannière */
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
-            {filtered.map((product) => (
-              <ClassicProductCard key={product.code} product={product} onAdd={onAddToCart} />
+            {filtered.map((product, idx) => (
+              <ClassicProductCard key={product.code} product={product} onAdd={onAddToCart} index={idx} />
             ))}
           </div>
         </div>
@@ -400,9 +407,17 @@ export function FeaturedGrid({
 }
 
 /**
- * Carte Produit Classique (Format Dark Luxury v1.1 avec animation d'entrée au scroll).
+ * Carte Produit Classique (Format Dark Luxury v1.1 avec animation d'entrée au scroll échelonnée).
  */
-function ClassicProductCard({ product, onAdd }: { product: Product; onAdd: (p: Product) => void }) {
+function ClassicProductCard({
+  product,
+  onAdd,
+  index = 0,
+}: {
+  product: Product
+  onAdd: (p: Product) => void
+  index?: number
+}) {
   const [added, setAdded] = useState(false)
 
   const handleAdd = () => {
@@ -411,15 +426,25 @@ function ClassicProductCard({ product, onAdd }: { product: Product; onAdd: (p: P
     setTimeout(() => setAdded(false), 1400)
   }
 
+  // Décalage léger cadencé selon la position dans la rangée (stagger horizontal naturel)
+  const staggerDelay = (index % 4) * 0.06
+
   return (
     <motion.article
       layout
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 22 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-25px' }}
-      transition={{ duration: 0.42, ease: 'easeOut' }}
-      whileHover={{ y: -4 }}
-      className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/85 p-3 shadow-lg backdrop-blur-xs transition-all hover:border-bmc-gold/50 hover:shadow-2xl hover:shadow-amber-500/10 sm:p-4 text-white"
+      viewport={{ once: true, margin: '-20px' }}
+      transition={{
+        duration: 0.45,
+        delay: staggerDelay,
+        ease: 'easeOut',
+      }}
+      whileHover={{
+        y: -5,
+        transition: { duration: 0.22, ease: 'easeOut' },
+      }}
+      className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/85 p-3 shadow-lg backdrop-blur-xs transition-colors hover:border-bmc-gold/50 hover:shadow-2xl hover:shadow-amber-500/10 sm:p-4 text-white"
     >
       <div>
         {/* Photo appétissante en haut */}
@@ -461,7 +486,8 @@ function ClassicProductCard({ product, onAdd }: { product: Product; onAdd: (p: P
         {/* Bouton d'ajout rapide : Or BMC */}
         <motion.button
           type="button"
-          whileTap={{ scale: 0.9 }}
+          whileHover={{ scale: 1.06 }}
+          whileTap={{ scale: 0.92 }}
           onClick={handleAdd}
           aria-label={`Ajouter ${product.name} au panier`}
           className={`flex size-9 items-center justify-center rounded-xl font-bold transition-all cursor-pointer ${
@@ -495,11 +521,13 @@ function SpecialOfferProductCard({
   originalPrice,
   discountedPrice,
   onAdd,
+  index = 0,
 }: {
   product: Product
   originalPrice: number
   discountedPrice: number
   onAdd: () => void
+  index?: number
 }) {
   const [added, setAdded] = useState(false)
 
@@ -509,15 +537,25 @@ function SpecialOfferProductCard({
     setTimeout(() => setAdded(false), 1400)
   }
 
+  // Décalage léger cadencé
+  const staggerDelay = (index % 4) * 0.06
+
   return (
     <motion.article
       layout
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-25px' }}
-      transition={{ duration: 0.45, ease: 'easeOut' }}
-      whileHover={{ y: -4 }}
-      className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-amber-500/35 bg-gradient-to-b from-zinc-900/95 via-zinc-900/85 to-black p-3 sm:p-4 shadow-xl hover:border-amber-400 hover:shadow-2xl hover:shadow-amber-500/10 text-white"
+      viewport={{ once: true, margin: '-20px' }}
+      transition={{
+        duration: 0.45,
+        delay: staggerDelay,
+        ease: 'easeOut',
+      }}
+      whileHover={{
+        y: -5,
+        transition: { duration: 0.22, ease: 'easeOut' },
+      }}
+      className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-amber-500/35 bg-gradient-to-b from-zinc-900/95 via-zinc-900/85 to-black p-3 sm:p-4 shadow-xl hover:border-amber-400 hover:shadow-2xl hover:shadow-amber-500/10 text-white transition-colors"
     >
       <div>
         {/* Photo du plat avec badge -20% */}
@@ -564,7 +602,8 @@ function SpecialOfferProductCard({
         {/* Bouton d'ajout direct */}
         <motion.button
           type="button"
-          whileTap={{ scale: 0.9 }}
+          whileHover={{ scale: 1.06 }}
+          whileTap={{ scale: 0.92 }}
           onClick={handleAdd}
           aria-label={`Ajouter ${product.name} en offre spéciale`}
           className={`flex size-9 sm:size-10 items-center justify-center rounded-xl font-bold transition-all cursor-pointer ${

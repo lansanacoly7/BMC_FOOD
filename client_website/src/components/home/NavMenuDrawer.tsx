@@ -7,6 +7,7 @@ interface NavMenuDrawerProps {
   onClose: () => void
   currentPage?: 'home' | 'menu'
   hasDailySpecial?: boolean
+  hasSpecialOffers?: boolean
   onNavigate?: (page: 'home' | 'menu') => void
   onSelectDailySpecial?: () => void
   onSelectOffers?: () => void
@@ -25,6 +26,7 @@ export function NavMenuDrawer({
   onClose,
   currentPage = 'home',
   hasDailySpecial = false,
+  hasSpecialOffers = true,
   onNavigate,
   onSelectDailySpecial,
   onSelectOffers,
@@ -165,27 +167,29 @@ export function NavMenuDrawer({
                   {currentPage === 'menu' && <span className="size-2 rounded-full bg-bmc-gold" />}
                 </button>
 
-                {/* 4. Nos Offres */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onSelectOffers) {
-                      onSelectOffers()
-                    } else {
-                      onNavigate?.('home')
-                      setTimeout(() => {
-                        document.getElementById('special-offers-grid')?.scrollIntoView({ behavior: 'smooth' })
-                      }, 100)
-                    }
-                    onClose()
-                  }}
-                  className="w-full flex items-center justify-between rounded-xl px-3.5 py-3 text-left text-sm font-black text-zinc-200 hover:bg-white/10 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <Tag className="size-4.5 text-bmc-gold" />
-                    <span>Nos Offres</span>
-                  </div>
-                </button>
+                {/* 4. Nos Offres (Conditionné par hasSpecialOffers) */}
+                {hasSpecialOffers && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onSelectOffers) {
+                        onSelectOffers()
+                      } else {
+                        onNavigate?.('home')
+                        setTimeout(() => {
+                          document.getElementById('special-offers-grid')?.scrollIntoView({ behavior: 'smooth' })
+                        }, 100)
+                      }
+                      onClose()
+                    }}
+                    className="w-full flex items-center justify-between rounded-xl px-3.5 py-3 text-left text-sm font-black text-zinc-200 hover:bg-white/10 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Tag className="size-4.5 text-bmc-gold" />
+                      <span>Nos Offres</span>
+                    </div>
+                  </button>
+                )}
               </div>
 
               {/* Infos pratiques restaurant & contact direct (sans emojis) */}

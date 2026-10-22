@@ -220,18 +220,18 @@ export function DailySpecialBanner({
                   {currentProduct.name}
                 </h3>
 
-                {/* Descriptif avec passage à la ligne propre */}
-                <div className="text-[11px] sm:text-sm font-normal text-zinc-300 leading-snug sm:leading-relaxed">
+                {/* Descriptif avec limitation stricte à 2 lignes maximum sur mobile */}
+                <div className="text-[11px] sm:text-sm font-normal text-zinc-300 leading-snug sm:leading-relaxed line-clamp-2 sm:line-clamp-none">
                   {formatDescription(currentProduct.description)}
                 </div>
 
-                {/* Bloc Tarif Or valorisé & Bouton d'achat Desktop */}
-                <div className="pt-2 sm:pt-3 flex flex-col sm:flex-row sm:items-center sm:gap-6">
+                {/* Bloc Tarif Or remonté immédiatement sous les 2 lignes et agrandi */}
+                <div className="pt-1 sm:pt-3 flex flex-col sm:flex-row sm:items-center sm:gap-6">
                   <div>
                     <span className="block text-[8px] xs:text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-zinc-400">
                       Tarif
                     </span>
-                    <p className="font-display text-xl xs:text-2xl sm:text-3xl lg:text-4xl font-black tabular-nums text-bmc-gold leading-none whitespace-nowrap mt-0.5">
+                    <p className="font-display text-2xl xs:text-3xl sm:text-3xl lg:text-4xl font-black tabular-nums text-bmc-gold leading-none whitespace-nowrap mt-0.5">
                       {formatFcfa(currentProduct.price)}
                     </p>
                   </div>

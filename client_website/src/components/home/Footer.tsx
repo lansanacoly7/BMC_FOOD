@@ -31,7 +31,7 @@ export function Footer({ onExploreMenu }: FooterProps) {
           ===================================================================== */}
       <footer
         aria-label="Pied de page mobile BMC Food"
-        className="lg:hidden relative w-full mt-6 border-t border-amber-500/20 bg-gradient-to-b from-zinc-950 via-black to-black text-zinc-300 px-4 py-5 sm:py-6 text-left overflow-hidden"
+        className="lg:hidden relative w-full bg-gradient-to-b from-zinc-950 to-black text-zinc-300 px-4 pt-4 pb-7 text-left overflow-hidden"
       >
         <div className="relative mx-auto max-w-lg">
           <div className="flex items-center gap-3.5 sm:gap-4">
@@ -65,7 +65,7 @@ export function Footer({ onExploreMenu }: FooterProps) {
           ===================================================================== */}
       <footer
         aria-label="Pied de page institutionnel BMC Food"
-        className="hidden lg:block relative w-full mt-6 sm:mt-8 border-t border-amber-500/20 bg-gradient-to-b from-zinc-950 via-black to-black text-zinc-300 overflow-hidden"
+        className="hidden lg:block relative w-full pt-8 pb-10 bg-gradient-to-b from-zinc-950 to-black text-zinc-300 overflow-hidden"
       >
         {/* Halo doré d'ambiance en arrière-plan */}
         <div

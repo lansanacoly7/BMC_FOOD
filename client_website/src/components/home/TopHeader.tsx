@@ -4,6 +4,7 @@ interface TopHeaderProps {
   currentPage?: 'home' | 'menu'
   cartItemCount?: number
   hasDailySpecial?: boolean
+  hasSpecialOffers?: boolean
   onNavigate?: (page: 'home' | 'menu') => void
   onSelectDailySpecial?: () => void
   onSelectOffers?: () => void
@@ -19,6 +20,7 @@ interface TopHeaderProps {
 export function TopHeader({
   currentPage = 'home',
   hasDailySpecial = false,
+  hasSpecialOffers = true,
   onNavigate,
   onSelectDailySpecial,
   onSelectOffers,
@@ -99,23 +101,25 @@ export function TopHeader({
             Menu & La Carte
           </button>
 
-          {/* 4. Nos Offres */}
-          <button
-            type="button"
-            onClick={() => {
-              if (onSelectOffers) {
-                onSelectOffers()
-              } else {
-                onNavigate?.('home')
-                setTimeout(() => {
-                  document.getElementById('special-offers-grid')?.scrollIntoView({ behavior: 'smooth' })
-                }, 100)
-              }
-            }}
-            className="text-xs font-black uppercase tracking-wider text-zinc-300 hover:text-bmc-gold transition-colors cursor-pointer py-1"
-          >
-            Nos Offres
-          </button>
+          {/* 4. Nos Offres (Conditionné par hasSpecialOffers) */}
+          {hasSpecialOffers && (
+            <button
+              type="button"
+              onClick={() => {
+                if (onSelectOffers) {
+                  onSelectOffers()
+                } else {
+                  onNavigate?.('home')
+                  setTimeout(() => {
+                    document.getElementById('special-offers-grid')?.scrollIntoView({ behavior: 'smooth' })
+                  }, 100)
+                }
+              }}
+              className="text-xs font-black uppercase tracking-wider text-zinc-300 hover:text-bmc-gold transition-colors cursor-pointer py-1"
+            >
+              Nos Offres
+            </button>
+          )}
 
           {/* Badge Horaires Dakar */}
           <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-zinc-900/80 px-3 py-1 text-[11px] font-semibold text-zinc-300">

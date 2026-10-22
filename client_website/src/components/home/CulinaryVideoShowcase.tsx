@@ -137,7 +137,7 @@ export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcasePr
   return (
     <section
       aria-labelledby="culinary-showcase-title"
-      className="relative overflow-hidden bg-gradient-to-b from-zinc-950 via-zinc-900/80 to-zinc-950 pt-10 sm:pt-14 pb-4 sm:pb-6 border-t border-white/5"
+      className="relative overflow-hidden bg-zinc-950 pt-8 sm:pt-12 pb-2 sm:pb-4"
     >
       {/* Halo d'ambiance or Dark Luxury en arrière-plan */}
       <div

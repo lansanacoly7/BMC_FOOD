@@ -9,18 +9,18 @@ import { FloatingCartButton } from './components/home/FloatingCartButton'
 import { NavMenuDrawer } from './components/home/NavMenuDrawer'
 import { Footer } from './components/home/Footer'
 import { CulinaryVideoShowcase } from './components/home/CulinaryVideoShowcase'
-import { MenuView } from './components/menu/MenuView'
 import { useDailySpecials } from './hooks/useDailySpecials'
 import { useMenu } from './hooks/useMenu'
 import type { CartItem, Product } from './types'
 
 export default function App() {
   const [items, setItems] = useState<CartItem[]>([])
-  const [currentPage, setCurrentPage] = useState<'home' | 'menu'>('home')
+  const [currentPage] = useState<'home'>('home')
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState('all')
   const [searchQuery] = useState('')
+  const [hasSpecialOffers] = useState(true)
 
   // Hooks de données officiels BMC Food (avec support fallback)
   const { specials, isLoading: isSpecialsLoading } = useDailySpecials()
@@ -31,19 +31,20 @@ export default function App() {
   const totalAmount = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
 
   const handleNavigate = (page: 'home' | 'menu') => {
-    setCurrentPage(page)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    if (page === 'menu') {
+      document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth' })
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
   }
 
   const handleSelectDailySpecial = () => {
-    setCurrentPage('home')
     setTimeout(() => {
       document.getElementById('daily-special-section')?.scrollIntoView({ behavior: 'smooth' })
     }, 100)
   }
 
   const handleSelectOffers = () => {
-    setCurrentPage('home')
     setTimeout(() => {
       document.getElementById('special-offers-grid')?.scrollIntoView({ behavior: 'smooth' })
     }, 100)
@@ -82,6 +83,7 @@ export default function App() {
         currentPage={currentPage}
         cartItemCount={itemCount}
         hasDailySpecial={hasDailySpecial}
+        hasSpecialOffers={hasSpecialOffers}
         onNavigate={handleNavigate}
         onSelectDailySpecial={handleSelectDailySpecial}
         onSelectOffers={handleSelectOffers}
@@ -95,6 +97,7 @@ export default function App() {
         isOpen={isNavMenuOpen}
         currentPage={currentPage}
         hasDailySpecial={hasDailySpecial}
+        hasSpecialOffers={hasSpecialOffers}
         onClose={() => setIsNavMenuOpen(false)}
         onNavigate={handleNavigate}
         onSelectDailySpecial={handleSelectDailySpecial}
@@ -103,44 +106,36 @@ export default function App() {
       />
 
       {/* 
-        AFFICHAGE CONDITIONNEL : PAGE D'ACCUEIL (Home) vs PAGE MENU (El Hadji)
+        PAGE D'ACCUEIL OFFICIELLE DARK LUXURY (Scope exclusif de Maimouna Sall)
       */}
-      {currentPage === 'home' ? (
-        <>
-          {/* Hero cinématique avec bouton Explorer le Menu qui bascule vers le Menu */}
-          <HeroCinematic
-            onExploreMenu={() => handleNavigate('menu')}
-          />
+      {/* Hero cinématique avec bouton Explorer le Menu */}
+      <HeroCinematic
+        onExploreMenu={() => handleNavigate('menu')}
+      />
 
-          {/* Bandeau hybride Plat du Jour & Best-Sellers */}
-          <DailySpecialBanner
-            specials={specials}
-            fallbackProducts={menuProducts}
-            isLoading={isSpecialsLoading}
-            onAdd={addToCart}
-          />
+      {/* Bandeau hybride Plat du Jour & Best-Sellers */}
+      <DailySpecialBanner
+        specials={specials}
+        fallbackProducts={menuProducts}
+        isLoading={isSpecialsLoading}
+        onAdd={addToCart}
+      />
 
-          {/* Grille d'accueil et Offres Spéciales */}
-          <main id="menu-section" className="space-y-8 pt-4">
-            <FeaturedGrid
-              products={menuProducts}
-              isLoading={isMenuLoading}
-              activeCategory={activeCategory}
-              searchQuery={searchQuery}
-              onAddToCart={addToCart}
-              onSeeAll={() => handleNavigate('menu')}
-            />
-          </main>
+      {/* Grille d'accueil et Offres Spéciales */}
+      <main id="menu-section" className="space-y-8 pt-4">
+        <FeaturedGrid
+          products={menuProducts}
+          isLoading={isMenuLoading}
+          activeCategory={activeCategory}
+          searchQuery={searchQuery}
+          onAddToCart={addToCart}
+          onSeeAll={() => handleNavigate('menu')}
+          hasSpecialOffers={hasSpecialOffers}
+        />
+      </main>
 
-          {/* Capsule Vidéo Culinaire Immersive (« L'Art du Tacos Pané » - Étape 3 Benchmark) */}
-          <CulinaryVideoShowcase onExploreMenu={() => handleNavigate('menu')} />
-        </>
-      ) : (
-        /* PAGE MENU COMPLÈTE RÉALISÉE PAR EL HADJI */
-        <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 min-h-[65vh]">
-          <MenuView onAddToCart={addToCart} />
-        </main>
-      )}
+      {/* Capsule Vidéo Culinaire Immersive (« L'Art du Tacos Pané » - Étape 3 Benchmark) */}
+      <CulinaryVideoShowcase onExploreMenu={() => handleNavigate('menu')} />
 
       {/* 
         6. BARRE PANIER FLOTTANTE (« Pensé pour le pouce »)

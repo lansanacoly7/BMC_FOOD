@@ -3,19 +3,20 @@ import { motion } from 'motion/react'
 
 interface SpecialOfferBannerProps {
   onOrderNow?: () => void
+  isVisible?: boolean
 }
 
 /**
  * Bannière promotionnelle officielle BMC Food
  * Conforme aux directives de Maimouna Sall :
- * - Titre de section officiel « Nos Offres » en Dark Luxury avant la bannière
- * - Conteneur aligné avec le reste de la page (max-w-7xl) pour une parfaite stabilité au zoom/dézoom
- * - Bords arrondis élégants (rounded-2xl sm:rounded-3xl) avec liseré doré
- * - Affiche le visuel officiel responsive (mobile 16:9 et ordi panoramique)
- * - Intègre le bouton interactif Or brossé imposant superposé en bas du texte
- * - Action au clic : défilement fluide vers la carte des spécialités
+ * - Image vierge avec festin à droite et coup de pinceau jaune à gauche
+ * - Superposition dynamique en HTML/CSS : « Offre Spéciale », « -20% DE RÉDUCTION », condition et bouton
+ * - Modifiable à 100% dans le code sans rééditer l'image
+ * - Conditionnée dynamiquement via la prop isVisible
  */
-export function SpecialOfferBanner({ onOrderNow }: SpecialOfferBannerProps) {
+export function SpecialOfferBanner({ onOrderNow, isVisible = true }: SpecialOfferBannerProps) {
+  if (!isVisible) return null
+
   const handleAction = () => {
     if (onOrderNow) {
       onOrderNow()
@@ -49,41 +50,57 @@ export function SpecialOfferBanner({ onOrderNow }: SpecialOfferBannerProps) {
         </p>
       </div>
 
-      {/* 2. Cadre de la bannière contenu et protégé contre l'étirement au dézoom */}
+      {/* 2. Cadre de la bannière avec image vierge et textes superposés dynamiques */}
       <div
         onClick={handleAction}
-        className="relative w-full overflow-hidden rounded-2xl sm:rounded-3xl border border-amber-500/25 bg-black shadow-2xl shadow-black/80 group cursor-pointer transition-all duration-300 hover:border-amber-500/50"
+        className="relative w-full overflow-hidden rounded-2xl sm:rounded-3xl border border-amber-500/25 bg-black shadow-2xl shadow-black/80 group cursor-pointer transition-all duration-300 hover:border-amber-500/50 aspect-[16/9] sm:aspect-[21/9]"
       >
-        {/* Visuel Responsive (Mobile 16:9 / Ordi panoramique) */}
-        <picture>
-          <source media="(max-width: 640px)" srcSet="/images/products/special-offer-banner-mobile.jpg" />
-          <img
-            src="/images/products/special-offer-banner-desktop.jpg"
-            alt="Offre Spéciale -20% sur votre première commande BMC Food"
-            width={1024}
-            height={434}
-            className="w-full h-auto max-h-[280px] sm:max-h-[380px] md:max-h-[460px] lg:max-h-[520px] object-cover block transition-transform duration-700 ease-out group-hover:scale-[1.01]"
-            loading="lazy"
-          />
-        </picture>
+        {/* Visuel Vierge officiel généré par Maimouna Sall */}
+        <img
+          src="/images/products/special-offer-banner.jpg"
+          alt="Bannière Offre Spéciale BMC Food"
+          width={1024}
+          height={434}
+          className="size-full object-cover block transition-transform duration-700 ease-out group-hover:scale-[1.01]"
+          loading="lazy"
+        />
 
-        {/* Bouton interactif Or BMC posé au-dessus de l'image, en bas du texte à gauche */}
-        <div className="absolute left-[4%] sm:left-[5%] md:left-[6%] bottom-[6%] sm:bottom-[8%] md:bottom-[10%] z-10">
-          <motion.button
-            type="button"
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.96 }}
-            onClick={(e) => {
-              e.stopPropagation()
-              handleAction()
-            }}
-            aria-label="Commander maintenant et profiter de l'offre spéciale -20%"
-            className="group/btn inline-flex h-10 xs:h-12 sm:h-14 items-center justify-center gap-2 sm:gap-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 px-4 xs:px-6 sm:px-8 md:px-10 font-display text-xs xs:text-sm sm:text-base font-black uppercase tracking-wider text-black shadow-xl shadow-amber-500/40 hover:shadow-2xl hover:shadow-amber-500/60 hover:brightness-110 cursor-pointer transition-all whitespace-nowrap"
-          >
-            <span>Commander</span>
-            <span>Maintenant</span>
-            <ArrowRight className="size-3.5 sm:size-4 md:size-5 stroke-[3] transition-transform duration-300 group-hover/btn:translate-x-1" />
-          </motion.button>
+        {/* CONTENU SUPERPOSÉ EN HTML DYNAMIQUE */}
+        <div className="absolute inset-0 z-10 flex flex-col justify-between p-3.5 xs:p-4 sm:p-7 md:p-9 lg:p-11 pointer-events-none">
+          {/* 1. Titre posé dans le coup de pinceau jaune */}
+          <div className="w-[54%] sm:w-[50%] md:w-[48%] pt-0.5 sm:pt-2 md:pt-3">
+            <span className="font-display text-xs xs:text-sm sm:text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-black uppercase">
+              Offre Spéciale
+            </span>
+          </div>
+
+          {/* 2. Remise et condition */}
+          <div className="w-[54%] sm:w-[50%] md:w-[48%] space-y-0.5 sm:space-y-1.5">
+            <p className="font-display text-sm xs:text-base sm:text-2xl md:text-3xl lg:text-4xl font-black tracking-tight leading-none text-white">
+              -20% <span className="text-bmc-gold">DE RÉDUCTION</span>
+            </p>
+            <p className="text-[9px] xs:text-[10px] sm:text-xs md:text-sm font-medium text-zinc-200 leading-tight">
+              Sur votre première commande
+            </p>
+          </div>
+
+          {/* 3. Bouton interactif Or */}
+          <div className="w-[54%] sm:w-[50%] md:w-[48%] pb-0.5 sm:pb-1">
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleAction()
+              }}
+              aria-label="Commander maintenant et profiter de l'offre spéciale -20%"
+              className="pointer-events-auto inline-flex items-center justify-center gap-1.5 sm:gap-2.5 rounded-lg sm:rounded-xl bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 px-3 py-1.5 xs:px-4 xs:py-2 sm:px-6 sm:py-3 font-display text-[10px] xs:text-xs sm:text-sm font-black uppercase tracking-wider text-black shadow-lg shadow-black/60 hover:brightness-110 cursor-pointer transition-all whitespace-nowrap"
+            >
+              <span>Commander Maintenant</span>
+              <ArrowRight className="size-3 sm:size-4 stroke-[3]" />
+            </motion.button>
+          </div>
         </div>
       </div>
     </section>
