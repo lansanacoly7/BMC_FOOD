@@ -34,6 +34,13 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const handleSelectDailySpecial = () => {
+    setCurrentPage('home')
+    setTimeout(() => {
+      document.getElementById('daily-special-section')?.scrollIntoView({ behavior: 'smooth' })
+    }, 100)
+  }
+
   const handleSelectOffers = () => {
     setCurrentPage('home')
     setTimeout(() => {
@@ -68,12 +75,13 @@ export default function App() {
   return (
     <div className="min-h-dvh bg-zinc-950 text-zinc-100 pb-28 selection:bg-bmc-gold selection:text-black">
       {/* 
-        1. EN-TÊTE OFFICIEL BMC FOOD AVEC NAVIGATION ACCUEIL / MENU / OFFRES
+        1. EN-TÊTE OFFICIEL BMC FOOD AVEC NAVIGATION ACCUEIL / PLAT DU JOUR / MENU / OFFRES
       */}
       <TopHeader
         currentPage={currentPage}
         cartItemCount={itemCount}
         onNavigate={handleNavigate}
+        onSelectDailySpecial={handleSelectDailySpecial}
         onSelectOffers={handleSelectOffers}
         onOpenCart={() => setIsCartOpen(true)}
         onToggleMenu={() => setIsNavMenuOpen(true)}
@@ -86,6 +94,7 @@ export default function App() {
         currentPage={currentPage}
         onClose={() => setIsNavMenuOpen(false)}
         onNavigate={handleNavigate}
+        onSelectDailySpecial={handleSelectDailySpecial}
         onSelectOffers={handleSelectOffers}
         onSelectCategory={setActiveCategory}
       />

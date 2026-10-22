@@ -4,6 +4,7 @@ interface TopHeaderProps {
   currentPage?: 'home' | 'menu'
   cartItemCount?: number
   onNavigate?: (page: 'home' | 'menu') => void
+  onSelectDailySpecial?: () => void
   onSelectOffers?: () => void
   onOpenCart?: () => void
   onToggleMenu?: () => void
@@ -17,6 +18,7 @@ interface TopHeaderProps {
 export function TopHeader({
   currentPage = 'home',
   onNavigate,
+  onSelectDailySpecial,
   onSelectOffers,
   onToggleMenu,
 }: TopHeaderProps) {
@@ -49,9 +51,9 @@ export function TopHeader({
           </button>
         </div>
 
-        {/* CENTRE (Desktop & Tablette) : Liens de navigation Accueil, Menu & Offres */}
+        {/* CENTRE (Desktop & Tablette) : Liens de navigation Accueil, Plat du Jour, Menu & La Carte, Nos Offres */}
         <nav aria-label="Navigation principale" className="hidden lg:flex items-center gap-6">
-          {/* Accueil */}
+          {/* 1. Accueil */}
           <button
             type="button"
             onClick={() => onNavigate?.('home')}
@@ -64,7 +66,25 @@ export function TopHeader({
             Accueil
           </button>
 
-          {/* Menu & La Carte */}
+          {/* 2. Plat du Jour */}
+          <button
+            type="button"
+            onClick={() => {
+              if (onSelectDailySpecial) {
+                onSelectDailySpecial()
+              } else {
+                onNavigate?.('home')
+                setTimeout(() => {
+                  document.getElementById('daily-special-section')?.scrollIntoView({ behavior: 'smooth' })
+                }, 100)
+              }
+            }}
+            className="text-xs font-black uppercase tracking-wider text-zinc-300 hover:text-bmc-gold transition-colors cursor-pointer py-1"
+          >
+            Plat du Jour
+          </button>
+
+          {/* 3. Menu & La Carte */}
           <button
             type="button"
             onClick={() => onNavigate?.('menu')}
@@ -77,7 +97,7 @@ export function TopHeader({
             Menu & La Carte
           </button>
 
-          {/* Nos Offres (-20%) */}
+          {/* 4. Nos Offres */}
           <button
             type="button"
             onClick={() => {
@@ -90,9 +110,9 @@ export function TopHeader({
                 }, 100)
               }
             }}
-            className="text-xs font-bold uppercase tracking-wider text-zinc-300 hover:text-bmc-gold transition-colors cursor-pointer py-1"
+            className="text-xs font-black uppercase tracking-wider text-zinc-300 hover:text-bmc-gold transition-colors cursor-pointer py-1"
           >
-            Nos Offres (-20%)
+            Nos Offres
           </button>
 
           {/* Badge Horaires Dakar */}

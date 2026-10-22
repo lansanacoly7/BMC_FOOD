@@ -7,6 +7,7 @@ interface NavMenuDrawerProps {
   onClose: () => void
   currentPage?: 'home' | 'menu'
   onNavigate?: (page: 'home' | 'menu') => void
+  onSelectDailySpecial?: () => void
   onSelectOffers?: () => void
   onSelectCategory: (categoryId: string) => void
 }
@@ -20,6 +21,7 @@ export function NavMenuDrawer({
   onClose,
   currentPage = 'home',
   onNavigate,
+  onSelectDailySpecial,
   onSelectOffers,
   onSelectCategory,
 }: NavMenuDrawerProps) {
@@ -77,6 +79,7 @@ export function NavMenuDrawer({
                 <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
                   Navigation
                 </p>
+                {/* 1. Accueil */}
                 <button
                   type="button"
                   onClick={() => {
@@ -93,6 +96,27 @@ export function NavMenuDrawer({
                   {currentPage === 'home' && <span className="size-2 rounded-full bg-bmc-gold" />}
                 </button>
 
+                {/* 2. Plat du Jour */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onSelectDailySpecial) {
+                      onSelectDailySpecial()
+                    } else {
+                      onNavigate?.('home')
+                      setTimeout(() => {
+                        document.getElementById('daily-special-section')?.scrollIntoView({ behavior: 'smooth' })
+                      }, 100)
+                    }
+                    onClose()
+                  }}
+                  className="w-full flex items-center justify-between rounded-xl px-3.5 py-2.5 text-left text-sm font-black text-zinc-200 hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  <span>⭐ Plat du Jour</span>
+                  <span className="text-xs text-bmc-gold">Voir</span>
+                </button>
+
+                {/* 3. Menu & La Carte */}
                 <button
                   type="button"
                   onClick={() => {
@@ -109,6 +133,7 @@ export function NavMenuDrawer({
                   {currentPage === 'menu' && <span className="size-2 rounded-full bg-bmc-gold" />}
                 </button>
 
+                {/* 4. Nos Offres */}
                 <button
                   type="button"
                   onClick={() => {
@@ -124,7 +149,7 @@ export function NavMenuDrawer({
                   }}
                   className="w-full flex items-center justify-between rounded-xl px-3.5 py-2 text-left text-xs font-bold text-amber-400 hover:bg-amber-500/10 cursor-pointer"
                 >
-                  <span>🏷️ Nos Offres Spéciales (-20%)</span>
+                  <span>🏷️ Nos Offres</span>
                   <span>→</span>
                 </button>
               </div>

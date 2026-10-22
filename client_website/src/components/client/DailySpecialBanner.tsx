@@ -95,7 +95,7 @@ export function DailySpecialBanner({
   }
 
   return (
-    <section aria-labelledby={headingId} className="w-full bg-zinc-950 px-4 py-4 sm:px-6 sm:py-6">
+    <section id="daily-special-section" aria-labelledby={headingId} className="w-full bg-zinc-950 px-4 py-4 sm:px-6 sm:py-6 scroll-mt-20">
       {/* 
         CONTENEUR GLOBAL AVEC MICRO-ANIMATION DE REBOND NATUREL ("BOND TAC-TAC-TAC")
       */}
