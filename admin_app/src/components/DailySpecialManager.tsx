@@ -76,51 +76,76 @@ export function DailySpecialManager() {
     return matchesCat && matchesSearch
   })
 
+  // Synchronisation initiale au chargement avec l'API REST
+  useEffect(() => {
+    fetch('http://localhost:8000/api/daily-special/')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.daily_specials && data.daily_specials.length > 0) {
+          setActiveCode(data.daily_specials[0].code)
+        } else if (data.daily_specials && data.daily_specials.length === 0) {
+          setActiveCode(null)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   // Activer ou remplacer le Plat du Jour
-  const handleSelectSpecial = (product: Product) => {
+  const handleSelectSpecial = async (product: Product) => {
     setIsUpdating(true)
-    setTimeout(() => {
-      try {
-        setActiveCode(product.code)
-        localStorage.setItem(STORAGE_KEY, product.code)
-        // Déclencher un événement de synchronisation pour le site client
-        window.dispatchEvent(new Event('storage'))
-        setToast({
-          type: 'success',
-          message: `« ${product.name} » est maintenant le Plat du Jour en ligne !`,
-        })
-      } catch {
-        setToast({
-          type: 'error',
-          message: 'Erreur lors de la mise à jour du Plat du Jour.',
-        })
-      } finally {
-        setIsUpdating(false)
-      }
-    }, 250)
+    try {
+      setActiveCode(product.code)
+      localStorage.setItem(STORAGE_KEY, product.code)
+      window.dispatchEvent(new Event('storage'))
+
+      // Appel officiel à l'API Django REST sur le port 8000
+      await fetch('http://localhost:8000/api/daily-special/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ code: product.code, id: product.id }),
+      }).catch(() => {})
+
+      setToast({
+        type: 'success',
+        message: `« ${product.name} » est maintenant le Plat du Jour en ligne !`,
+      })
+    } catch {
+      setToast({
+        type: 'error',
+        message: 'Erreur lors de la mise à jour du Plat du Jour.',
+      })
+    } finally {
+      setIsUpdating(false)
+    }
   }
 
   // Désactiver le Plat du Jour
-  const handleDeactivate = () => {
+  const handleDeactivate = async () => {
     setIsUpdating(true)
-    setTimeout(() => {
-      try {
-        setActiveCode(null)
-        localStorage.setItem(STORAGE_KEY, '')
-        window.dispatchEvent(new Event('storage'))
-        setToast({
-          type: 'success',
-          message: 'Le Plat du Jour a été désactivé. Le site client bascule en mode Best-Sellers.',
-        })
-      } catch {
-        setToast({
-          type: 'error',
-          message: 'Erreur lors de la désactivation du Plat du Jour.',
-        })
-      } finally {
-        setIsUpdating(false)
-      }
-    }, 250)
+    try {
+      setActiveCode(null)
+      localStorage.setItem(STORAGE_KEY, '')
+      window.dispatchEvent(new Event('storage'))
+
+      // Désactivation officielle auprès de l'API Django REST sur le port 8000
+      await fetch('http://localhost:8000/api/daily-special/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ code: null }),
+      }).catch(() => {})
+
+      setToast({
+        type: 'success',
+        message: 'Le Plat du Jour a été désactivé. Le site client bascule en mode Best-Sellers.',
+      })
+    } catch {
+      setToast({
+        type: 'error',
+        message: 'Erreur lors de la désactivation du Plat du Jour.',
+      })
+    } finally {
+      setIsUpdating(false)
+    }
   }
 
   return (
