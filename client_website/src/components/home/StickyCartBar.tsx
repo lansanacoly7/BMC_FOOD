@@ -6,6 +6,7 @@ interface StickyCartBarProps {
   itemCount: number
   totalAmount: number
   onOpenCart: () => void
+  isVisible?: boolean
 }
 
 /**
@@ -13,10 +14,10 @@ interface StickyCartBarProps {
  * Conforme à la page 11 de la charte graphique :
  * Apparaît dès le premier ajout : nombre d'articles, total et accès direct au panier.
  */
-export function StickyCartBar({ itemCount, totalAmount, onOpenCart }: StickyCartBarProps) {
+export function StickyCartBar({ itemCount, totalAmount, onOpenCart, isVisible = true }: StickyCartBarProps) {
   return (
     <AnimatePresence>
-      {itemCount > 0 && (
+      {itemCount > 0 && isVisible && (
         <motion.div
           initial={{ y: 80, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

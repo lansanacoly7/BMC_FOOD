@@ -112,6 +112,7 @@
 | `TopHeader` | Mobile & Desktop | Logo BMC enfermé dans une boîte blanche carrée rigide | Logo officiel détouré posé directement sur le header sombre |
 | `FeaturedGrid` | Mobile (2x2) & Desktop (4x2) | Insertion de la bannière promo pleine largeur après les 2 lignes demandées | Rendu 100% conforme aux instructions vocales de Maimouna |
 | `HeroCinematic` | Tous écrans au rechargement | Flash résiduel de 1s de l'ancienne version tacos dû au poster `<video>` | Retrait du poster obsolète, `preload="auto"` et suppression du fichier gif résiduel |
+| `CartDrawer` / `StickyCartBar` | Mobile & Desktop | Le bouton « Voir le panier » restait affiché après clic sur la croix (✕) | La croix (✕) vide et ferme le panier (`onClearCart`) et la barre flottante est masquée pendant l'ouverture |
 
 ---
 

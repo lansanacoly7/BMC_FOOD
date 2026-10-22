@@ -119,6 +119,7 @@ export default function App() {
         itemCount={itemCount}
         totalAmount={totalAmount}
         onOpenCart={() => setIsCartOpen(true)}
+        isVisible={!isCartOpen}
       />
 
       {/* 7. TIROIR PANIER COULISSANT */}

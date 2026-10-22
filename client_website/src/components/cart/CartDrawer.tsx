@@ -135,9 +135,15 @@ export function CartDrawer({
                 type="button"
                 whileTap={{ scale: 0.95 }}
                 onPointerDown={(event) => event.stopPropagation()}
-                onClick={onClose}
-                aria-label="Fermer le panier"
-                className="grid size-9 shrink-0 place-items-center rounded-full bg-zinc-900 border border-white/10 text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white focus-visible:outline-2 focus-visible:outline-bmc-gold"
+                onClick={() => {
+                  if (onClearCart) {
+                    onClearCart()
+                  } else {
+                    onClose()
+                  }
+                }}
+                aria-label="Fermer et vider le panier"
+                className="grid size-9 shrink-0 place-items-center rounded-full bg-zinc-900 border border-white/10 text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white focus-visible:outline-2 focus-visible:outline-bmc-gold cursor-pointer"
               >
                 <X className="size-4.5" aria-hidden="true" />
               </motion.button>
