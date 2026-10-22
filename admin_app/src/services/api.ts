@@ -13,10 +13,18 @@ import type {
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api').replace(/\/+$/, '')
 
 const TOKEN_KEY = 'bmc_admin_token'
+/** Jeton staff DRF par défaut pour le développement local (admin / admin123). */
+export const DEV_DEFAULT_TOKEN = '5950ee892e2812d22579dfb9527874765235f85e'
 
 export function getAdminToken(): string | null {
   try {
-    return localStorage.getItem(TOKEN_KEY)
+    const stored = localStorage.getItem(TOKEN_KEY)
+    if (stored) return stored
+    if (import.meta.env.DEV) {
+      localStorage.setItem(TOKEN_KEY, DEV_DEFAULT_TOKEN)
+      return DEV_DEFAULT_TOKEN
+    }
+    return null
   } catch {
     return null
   }

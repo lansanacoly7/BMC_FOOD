@@ -12,7 +12,7 @@ interface AuthTokenModalProps {
 export function AuthTokenModal({ isOpen, onClose, onAuthChange }: AuthTokenModalProps) {
   const currentToken = getAdminToken()
   const [username, setUsername] = useState('admin')
-  const [password, setPassword] = useState('')
+  const [password, setPassword] = useState(import.meta.env.DEV ? 'admin123' : '')
   const [manualToken, setManualToken] = useState(currentToken ?? '')
   const [useManualToken, setUseManualToken] = useState(false)
   const [isLoading, setIsLoading] = useState(false)

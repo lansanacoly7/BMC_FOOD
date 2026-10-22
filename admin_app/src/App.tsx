@@ -170,11 +170,27 @@ export default function App() {
           </div>
         </header>
 
-        {/* Alerte si le serveur est inaccessible */}
+        {/* Alerte si le serveur est inaccessible ou jeton manquant */}
         {isOffline && (
           <div role="alert" className="flex items-center justify-center gap-2 bg-amber-500/20 border-b border-amber-500/30 px-6 py-2.5 text-xs font-bold text-amber-300">
-            <WifiOff className="size-4 shrink-0 text-amber-400" aria-hidden="true" />
-            <span>Mode démonstration actif · Serveur Django local non connecté, données de démonstration chargées.</span>
+            {!hasToken ? (
+              <>
+                <KeyRound className="size-4 shrink-0 text-bmc-gold" aria-hidden="true" />
+                <span>Jeton staff requis pour synchroniser les commandes en direct.</span>
+                <button
+                  type="button"
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="ml-1 underline text-white hover:text-bmc-gold cursor-pointer"
+                >
+                  Se connecter (admin / admin123)
+                </button>
+              </>
+            ) : (
+              <>
+                <WifiOff className="size-4 shrink-0 text-amber-400" aria-hidden="true" />
+                <span>Mode démonstration actif · Serveur Django local non connecté, données de démonstration chargées.</span>
+              </>
+            )}
           </div>
         )}
 
