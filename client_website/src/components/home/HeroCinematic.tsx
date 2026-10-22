@@ -23,21 +23,16 @@ export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
         1. VIDÉO EN BACKGROUND COMPLET (PREND TOUTE LA LARGEUR ET HAUTEUR SANS CADRE)
         Nette, claire, à 100% de clarté
       */}
-      <div aria-hidden="true" className="absolute inset-0 -z-20 overflow-hidden">
+      <div aria-hidden="true" className="absolute inset-0 -z-20 overflow-hidden bg-black">
         <video
           autoPlay
           loop
           muted
           playsInline
-          poster="/images/hero/hero_tacos_cinematic.gif"
+          preload="auto"
           className="size-full object-cover object-center filter contrast-105"
         >
           <source src="/images/hero/bmc_video_hero.mp4" type="video/mp4" />
-          <img
-            src="/images/hero/bmc_commercial.gif"
-            alt="Ambiance gourmande BMC Food"
-            className="size-full object-cover object-center"
-          />
         </video>
       </div>
 

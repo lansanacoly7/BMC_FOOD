@@ -111,6 +111,7 @@
 | `StickyCartBar` | Tous écrans | Couleur orange braise dissonante par rapport au reste de la page | Remplacement par le dégradé Or officiel BMC Food |
 | `TopHeader` | Mobile & Desktop | Logo BMC enfermé dans une boîte blanche carrée rigide | Logo officiel détouré posé directement sur le header sombre |
 | `FeaturedGrid` | Mobile (2x2) & Desktop (4x2) | Insertion de la bannière promo pleine largeur après les 2 lignes demandées | Rendu 100% conforme aux instructions vocales de Maimouna |
+| `HeroCinematic` | Tous écrans au rechargement | Flash résiduel de 1s de l'ancienne version tacos dû au poster `<video>` | Retrait du poster obsolète, `preload="auto"` et suppression du fichier gif résiduel |
 
 ---
 
