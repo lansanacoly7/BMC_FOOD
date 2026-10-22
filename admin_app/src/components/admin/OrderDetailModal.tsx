@@ -9,12 +9,14 @@ import {
   Phone,
   Printer,
   ShoppingBag,
+  Timer,
   Truck,
   User,
   X,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useState } from 'react'
+import { getElapsedInfo } from '../../lib/elapsed'
 import { formatFcfa, formatTime } from '../../lib/format'
 import { ORDER_STATUS_CONFIG, PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS } from '../../lib/labels'
 import type { Order, OrderStatus } from '../../types'
@@ -25,6 +27,20 @@ interface OrderDetailModalProps {
   onClose: () => void
   onUpdateStatus: (orderRef: string, status: OrderStatus) => Promise<void>
   isUpdating?: boolean
+}
+
+/** Status pipeline stages for the visual timeline */
+const STATUS_PIPELINE: { status: OrderStatus; label: string; icon: typeof Clock }[] = [
+  { status: 'pending', label: 'Reçue', icon: Clock },
+  { status: 'preparing', label: 'En cuisine', icon: CookingPot },
+  { status: 'delivering', label: 'Livraison', icon: Truck },
+  { status: 'delivered', label: 'Livrée', icon: CheckCircle2 },
+]
+
+function getStageIndex(status: OrderStatus): number {
+  if (status === 'cancelled') return -1
+  if (status === 'confirmed') return 0 // Same visual position as pending
+  return STATUS_PIPELINE.findIndex((s) => s.status === status)
 }
 
 export function OrderDetailModal({
@@ -39,6 +55,10 @@ export function OrderDetailModal({
   if (!isOpen || !order) return null
 
   const statusConfig = ORDER_STATUS_CONFIG[order.status] ?? ORDER_STATUS_CONFIG.pending
+  const elapsed = getElapsedInfo(order.created_at)
+  const isActive = order.status === 'pending' || order.status === 'preparing'
+  const currentStageIndex = getStageIndex(order.status)
+  const isCancelled = order.status === 'cancelled'
 
   const copyAddress = () => {
     void navigator.clipboard.writeText(order.address)
@@ -75,9 +95,9 @@ export function OrderDetailModal({
           className="relative z-10 flex max-h-[92dvh] w-full max-w-2xl flex-col rounded-3xl border border-white/15 bg-zinc-950 text-white shadow-2xl overflow-hidden"
         >
           {/* 1. Header avec Ref, Statut et Actions */}
-          <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 bg-zinc-900/50">
+          <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 bg-gradient-to-r from-zinc-900/80 to-zinc-950/80 backdrop-blur-sm">
             <div className="flex items-center gap-3">
-              <span className="grid size-10 place-items-center rounded-xl bg-bmc-gold/15 text-bmc-gold border border-bmc-gold/30">
+              <span className="grid size-11 place-items-center rounded-xl bg-gradient-to-br from-bmc-gold/20 to-bmc-gold/5 text-bmc-gold border border-bmc-gold/30 shadow-lg shadow-bmc-gold/10">
                 <ShoppingBag className="size-5" />
               </span>
               <div>
@@ -92,12 +112,20 @@ export function OrderDetailModal({
                     {statusConfig.shortLabel}
                   </span>
                 </div>
-                <p className="text-xs text-zinc-400 flex items-center gap-1.5 mt-0.5">
-                  <Clock className="size-3.5" />
-                  <span>Reçue à {formatTime(order.created_at)}</span>
-                  <span>·</span>
-                  <span>{new Date(order.created_at).toLocaleDateString('fr-FR')}</span>
-                </p>
+                <div className="flex items-center gap-3 mt-0.5">
+                  <p className="text-xs text-zinc-400 flex items-center gap-1.5">
+                    <Clock className="size-3.5" />
+                    <span>Reçue à {formatTime(order.created_at)}</span>
+                    <span>·</span>
+                    <span>{new Date(order.created_at).toLocaleDateString('fr-FR')}</span>
+                  </p>
+                  {isActive && (
+                    <span className={`text-xs font-bold flex items-center gap-1 timer-${elapsed.urgency}`}>
+                      <Timer className="size-3" />
+                      {elapsed.label}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -108,7 +136,7 @@ export function OrderDetailModal({
                 title="Imprimer le ticket cuisine"
                 className="grid size-9 place-items-center rounded-full bg-zinc-900 border border-white/10 text-zinc-300 hover:border-bmc-gold hover:text-bmc-gold transition-colors cursor-pointer"
               >
-                <Printer className="size-4.5" />
+                <Printer className="size-4" />
               </button>
               <button
                 type="button"
@@ -123,7 +151,79 @@ export function OrderDetailModal({
 
           {/* 2. Corps défilable */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6 text-sm">
-            {/* A. Coordonnées Client & Livraison */}
+            {/* A. Timeline de Progression Visuelle */}
+            <div className="rounded-2xl bg-zinc-900/60 border border-white/10 p-5">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-4">
+                Progression de la commande
+              </h3>
+
+              {isCancelled ? (
+                <div className="flex items-center gap-3 rounded-xl bg-red-500/10 border border-red-500/25 p-4">
+                  <span className="grid size-10 place-items-center rounded-full bg-red-500/20 text-red-400">
+                    <X className="size-5" />
+                  </span>
+                  <div>
+                    <p className="font-display font-bold text-red-300">Commande Annulée</p>
+                    <p className="text-xs text-red-400/70">Cette commande a été refusée ou annulée.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-1">
+                  {STATUS_PIPELINE.map((stage, idx) => {
+                    const isCompleted = idx <= currentStageIndex
+                    const isCurrent = idx === currentStageIndex
+                    const StageIcon = stage.icon
+
+                    return (
+                      <div key={stage.status} className="flex items-center flex-1 last:flex-initial">
+                        {/* Stage node */}
+                        <div className="flex flex-col items-center gap-1.5">
+                          <motion.div
+                            initial={false}
+                            animate={{
+                              scale: isCurrent ? 1.1 : 1,
+                              boxShadow: isCurrent ? '0 0 16px 4px rgba(252, 184, 0, 0.25)' : '0 0 0 0 transparent',
+                            }}
+                            className={`grid size-10 place-items-center rounded-full border-2 transition-colors ${
+                              isCompleted
+                                ? isCurrent
+                                  ? 'bg-bmc-gold/20 border-bmc-gold text-bmc-gold'
+                                  : 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
+                                : 'bg-zinc-800 border-zinc-700 text-zinc-500'
+                            }`}
+                          >
+                            <StageIcon className="size-4.5" />
+                          </motion.div>
+                          <span
+                            className={`text-[10px] font-bold ${
+                              isCompleted ? (isCurrent ? 'text-bmc-gold' : 'text-emerald-400') : 'text-zinc-500'
+                            }`}
+                          >
+                            {stage.label}
+                          </span>
+                        </div>
+
+                        {/* Connecting line (not after last) */}
+                        {idx < STATUS_PIPELINE.length - 1 && (
+                          <div className="flex-1 mx-2 mb-5">
+                            <div className="h-0.5 rounded-full relative overflow-hidden bg-zinc-800">
+                              <motion.div
+                                initial={false}
+                                animate={{ width: idx < currentStageIndex ? '100%' : '0%' }}
+                                transition={{ duration: 0.5, ease: 'easeOut' }}
+                                className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-500 to-bmc-gold rounded-full"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* B. Coordonnées Client & Livraison */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-2xl bg-zinc-900/60 p-4 border border-white/10">
               <div className="space-y-1.5">
                 <p className="text-xs font-bold text-zinc-400 flex items-center gap-1.5 uppercase tracking-wider">
@@ -159,7 +259,7 @@ export function OrderDetailModal({
               </div>
             </div>
 
-            {/* B. Instructions spéciales si présentes */}
+            {/* C. Instructions spéciales si présentes */}
             {order.notes && (
               <div className="rounded-2xl bg-amber-500/10 border border-amber-500/30 p-3.5 text-amber-200">
                 <p className="text-xs font-bold flex items-center gap-1.5 uppercase tracking-wider text-amber-400 mb-1">
@@ -172,35 +272,41 @@ export function OrderDetailModal({
               </div>
             )}
 
-            {/* C. Articles commandés */}
+            {/* D. Articles commandés */}
             <div className="space-y-2.5">
               <h3 className="font-display text-xs font-black uppercase tracking-wider text-zinc-400">
                 Détail de la commande ({order.items.length} produit{order.items.length > 1 ? 's' : ''})
               </h3>
               <div className="rounded-2xl border border-white/10 overflow-hidden divide-y divide-white/10 bg-zinc-900/40">
-                {order.items.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-3.5 gap-3">
+                {order.items.map((item, idx) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="flex items-center justify-between p-3.5 gap-3"
+                  >
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-zinc-800 font-display text-xs font-black text-bmc-gold border border-white/10">
+                      <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-zinc-800 to-zinc-900 font-display text-xs font-black text-bmc-gold border border-white/10">
                         {item.quantity}×
                       </span>
                       <div className="min-w-0">
                         <p className="font-display text-sm font-bold text-white truncate">{item.item_name}</p>
                         <p className="text-xs text-zinc-400">
-                          {formatFcfa(item.unit_price)} l’unité · Réf : {item.menu_item_code}
+                          {formatFcfa(item.unit_price)} l&apos;unité · Réf : {item.menu_item_code}
                         </p>
                       </div>
                     </div>
                     <span className="font-display text-sm font-black text-white tabular-nums shrink-0">
                       {formatFcfa(item.subtotal)}
                     </span>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </div>
 
-            {/* D. Paiement & Récapitulatif financier */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl bg-zinc-900/80 p-4 border border-white/10">
+            {/* E. Paiement & Récapitulatif financier */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl bg-gradient-to-br from-zinc-900/90 to-zinc-950/90 p-5 border border-bmc-gold/15 shadow-inner">
               <div className="space-y-1">
                 <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Mode de règlement</span>
                 <div className="flex items-center gap-2">
@@ -221,7 +327,7 @@ export function OrderDetailModal({
 
               <div className="text-left sm:text-right">
                 <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Total à encaisser</span>
-                <p className="font-display text-2xl font-black text-bmc-gold tabular-nums">
+                <p className="font-display text-2xl sm:text-3xl font-black text-bmc-gold tabular-nums">
                   {formatFcfa(order.total_amount)}
                 </p>
               </div>
@@ -244,7 +350,7 @@ export function OrderDetailModal({
                   <button
                     type="button"
                     disabled={isUpdating}
-                    onClick={() => onUpdateStatus(order.order_ref, 'cancelled')}
+                    onClick={() => void onUpdateStatus(order.order_ref, 'cancelled')}
                     className="rounded-xl border border-red-500/40 bg-red-950/30 px-3.5 py-2.5 text-xs font-bold text-red-400 hover:bg-red-950/60 transition-colors cursor-pointer"
                   >
                     Refuser
@@ -252,7 +358,7 @@ export function OrderDetailModal({
                   <button
                     type="button"
                     disabled={isUpdating}
-                    onClick={() => onUpdateStatus(order.order_ref, 'preparing')}
+                    onClick={() => void onUpdateStatus(order.order_ref, 'preparing')}
                     className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 px-5 py-2.5 font-display text-xs font-black uppercase tracking-wider text-black shadow-lg shadow-bmc-gold/20 hover:brightness-110 active:scale-97 transition-all cursor-pointer"
                   >
                     <CookingPot className="size-4" />
@@ -266,7 +372,7 @@ export function OrderDetailModal({
                 <button
                   type="button"
                   disabled={isUpdating}
-                  onClick={() => onUpdateStatus(order.order_ref, 'delivering')}
+                  onClick={() => void onUpdateStatus(order.order_ref, 'delivering')}
                   className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#1DC8F2] to-sky-600 px-5 py-2.5 font-display text-xs font-black uppercase tracking-wider text-white shadow-lg shadow-sky-900/30 hover:brightness-110 active:scale-97 transition-all cursor-pointer"
                 >
                   <Truck className="size-4" />
@@ -279,7 +385,7 @@ export function OrderDetailModal({
                 <button
                   type="button"
                   disabled={isUpdating}
-                  onClick={() => onUpdateStatus(order.order_ref, 'delivered')}
+                  onClick={() => void onUpdateStatus(order.order_ref, 'delivered')}
                   className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 px-5 py-2.5 font-display text-xs font-black uppercase tracking-wider text-white shadow-lg shadow-green-900/30 hover:brightness-110 active:scale-97 transition-all cursor-pointer"
                 >
                   <CheckCircle2 className="size-4" />
