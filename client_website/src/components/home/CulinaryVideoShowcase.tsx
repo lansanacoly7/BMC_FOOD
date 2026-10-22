@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { Flame, Play, Pause, Volume2, VolumeX, ArrowRight, ShieldCheck, Sparkles, ChefHat } from 'lucide-react'
+import { Flame, Play, Pause, Volume2, VolumeX, ArrowRight, ShieldCheck, Sparkles, ChefHat, Layers } from 'lucide-react'
 import { motion } from 'motion/react'
 
 interface CulinaryVideoShowcaseProps {
@@ -37,22 +37,22 @@ export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcasePr
 
   const pillars = [
     {
-      icon: '🥖',
+      icon: Sparkles,
       title: 'Tortilla Toastée & Dorée',
       desc: 'Cuite et pressée minute sur plaque chaude pour un maintien parfait et un croustillant net.',
     },
     {
-      icon: '🍗',
+      icon: ChefHat,
       title: 'Poulet Pané Mariné Maison',
       desc: 'Blancs de poulet frais marinés aux épices douces et enrobés de panure ultra-crispy.',
     },
     {
-      icon: '🧀',
+      icon: Layers,
       title: 'Sauce Fromagère Onctueuse',
       desc: 'Recette secrète crémeuse et généreuse préparée chaque jour par nos chefs.',
     },
     {
-      icon: '🔥',
+      icon: Flame,
       title: 'Gratinage & Finition',
       desc: 'Option gratinage au four avec mozzarella et cheddar fondant pour une gourmandise maximale.',
     },
@@ -183,7 +183,9 @@ export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcasePr
               transition={{ delay: 0.1 * idx }}
               className="rounded-2xl border border-white/10 bg-zinc-900/60 p-4 sm:p-5 backdrop-blur-sm transition-all hover:border-amber-500/40 hover:bg-zinc-900/90 hover:-translate-y-1"
             >
-              <div className="text-2xl mb-2">{pillar.icon}</div>
+              <div className="size-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-bmc-gold mb-3">
+                <pillar.icon className="size-5 text-bmc-gold" />
+              </div>
               <h3 className="font-display text-sm font-black uppercase tracking-tight text-white mb-1.5">
                 {pillar.title}
               </h3>

@@ -1,6 +1,5 @@
-import { Clock, MapPin, Phone, X } from 'lucide-react'
+import { Clock, MapPin, Phone, PhoneCall, X, Home, Sparkles, UtensilsCrossed, Tag } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
-import { CATEGORIES } from './CategoryPills'
 
 interface NavMenuDrawerProps {
   isOpen: boolean
@@ -9,12 +8,14 @@ interface NavMenuDrawerProps {
   onNavigate?: (page: 'home' | 'menu') => void
   onSelectDailySpecial?: () => void
   onSelectOffers?: () => void
-  onSelectCategory: (categoryId: string) => void
+  onSelectCategory?: (categoryId: string) => void
 }
 
 /**
- * Tiroir latéral d'informations et navigation BMC Food Dakar.
- * Déclenché par le bouton menu hamburger de l'en-tête (TopHeader).
+ * Tiroir latéral d'informations et navigation BMC Food Dakar (Mobile & Tablette).
+ * - Icônes Lucide officielles (zéro emoji)
+ * - Navigation complète et sans répétitions (Accueil, Plat du Jour, Menu, Nos Offres)
+ * - Contacts et horaires officiels
  */
 export function NavMenuDrawer({
   isOpen,
@@ -23,7 +24,6 @@ export function NavMenuDrawer({
   onNavigate,
   onSelectDailySpecial,
   onSelectOffers,
-  onSelectCategory,
 }: NavMenuDrawerProps) {
   return (
     <AnimatePresence>
@@ -39,7 +39,7 @@ export function NavMenuDrawer({
             aria-hidden="true"
           />
 
-          {/* Panneau coulissant depuis la DROITE (origine naturelle du bouton hamburger) */}
+          {/* Panneau coulissant depuis la DROITE */}
           <motion.aside
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
@@ -48,9 +48,9 @@ export function NavMenuDrawer({
             className="relative z-10 flex h-full w-[85%] max-w-xs flex-col justify-between bg-zinc-950 p-5 text-white shadow-2xl border-l border-white/10 overflow-y-auto"
             aria-label="Menu principal"
           >
-            <div className="space-y-5">
+            <div className="space-y-6">
               {/* En-tête du tiroir avec logo BMC Food et bouton fermer */}
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center justify-between border-b border-white/10 pb-4">
                 <div className="flex items-center gap-2">
                   <img
                     src="/images/brand/logo.png"
@@ -74,11 +74,12 @@ export function NavMenuDrawer({
                 </button>
               </div>
 
-              {/* Navigation Principale Mobile */}
-              <div className="space-y-1.5 pb-3 border-b border-white/10">
+              {/* Navigation Principale Mobile avec vraies icônes vectorielles */}
+              <div className="space-y-2 pb-4 border-b border-white/10">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
                   Navigation
                 </p>
+
                 {/* 1. Accueil */}
                 <button
                   type="button"
@@ -86,13 +87,16 @@ export function NavMenuDrawer({
                     onNavigate?.('home')
                     onClose()
                   }}
-                  className={`w-full flex items-center justify-between rounded-xl px-3.5 py-2.5 text-left text-sm font-black transition-colors cursor-pointer ${
+                  className={`w-full flex items-center justify-between rounded-xl px-3.5 py-3 text-left text-sm font-black transition-colors cursor-pointer ${
                     currentPage === 'home'
                       ? 'bg-amber-500/20 text-bmc-gold border border-amber-500/40'
                       : 'text-zinc-200 hover:bg-white/10'
                   }`}
                 >
-                  <span>🏠 Accueil</span>
+                  <div className="flex items-center gap-3">
+                    <Home className="size-4.5 text-bmc-gold" />
+                    <span>Accueil</span>
+                  </div>
                   {currentPage === 'home' && <span className="size-2 rounded-full bg-bmc-gold" />}
                 </button>
 
@@ -110,9 +114,12 @@ export function NavMenuDrawer({
                     }
                     onClose()
                   }}
-                  className="w-full flex items-center justify-between rounded-xl px-3.5 py-2.5 text-left text-sm font-black text-zinc-200 hover:bg-white/10 transition-colors cursor-pointer"
+                  className="w-full flex items-center justify-between rounded-xl px-3.5 py-3 text-left text-sm font-black text-zinc-200 hover:bg-white/10 transition-colors cursor-pointer"
                 >
-                  <span>⭐ Plat du Jour</span>
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="size-4.5 text-bmc-gold" />
+                    <span>Plat du Jour</span>
+                  </div>
                   <span className="text-xs text-bmc-gold">Voir</span>
                 </button>
 
@@ -123,13 +130,16 @@ export function NavMenuDrawer({
                     onNavigate?.('menu')
                     onClose()
                   }}
-                  className={`w-full flex items-center justify-between rounded-xl px-3.5 py-2.5 text-left text-sm font-black transition-colors cursor-pointer ${
+                  className={`w-full flex items-center justify-between rounded-xl px-3.5 py-3 text-left text-sm font-black transition-colors cursor-pointer ${
                     currentPage === 'menu'
                       ? 'bg-amber-500/20 text-bmc-gold border border-amber-500/40'
                       : 'text-zinc-200 hover:bg-white/10'
                   }`}
                 >
-                  <span>🍽️ Menu & La Carte</span>
+                  <div className="flex items-center gap-3">
+                    <UtensilsCrossed className="size-4.5 text-bmc-gold" />
+                    <span>Menu & La Carte</span>
+                  </div>
                   {currentPage === 'menu' && <span className="size-2 rounded-full bg-bmc-gold" />}
                 </button>
 
@@ -147,39 +157,19 @@ export function NavMenuDrawer({
                     }
                     onClose()
                   }}
-                  className="w-full flex items-center justify-between rounded-xl px-3.5 py-2 text-left text-xs font-bold text-amber-400 hover:bg-amber-500/10 cursor-pointer"
+                  className="w-full flex items-center justify-between rounded-xl px-3.5 py-2.5 text-left text-xs font-bold text-amber-400 hover:bg-amber-500/10 cursor-pointer"
                 >
-                  <span>🏷️ Nos Offres</span>
+                  <div className="flex items-center gap-3">
+                    <Tag className="size-4 text-bmc-gold" />
+                    <span>Nos Offres</span>
+                  </div>
                   <span>→</span>
                 </button>
               </div>
 
-              {/* Raccourcis Catégories — Style App Mobile */}
-              <div className="space-y-2">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-                  La Carte BMC Food
-                </p>
-                <div className="grid grid-cols-1 gap-1">
-                  {CATEGORIES.map((cat) => (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => {
-                        onSelectCategory(cat.id)
-                        onClose()
-                      }}
-                      className="flex items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-zinc-200 transition-colors hover:bg-white/10 hover:text-bmc-gold cursor-pointer"
-                    >
-                      <span>{cat.name}</span>
-                      <span className="text-xs text-zinc-500">→</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Infos pratiques restaurant & contact direct */}
-              <div className="space-y-3 rounded-2xl border border-white/10 bg-zinc-900/80 p-3.5 text-xs text-zinc-300">
-                <div className="flex items-start gap-2.5">
+              {/* Infos pratiques restaurant & contact direct (sans emojis) */}
+              <div className="space-y-3.5 rounded-2xl border border-white/10 bg-zinc-900/80 p-4 text-xs text-zinc-300">
+                <div className="flex items-start gap-3">
                   <Clock className="size-4 shrink-0 text-bmc-gold mt-0.5" />
                   <div>
                     <p className="font-bold text-white">Horaires d'ouverture</p>
@@ -187,24 +177,26 @@ export function NavMenuDrawer({
                   </div>
                 </div>
 
-                <div className="flex items-start gap-2.5">
+                <div className="flex items-start gap-3">
                   <MapPin className="size-4 shrink-0 text-bmc-gold mt-0.5" />
                   <div>
                     <p className="font-bold text-white">Livraison express</p>
-                    <p className="text-zinc-400">Partout à Dakar & banlieue</p>
+                    <p className="text-zinc-400">Cité Mixta & partout à Dakar</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-2.5">
+                <div className="flex items-start gap-3">
                   <Phone className="size-4 shrink-0 text-emerald-400 mt-0.5" />
                   <div>
                     <p className="font-bold text-white">Commandes directes</p>
-                    <div className="flex flex-col gap-0.5 text-zinc-300 mt-0.5">
-                      <a href="tel:778561313" className="hover:text-bmc-gold font-medium">
-                        📞 77 856 13 13
+                    <div className="flex flex-col gap-1 text-zinc-300 mt-1">
+                      <a href="tel:778561313" className="inline-flex items-center gap-1.5 hover:text-bmc-gold font-medium">
+                        <PhoneCall className="size-3 text-emerald-400" />
+                        <span>77 856 13 13</span>
                       </a>
-                      <a href="tel:771067575" className="hover:text-bmc-gold font-medium">
-                        📞 77 106 75 75
+                      <a href="tel:771067575" className="inline-flex items-center gap-1.5 hover:text-bmc-gold font-medium">
+                        <PhoneCall className="size-3 text-emerald-400" />
+                        <span>77 106 75 75</span>
                       </a>
                     </div>
                   </div>
