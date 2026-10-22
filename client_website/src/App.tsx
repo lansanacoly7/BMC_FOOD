@@ -3,7 +3,6 @@ import { CartDrawer } from './components/cart/CartDrawer'
 import { DailySpecialBanner } from './components/client/DailySpecialBanner'
 import { TopHeader } from './components/home/TopHeader'
 import { HeroCinematic } from './components/home/HeroCinematic'
-import { CategoryPills } from './components/home/CategoryPills'
 import { FeaturedGrid } from './components/home/FeaturedGrid'
 import { StickyCartBar } from './components/home/StickyCartBar'
 import { FloatingCartButton } from './components/home/FloatingCartButton'
@@ -121,20 +120,8 @@ export default function App() {
             onAdd={addToCart}
           />
 
-          {/* Grille d'accueil avec Catégories et Offres Spéciales */}
-          <main id="menu-section" className="space-y-8 pt-6">
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-              <CategoryPills
-                activeId={activeCategory}
-                onSelect={(catId) => {
-                  setActiveCategory(catId)
-                  if (catId !== 'all') {
-                    handleNavigate('menu')
-                  }
-                }}
-              />
-            </div>
-
+          {/* Grille d'accueil et Offres Spéciales */}
+          <main id="menu-section" className="space-y-8 pt-4">
             <FeaturedGrid
               products={menuProducts}
               isLoading={isMenuLoading}
