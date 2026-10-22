@@ -17,8 +17,8 @@ export function getDynamicGreeting(date: Date = new Date()): DynamicGreeting {
   // Horaires : Ouvert de 11h00 à 02h00 du matin (Dakar)
   const isOpen = hours >= 11 || hours < 2
 
-  let salutation = 'Bonjour !'
-  let subtitle = "Qu'est-ce qui vous ferait plaisir aujourd'hui ?"
+  let salutation: string
+  let subtitle: string
 
   if (hours >= 18 || hours < 2) {
     salutation = 'Bonsoir !'

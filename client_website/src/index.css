@@ -37,17 +37,28 @@
   /* Alias sémantique du bouton principal */
   --color-bmc-orange: #CF4A08;
 
+  /* Surfaces sombres partagées Faction Frontend (El Hadji, Maimouna, Pape) */
+  --color-bmc-surface: #121214;
+  --color-bmc-surface-elevated: #18181B;
+  --color-bmc-red: #E11D48;
+
   /* 04 · TYPOGRAPHIE (Page 7 du guide officiel) */
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+  --font-script: 'Caveat', cursive, ui-sans-serif, sans-serif;
 }
 
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
+    background-color: #0C0C0D;
+    color: #FFFFFF;
   }
 
   body {
-    @apply bg-zinc-950 font-sans text-zinc-100 antialiased selection:bg-bmc-gold selection:text-black;
+    background-color: #0C0C0D;
+    color: #FFFFFF;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
   }
 }

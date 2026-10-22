@@ -1,13 +1,15 @@
 import type { Category, MenuCategory, Product } from '../types'
 
-export const FALLBACK_CATEGORIES: Category[] = [
-  { id: 1, name: 'Tacos panés', slug: 'tacos-panes', icon: 'Flame' },
-  { id: 2, name: 'Burgers', slug: 'burgers', icon: 'Utensils' },
-  { id: 3, name: 'Tacos simples', slug: 'tacos-simples', icon: 'Wrap' },
-  { id: 4, name: 'Sauces', slug: 'sauces', icon: 'Soup' },
-  { id: 5, name: 'Poulet & Finger Food', slug: 'poulet-finger-food', icon: 'Drumstick' },
-  { id: 6, name: 'Accompagnements', slug: 'accompagnements', icon: 'Sparkles' },
-  { id: 7, name: 'Boissons', slug: 'boissons', icon: 'Coffee' },
+export interface CategoryWithImage extends Category {
+  image_url: string
+}
+
+export const FALLBACK_CATEGORIES: CategoryWithImage[] = [
+  { id: 1, name: 'Tacos panés', slug: 'tacos-panes', icon: 'Flame', image_url: '/images/products/tacos-viande-pane.webp' },
+  { id: 2, name: 'Burgers', slug: 'burgers', icon: 'Utensils', image_url: '/images/products/burger-bmc-complet.webp' },
+  { id: 3, name: 'Tacos simples', slug: 'tacos-simples', icon: 'Wrap', image_url: '/images/products/sandwich-chawarma.webp' },
+  { id: 4, name: 'Sauces', slug: 'sauces', icon: 'Soup', image_url: '/images/products/sauces-assortiment.webp' },
+  { id: 5, name: 'Boissons', slug: 'boissons', icon: 'Coffee', image_url: '/images/products/canette-bissap-bmc.webp' },
 ]
 
 export const FALLBACK_PRODUCTS: Product[] = [
@@ -69,11 +71,11 @@ export const FALLBACK_PRODUCTS: Product[] = [
   {
     id: 5,
     code: 'bg-1',
-    name: 'Burger BMC complet',
+    name: 'Burger complet',
     category: 2,
     category_name: 'Burgers',
     description: 'Steak pur bœuf grillé, œuf à cheval, cheddar fondu, oignons caramélisés et sauce burger maison.',
-    price: 2500,
+    price: 2000,
     image_url: '/images/products/burger-bmc-complet.webp',
     is_available: true,
     is_daily_special: false,
@@ -188,72 +190,55 @@ export const FALLBACK_PRODUCTS: Product[] = [
     popular: false,
   },
 
-  // --- Poulet & Finger Food ---
+  // --- Boissons Officielles de la Charte Graphique (Page 9 : Nouvelles Canettes BMC Food) ---
   {
     id: 14,
-    code: 'pl-1',
-    name: 'Tenders de poulet croustillants (x5)',
+    code: 'bv-1',
+    name: 'Canette Bissap BMC',
     category: 5,
-    category_name: 'Poulet & Finger Food',
-    description: '5 aiguillettes de poulet pannées à la main, ultra croustillantes, servies avec sauce au choix.',
-    price: 3000,
-    image_url: '/images/products/tenders-poulet.webp',
+    category_name: 'Boissons',
+    description: 'Infusion signature d’hibiscus karkadé, menthe fraîche et sucre de canne en canette givrée.',
+    price: 1000,
+    image_url: '/images/products/canette-bissap-bmc.webp',
     is_available: true,
     is_daily_special: false,
     popular: true,
   },
   {
     id: 15,
-    code: 'pl-2',
-    name: 'Ailes de poulet BBQ (x6)',
+    code: 'bv-2',
+    name: 'Canette BMC Mangue',
     category: 5,
-    category_name: 'Poulet & Finger Food',
-    description: '6 ailes marinées glacées au barbecue sucré et graines de sésame dorées.',
-    price: 3000,
-    image_url: '/images/products/chicken-wings-bbq.webp',
+    category_name: 'Boissons',
+    description: 'Nectar doré de mangues du Sénégal, pointe de gingembre frais tonifiant et fraîcheur intense.',
+    price: 1200,
+    image_url: '/images/products/canette-mangue-bmc.webp',
+    is_available: true,
+    is_daily_special: false,
+    popular: true,
+  },
+  {
+    id: 16,
+    code: 'bv-3',
+    name: 'Canette Bouye (Baobab)',
+    category: 5,
+    category_name: 'Boissons',
+    description: 'Jus onctueux au fruit du baobab (pain de singe), texture veloutée et subtile touche de vanille.',
+    price: 1200,
+    image_url: '/images/products/canette-bouye-bmc.webp',
     is_available: true,
     is_daily_special: false,
     popular: false,
   },
-
-  // --- Accompagnements ---
-  {
-    id: 16,
-    code: 'ac-1',
-    name: 'Portion de frites maison',
-    category: 6,
-    category_name: 'Accompagnements',
-    description: 'Frites dorées, croustillantes à l’extérieur et fondantes à cœur.',
-    price: 1000,
-    image_url: '/images/products/frites-maison.webp',
-    is_available: true,
-    is_daily_special: false,
-    popular: true,
-  },
   {
     id: 17,
-    code: 'ac-2',
-    name: 'Pastels Dakar au poisson (x5)',
-    category: 6,
-    category_name: 'Accompagnements',
-    description: 'Beignets dakarais dorés farcis au poisson assaisonné, servis avec sauce tomate pimentée.',
-    price: 1500,
-    image_url: '/images/products/pastels-dakar.webp',
-    is_available: true,
-    is_daily_special: false,
-    popular: true,
-  },
-
-  // --- Boissons ---
-  {
-    id: 18,
-    code: 'bv-1',
-    name: 'Boissons fraîches au choix (33cl)',
-    category: 7,
+    code: 'bv-4',
+    name: 'Canette Tamarin (Dakhar)',
+    category: 5,
     category_name: 'Boissons',
-    description: 'Coca-Cola, Fanta, Sprite ou Eau minérale gazeuse fraîche.',
-    price: 800,
-    image_url: '/images/products/boissons-fraiches.webp',
+    description: 'Saveur dakaroise authentique, pulpe de tamarin sauvage acidulée et rafraîchissement maximal.',
+    price: 1000,
+    image_url: '/images/products/canette-tamarin-bmc.webp',
     is_available: true,
     is_daily_special: false,
     popular: false,

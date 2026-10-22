@@ -50,7 +50,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           aria-describedby={errorId ?? helperId}
           className={`w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-zinc-900 transition-colors
             placeholder:text-zinc-400
-            focus:border-bmc-gold focus:outline-none focus:ring-2 focus:ring-bmc-gold/20
+            focus:border-bmc-orange-braise focus:outline-none focus:ring-2 focus:ring-bmc-orange-braise/20
             disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400
             ${leftIcon ? 'pl-10' : ''}
             ${rightIcon ? 'pr-10' : ''}

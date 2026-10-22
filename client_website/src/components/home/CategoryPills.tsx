@@ -8,6 +8,7 @@ export interface CategoryItem {
   image: string
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const CATEGORIES: CategoryItem[] = [
   {
     id: 'all',

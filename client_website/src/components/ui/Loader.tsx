@@ -13,7 +13,7 @@ const sizeMap = {
 }
 
 const colorMap = {
-  primary: 'border-bmc-gold border-t-transparent',
+  primary: 'border-bmc-orange-braise border-t-transparent',
   gold: 'border-bmc-gold border-t-transparent',
   white: 'border-white border-t-transparent',
   charcoal: 'border-zinc-800 border-t-transparent',

@@ -14,7 +14,6 @@ env/
 node_modules/
 dist/
 dist-ssr/
-*.tsbuildinfo
 *.local
 .npm
 npm-debug.log*
