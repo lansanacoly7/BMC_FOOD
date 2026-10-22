@@ -119,7 +119,7 @@ export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
           >
             <div className="flex items-center gap-1.5">
               <Clock className="size-3 sm:size-3.5 text-bmc-gold" />
-              <span>Ouvert 11h – 02h (7j/7)</span>
+              <span>Ouvert 11h – 02h (Mar–Dim)</span>
             </div>
             <span className="size-1 rounded-full bg-zinc-500" />
             <span className="text-zinc-200">Livraison express Dakar</span>

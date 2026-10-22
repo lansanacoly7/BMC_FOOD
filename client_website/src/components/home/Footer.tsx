@@ -100,19 +100,37 @@ export function Footer({ onExploreMenu }: FooterProps) {
               <Clock className="size-3.5 text-bmc-gold" />
               <span>Horaires & Livraison</span>
             </h4>
-            <div className="space-y-2.5 text-xs sm:text-sm">
-              <div className="flex items-start gap-2.5">
-                <span className="size-2 rounded-full bg-emerald-400 mt-1.5 shrink-0 animate-pulse shadow-sm shadow-emerald-400/50" />
+            <div className="space-y-3 text-xs sm:text-sm">
+              {/* Horaires réels 6j/7 (Fermé le Lundi) */}
+              <div className="flex items-start gap-3">
+                <div className="w-5 shrink-0 flex items-center justify-center pt-1">
+                  <span className="size-2.5 rounded-full bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400/50" />
+                </div>
                 <div>
-                  <p className="font-bold text-white">Service Continu 7j/7</p>
-                  <p className="text-zinc-300 text-xs">De 11h00 à 02h00 du matin (non-stop)</p>
+                  <p className="font-bold text-white leading-tight">Service 6j/7 · Fermé le Lundi</p>
+                  <p className="text-zinc-300 text-xs mt-0.5">Mardi au Dimanche : 11h00 – 02h00</p>
                 </div>
               </div>
-              <div className="flex items-start gap-2.5">
-                <MapPin className="size-4 text-bmc-gold shrink-0 mt-0.5" />
+
+              {/* Livraison Express Dakar */}
+              <div className="flex items-start gap-3">
+                <div className="w-5 shrink-0 flex items-center justify-center pt-0.5">
+                  <MapPin className="size-4 text-bmc-gold" />
+                </div>
                 <div>
-                  <p className="font-bold text-white">Livraison Express Dakar</p>
-                  <p className="text-zinc-300 text-xs">Livré chaud en 30 à 45 minutes</p>
+                  <p className="font-bold text-white leading-tight">Livraison Express Dakar</p>
+                  <p className="text-zinc-300 text-xs mt-0.5">Livré chaud en 30 à 45 minutes</p>
+                </div>
+              </div>
+
+              {/* Localisation Cité Mixta */}
+              <div className="flex items-start gap-3">
+                <div className="w-5 shrink-0 flex items-center justify-center pt-0.5">
+                  <MapPin className="size-4 text-amber-400/80" />
+                </div>
+                <div>
+                  <p className="font-bold text-white leading-tight">Cité Mixta, Dakar</p>
+                  <p className="text-zinc-300 text-xs mt-0.5">Point de retrait & cuisine centrale</p>
                 </div>
               </div>
             </div>
@@ -124,14 +142,31 @@ export function Footer({ onExploreMenu }: FooterProps) {
               <ShieldCheck className="size-3.5 text-bmc-gold" />
               <span>Contact & Engagements</span>
             </h4>
-            <div className="space-y-2.5 text-xs sm:text-sm">
-              <div className="flex items-start gap-2.5">
-                <Phone className="size-4 text-bmc-gold shrink-0 mt-0.5" />
+            <div className="space-y-3 text-xs sm:text-sm">
+              <div className="flex items-start gap-3">
+                <div className="w-5 shrink-0 flex items-center justify-center pt-0.5">
+                  <Phone className="size-4 text-bmc-gold" />
+                </div>
                 <div>
-                  <p className="font-bold text-white">Commande Directe Dakar</p>
-                  <p className="text-zinc-300 text-xs">Service client dédié & écoute active</p>
+                  <p className="font-bold text-white leading-tight">Commandes Directes Dakar</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <a
+                      href="tel:778561313"
+                      className="font-bold text-xs text-bmc-gold hover:text-amber-300 transition-colors"
+                    >
+                      77 856 13 13
+                    </a>
+                    <span className="text-zinc-500">·</span>
+                    <a
+                      href="tel:771067575"
+                      className="font-bold text-xs text-bmc-gold hover:text-amber-300 transition-colors"
+                    >
+                      77 106 75 75
+                    </a>
+                  </div>
                 </div>
               </div>
+
               <div className="flex flex-wrap gap-1.5 pt-1">
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-zinc-900 border border-white/10 text-[11px] font-semibold text-zinc-300">
                   <ShieldCheck className="size-3 text-bmc-gold" />

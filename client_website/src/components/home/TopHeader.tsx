@@ -74,7 +74,7 @@ export function TopHeader({ onToggleMenu, onSelectCategory }: TopHeaderProps) {
           {/* Badge Horaires Dakar */}
           <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-zinc-900/80 px-3 py-1 text-[11px] font-semibold text-zinc-300">
             <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Ouvert · 11h – 02h</span>
+            <span>Ouvert · 11h – 02h (Mar–Dim)</span>
           </div>
         </nav>
 

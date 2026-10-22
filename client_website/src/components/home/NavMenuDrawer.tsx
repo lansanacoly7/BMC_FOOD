@@ -91,7 +91,7 @@ export function NavMenuDrawer({ isOpen, onClose, onSelectCategory }: NavMenuDraw
                   <Clock className="size-4 shrink-0 text-bmc-gold mt-0.5" />
                   <div>
                     <p className="font-bold text-white">Horaires d'ouverture</p>
-                    <p className="text-zinc-400">11h00 – 02h00 (7j/7 non-stop)</p>
+                    <p className="text-zinc-400">11h00 – 02h00 (Mar–Dim, fermé lundi)</p>
                   </div>
                 </div>
 
