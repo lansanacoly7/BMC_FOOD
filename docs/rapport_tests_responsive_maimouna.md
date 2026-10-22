@@ -34,12 +34,17 @@
   * Centrage parfait du logo et maintien des espacements de sécurité.
 
 #### B. Hero Cinématique (`HeroCinematic.tsx`)
-* **360 px - 414 px & Desktop (Bouton Unique Validé)** :
-  * Vidéo d'ambiance en fond plein écran avec contraste natif 100% (pas d'opacité terne).
-  * Dégradé sombre progressif à gauche garantissant la parfaite lisibilité des typographies.
+* **360 px - 414 px & Desktop (Playlist Multi-Médias & Bouton Unique Validés)** :
+  * **Playlist publicitaire animée (Cross-Fade 6s)** :
+    * Scène 1 : *Spot Vidéo Officiel BMC Food* (`bmc_video_hero.mp4`) — flammes et préparation.
+    * Scène 2 : *Burger Gourmet BMC Complet* (`hero_burger_cinematic.gif`) — cheddar fondant et vapeur chaude.
+    * Scène 3 : *Tacos Pané Croustillant* (`tacos_knife_crispy.gif`) — découpe nette au couteau de chef.
+    * Scène 4 : *Sauce Fromagère Onctueuse* (`hero_tacos_cheese.gif`) — étirement gourmand du fromage.
+    * Transition fluide par fondu enchaîné doux (`AnimatePresence` 0.9s), zéro flash au rechargement.
+    * Indicateurs discrets de scènes lumineuses en bas à droite pour prévisualiser ou basculer manuellement.
+  * Dégradé sombre progressif à gauche garantissant la parfaite lisibilité des typographies sur toutes les scènes.
   * **Bouton Unique Or Brossé « Explorer le Menu »** :
-    * Suppression du second bouton redondant à droite (« Menu » / « Explorer le menu ») pour épurer l'interface.
-    * Le bouton unique en dégradé Or BMC (`bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 text-black font-black`) déclenche un défilement doux vers la carte du menu (`#menu-section`) sans redirection de page prématurée.
+    * Bouton unique en dégradé Or BMC (`bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 text-black font-black`) déclenchant un défilement doux vers la carte du menu (`#menu-section`) sans redirection de page prématurée.
     * Prêt pour le raccordement API ultérieur de l'équipe backend (Massow Diop).
   * Descriptif épuré sans mention de panure superflue.
 

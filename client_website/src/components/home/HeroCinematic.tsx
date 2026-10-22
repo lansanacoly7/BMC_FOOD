@@ -1,44 +1,118 @@
 import { Sparkles, ArrowRight, UtensilsCrossed, Clock } from 'lucide-react'
-import { motion } from 'motion/react'
+import { motion, AnimatePresence } from 'motion/react'
+import { useState, useEffect } from 'react'
 
 interface HeroCinematicProps {
   onExploreMenu: () => void
   onOrderNow?: () => void
 }
 
+interface HeroMediaItem {
+  id: string
+  title: string
+  type: 'video' | 'gif'
+  src: string
+}
+
 /**
- * Hero Cinématique BMC Food — Version Background Complet :
- * - La VIDÉO est en arrière-plan complet plein écran (SANS BOÎTE / SANS CADRE).
- * - Vidéo nette et de qualité native (pas d'opacité terne).
- * - Voile dégradé protecteur à GAUCHE pour assurer la parfaite lisibilité des textes.
- * - Bouton unique Or brossé « Explorer le Menu » qui ouvre/fait défiler la carte.
+ * Playlist officielle des scènes publicitaires du Hero BMC Food :
+ * Validée par Maimouna Sall (rotation en fondu enchaîné de 6s).
+ */
+const HERO_PLAYLIST: HeroMediaItem[] = [
+  {
+    id: 'video-official',
+    title: 'Spot Officiel BMC Food',
+    type: 'video',
+    src: '/images/hero/bmc_video_hero.mp4',
+  },
+  {
+    id: 'burger-cinematic',
+    title: 'Burger Gourmet BMC Complet',
+    type: 'gif',
+    src: '/images/hero/hero_burger_cinematic.gif',
+  },
+  {
+    id: 'tacos-knife-slice',
+    title: 'Tacos Pané Croustillant',
+    type: 'gif',
+    src: '/images/hero/tacos_knife_crispy.gif',
+  },
+  {
+    id: 'tacos-cheese-flow',
+    title: 'Sauce Fromagère Onctueuse',
+    type: 'gif',
+    src: '/images/hero/hero_tacos_cheese.gif',
+  },
+]
+
+/**
+ * Hero Cinématique BMC Food — Version Playlist Animée Multi-Vidéos/GIFs
+ * - Rotation automatique toutes les 6 secondes avec fondu enchaîné doux (Cross-Fade)
+ * - Arrière-plan plein écran sans cadre
+ * - Voile dégradé protecteur à GAUCHE pour assurer la parfaite lisibilité des textes
+ * - Bouton unique Or brossé « Explorer le Menu »
+ * - Indicateurs discrets en bas à droite pour prévisualiser ou changer de scène
  */
 export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
+  const [currentIndex, setCurrentIndex] = useState(0)
+
+  // Rotation automatique toutes les 6 secondes avec pause si l'onglet est inactif
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        setCurrentIndex((prev) => (prev + 1) % HERO_PLAYLIST.length)
+      }
+    }, 6000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  const currentMedia = HERO_PLAYLIST[currentIndex]
+
   return (
     <section
       aria-label="Hero Signature BMC Food"
       className="relative isolate w-full overflow-hidden bg-black text-white"
     >
       {/* 
-        1. VIDÉO EN BACKGROUND COMPLET (PREND TOUTE LA LARGEUR ET HAUTEUR SANS CADRE)
-        Nette, claire, à 100% de clarté
+        1. ARRIÈRE-PLAN MULTI-MÉDIAS ANIMÉ (VIDÉO + GIFS EN FONDU ENCHAÎNÉ)
       */}
       <div aria-hidden="true" className="absolute inset-0 -z-20 overflow-hidden bg-black">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          className="size-full object-cover object-center filter contrast-105"
-        >
-          <source src="/images/hero/bmc_video_hero.mp4" type="video/mp4" />
-        </video>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentMedia.id}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.9, ease: 'easeInOut' }}
+            className="size-full"
+          >
+            {currentMedia.type === 'video' ? (
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="auto"
+                className="size-full object-cover object-center filter contrast-105"
+              >
+                <source src={currentMedia.src} type="video/mp4" />
+              </video>
+            ) : (
+              <img
+                src={currentMedia.src}
+                alt={currentMedia.title}
+                className="size-full object-cover object-center filter contrast-105"
+                loading="eager"
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {/* 
         2. DÉGRADÉ LATÉRAL CINÉMA (SCRIM)
-        Voile sombre progressif à gauche sous le texte, laissant la vidéo totalement libre et visible à droite
+        Voile sombre progressif à gauche sous le texte pour lisibilité 100% garantie
       */}
       <div
         aria-hidden="true"
@@ -65,7 +139,7 @@ export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
             <span>BMC FOOD · SAVEURS SIGNATURES</span>
           </motion.div>
 
-          {/* Grand Titre proportionné (24px sur mobile, 48-60px sur desktop) */}
+          {/* Grand Titre proportionné */}
           <motion.h1
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -79,7 +153,7 @@ export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
             Est Arrivée.
           </motion.h1>
 
-          {/* Descriptif fidèle à la vidéo : sans mention de panure */}
+          {/* Descriptif signature */}
           <motion.p
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -128,11 +202,37 @@ export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
       </div>
 
       {/* 
-        4. DÉGRADÉ FONDU PROGRESSIF EN BAS (TRANSMISSION FLUIDE SANS CASSER)
+        4. INDICATEURS DE SCÈNES DISCRETS (DARK LUXURY)
+        Permet de voir et basculer interactivement entre les scènes vidéo/GIF
+      */}
+      <div
+        aria-label="Contrôles des scènes publicitaires"
+        className="absolute bottom-5 right-5 sm:bottom-8 sm:right-8 z-10 flex items-center gap-1.5 sm:gap-2 rounded-full bg-black/50 px-3 py-1.5 backdrop-blur-md border border-white/10"
+      >
+        {HERO_PLAYLIST.map((item, idx) => {
+          const isActive = idx === currentIndex
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setCurrentIndex(idx)}
+              aria-label={`Afficher la scène : ${item.title}`}
+              className={`h-1.5 rounded-full transition-all duration-500 cursor-pointer ${
+                isActive
+                  ? 'w-6 sm:w-8 bg-gradient-to-r from-bmc-gold to-amber-400 shadow-sm shadow-bmc-gold/50'
+                  : 'w-1.5 sm:w-2 bg-white/30 hover:bg-white/60'
+              }`}
+            />
+          )
+        })}
+      </div>
+
+      {/* 
+        5. DÉGRADÉ FONDU PROGRESSIF EN BAS
       */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent to-zinc-950"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-zinc-950"
       />
     </section>
   )
