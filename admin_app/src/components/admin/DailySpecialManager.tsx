@@ -222,8 +222,14 @@ export function DailySpecialManager() {
             <div className="flex flex-col sm:flex-row items-center gap-5 sm:gap-6">
               <div className="relative aspect-video sm:aspect-square w-full sm:w-44 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950">
                 <img
-                  src={activeProduct.image_url}
+                  src={activeProduct.image_url || '/images/products/tacos-viande-pane.webp'}
                   alt={activeProduct.name}
+                  onError={(e) => {
+                    const target = e.currentTarget
+                    if (!target.src.endsWith('tacos-viande-pane.webp')) {
+                      target.src = '/images/products/tacos-viande-pane.webp'
+                    }
+                  }}
                   className="size-full object-cover object-center"
                 />
                 <span className="absolute top-2 left-2 rounded-md bg-bmc-gold px-2 py-0.5 font-display text-[9px] font-black uppercase tracking-wider text-black">
@@ -337,8 +343,14 @@ export function DailySpecialManager() {
                 <div className="space-y-3">
                   <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-white/10 bg-zinc-950">
                     <img
-                      src={product.image_url}
+                      src={product.image_url || '/images/products/tacos-viande-pane.webp'}
                       alt={product.name}
+                      onError={(e) => {
+                        const target = e.currentTarget
+                        if (!target.src.endsWith('tacos-viande-pane.webp')) {
+                          target.src = '/images/products/tacos-viande-pane.webp'
+                        }
+                      }}
                       className="size-full object-cover object-center"
                     />
                     {isCurrentSpecial && (
