@@ -29,24 +29,24 @@ export function StickyCartBar({ itemCount, totalAmount, onOpenCart }: StickyCart
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             onClick={onOpenCart}
-            className="flex h-15 w-full items-center justify-between rounded-2xl bg-bmc-orange-braise px-5 py-3 text-white shadow-2xl shadow-bmc-orange-braise/45 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold"
+            className="flex h-14 sm:h-15 w-full items-center justify-between rounded-2xl bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 px-5 py-3 text-black shadow-2xl shadow-bmc-gold/30 hover:brightness-105 transition-all cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold"
           >
             {/* Pastille nombre d'articles */}
             <div className="flex items-center gap-3">
-              <span className="flex size-8 items-center justify-center rounded-xl bg-black/25 font-display text-sm font-extrabold text-white">
+              <span className="flex size-8 items-center justify-center rounded-xl bg-black font-display text-sm font-black text-bmc-gold shadow-sm">
                 {itemCount}
               </span>
-              <span className="font-display text-base font-bold tracking-tight sm:text-lg">
+              <span className="font-display text-base sm:text-lg font-black tracking-tight text-black">
                 Voir le panier
               </span>
             </div>
 
             {/* Total et flèche */}
-            <div className="flex items-center gap-2">
-              <span className="font-display text-lg font-extrabold tabular-nums text-white sm:text-xl">
+            <div className="flex items-center gap-2 text-black">
+              <span className="font-display text-lg sm:text-xl font-black tabular-nums text-black">
                 {formatFcfa(totalAmount)}
               </span>
-              <ArrowRight className="size-5" aria-hidden="true" />
+              <ArrowRight className="size-5 text-black stroke-[2.5]" aria-hidden="true" />
             </div>
           </motion.button>
         </motion.div>

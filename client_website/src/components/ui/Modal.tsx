@@ -96,7 +96,7 @@ export function Modal({
                     type="button"
                     onClick={onClose}
                     aria-label="Fermer la boîte de dialogue"
-                    className="rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors focus-visible:outline-2 focus-visible:outline-bmc-orange-braise cursor-pointer"
+                    className="rounded-full p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors focus-visible:outline-2 focus-visible:outline-bmc-gold cursor-pointer"
                   >
                     <X className="size-5" aria-hidden="true" />
                   </button>

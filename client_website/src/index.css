@@ -48,6 +48,6 @@
   }
 
   body {
-    @apply bg-bmc-offwhite font-sans text-bmc-charcoal antialiased;
+    @apply bg-zinc-950 font-sans text-zinc-100 antialiased selection:bg-bmc-gold selection:text-black;
   }
 }

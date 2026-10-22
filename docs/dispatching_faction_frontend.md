@@ -7,8 +7,8 @@ Chaque membre a 3 tâches techniques principales et 1 tâche de contrôle.
 | Membre | Site client | Application Admin | Contrôle |
 | --- | --- | --- | --- |
 | El Hadji Massogui Diop | Design system, menu | Dashboard commandes | Revue Frontend |
-| Maimouna Sall | Accueil, checkout | Plat du Jour | Tests responsive |
-| Pape Alioune Sène | Panier, envoi commande | Alertes et notifications | Vérification des données |
+| Maimouna Sall | Accueil (Dark Luxury) | Plat du Jour | Tests responsive |
+| Pape Alioune Sène | Panier, checkout & confirmation, envoi commande | Alertes et notifications | Vérification des données |
 
 ---
 
@@ -50,28 +50,18 @@ Chaque membre a 3 tâches techniques principales et 1 tâche de contrôle.
 
 ---
 
-## 2. Maimouna Sall — Accueil, checkout et Plat du Jour
+## 2. Maimouna Sall — Accueil et Plat du Jour
 
-### 1. Terminer l’accueil déjà commencé
+### 1. Finaliser l’Accueil Dark Luxury (Site Client `client_website/`)
 
-- Finaliser la page Accueil.
-- Afficher le logo BMC FOOD, les contenus validés, le bouton « Voir le menu » et le Plat du Jour.
-- Créer le sélecteur tactile des catégories.
-- Utiliser les animations fournies par El Hadji.
+- Finaliser la page Accueil en Dark Luxury (Header épuré avec logo officiel naturel, menu tiroir ouvrant par la droite avec icônes réelles Wave, Orange Money et Espèces).
+- Hero cinématique plein écran avec fond vidéo HD (sans boîte, textes calibrés sans panure, boutons adaptés mobile et desktop).
+- Bandeau carrousel hybride Plat du Jour / Best-Sellers du Chef avec animation dynamique et cartes grand format.
+- Sélecteur tactile des catégories circulaires avec bague dorée active.
 
-**Terminé quand :** l’accueil est utilisable entre 360 px et 414 px et mène correctement au menu.
+**Terminé quand :** l’accueil est parfaitement fluide, responsive (360 px à 414 px, tablette et desktop) et mène naturellement à la carte.
 
-### 2. Développer le checkout et la confirmation
-
-- Créer les champs Nom, Téléphone, Adresse et Instructions.
-- Ajouter la géolocalisation assistée avec message de repli si refusée.
-- Créer les choix Espèces, Wave et Orange Money (simulation).
-- Valider les champs et afficher les erreurs sous les champs concernés.
-- Créer l’écran de confirmation visuel avec la référence de commande.
-
-**Terminé quand :** une commande incomplète ne part pas et qu’une erreur conserve les informations saisies.
-
-### 3. Développer le gestionnaire de Plat du Jour
+### 2. Développer le gestionnaire de Plat du Jour (`admin_app/`)
 
 - Créer dans l’Admin la liste des plats disponibles.
 - Permettre au restaurateur d’activer, remplacer ou désactiver le Plat du Jour.
@@ -80,7 +70,7 @@ Chaque membre a 3 tâches techniques principales et 1 tâche de contrôle.
 
 **Terminé quand :** le restaurateur peut gérer le Plat du Jour depuis l’Admin.
 
-### 4. Tester le responsive
+### 3. Tester le responsive (Tâche de contrôle)
 
 - Tester le site client à 360 px, 390 px, 414 px, tablette et desktop.
 - Tester l’Admin sur tablette et desktop.
@@ -88,7 +78,7 @@ Chaque membre a 3 tâches techniques principales et 1 tâche de contrôle.
 
 ---
 
-## 3. Pape Alioune Sène — Panier, commande, alertes
+## 3. Pape Alioune Sène — Panier, checkout, commande, alertes
 
 ### 1. Terminer le panier déjà commencé
 
@@ -99,15 +89,16 @@ Chaque membre a 3 tâches techniques principales et 1 tâche de contrôle.
 
 **Terminé quand :** le sous-total se met à jour immédiatement et qu’une quantité ne peut pas descendre sous 1.
 
-### 2. Envoyer la commande et gérer la confirmation
+### 2. Développer le checkout, l'envoi de commande et la confirmation
 
-- Récupérer les articles du panier et les données validées par le checkout.
-- Envoyer la commande vers `POST /api/orders/`.
-- Afficher un chargement pendant l’envoi.
-- Afficher la confirmation seulement après la réponse réussie du serveur.
-- En cas d’erreur, conserver panier et formulaire.
+- Créer les champs Nom, Téléphone, Adresse et Instructions.
+- Ajouter la géolocalisation assistée avec message de repli si refusée.
+- Créer les choix Espèces, Wave et Orange Money (simulation).
+- Valider les champs et afficher les erreurs sous les champs concernés.
+- Envoyer la commande vers `POST /api/orders/` avec état de chargement.
+- Afficher la confirmation visuelle avec la référence de commande après réponse réussie du serveur.
 
-**Terminé quand :** une commande réussie affiche sa référence et qu’une erreur ne supprime aucune donnée.
+**Terminé quand :** une commande incomplète ne part pas, qu'une erreur conserve les informations et qu'une commande réussie affiche sa référence.
 
 ### 3. Développer les alertes Admin
 
@@ -130,16 +121,15 @@ Chaque membre a 3 tâches techniques principales et 1 tâche de contrôle.
 ## Ordre de travail
 
 1. El Hadji prépare les composants et règles Frontend.
-2. Maimouna termine l’accueil.
-3. Pape termine le panier.
+2. Maimouna termine l’accueil Dark Luxury.
+3. Pape termine le panier, le checkout et la confirmation de commande.
 4. El Hadji développe le menu.
-5. Maimouna développe checkout et confirmation.
-6. Pape relie la commande à l’API.
-7. El Hadji développe le dashboard.
-8. Maimouna développe le Plat du Jour.
-9. Pape développe alertes et notifications.
-10. Maimouna teste le responsive, Pape vérifie les contenus, El Hadji fait la revue finale.
-11. Pull Request vers `develop`, validation par Lansana Coly.
+5. Pape relie la commande à l’API.
+6. El Hadji développe le dashboard.
+7. Maimouna développe le Plat du Jour dans l'Admin.
+8. Pape développe alertes et notifications.
+9. Maimouna teste le responsive, Pape vérifie les contenus, El Hadji fait la revue finale.
+10. Pull Request vers `develop`, validation par Lansana Coly.
 
 ---
 

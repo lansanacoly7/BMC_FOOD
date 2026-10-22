@@ -54,7 +54,7 @@ export function MenuView({ onAddToCart }: MenuViewProps) {
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Rechercher un plat..."
             aria-label="Rechercher un plat du menu"
-            className="w-full rounded-full border border-zinc-200 bg-white py-2 pl-9.5 pr-4 text-xs sm:text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-bmc-orange-braise focus:outline-none focus:ring-2 focus:ring-bmc-orange-braise/20 shadow-xs"
+            className="w-full rounded-full border border-zinc-200 bg-white py-2 pl-9.5 pr-4 text-xs sm:text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-bmc-gold focus:outline-none focus:ring-2 focus:ring-bmc-gold/20 shadow-xs"
           />
         </div>
       </div>

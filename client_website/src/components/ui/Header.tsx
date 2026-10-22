@@ -47,9 +47,9 @@ export function Header({ itemCount, onOpenCart, onLogoClick }: HeaderProps) {
             whileTap={{ scale: 0.94 }}
             onClick={onOpenCart}
             aria-label={`Voir mon panier contenant ${itemCount} ${itemCount > 1 ? 'articles' : 'article'}`}
-            className="relative flex items-center gap-2 rounded-full bg-bmc-charcoal px-3.5 py-2 text-sm font-semibold text-white shadow-xs hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-orange-braise transition-colors cursor-pointer"
+            className="relative flex items-center gap-2 rounded-full bg-zinc-900 border border-white/10 px-3.5 py-2 text-sm font-semibold text-white shadow-xs hover:bg-zinc-800 hover:border-bmc-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold transition-colors cursor-pointer"
           >
-            <ShoppingBag className="size-4.5" aria-hidden="true" />
+            <ShoppingBag className="size-4.5 text-bmc-gold" aria-hidden="true" />
             <span className="hidden sm:inline">Panier</span>
 
             <AnimatePresence mode="popLayout">
@@ -59,7 +59,7 @@ export function Header({ itemCount, onOpenCart, onLogoClick }: HeaderProps) {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.5, opacity: 0 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                className="flex size-5 items-center justify-center rounded-full bg-bmc-orange-braise text-[11px] font-bold text-white"
+                className="flex size-5 items-center justify-center rounded-full bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 font-display text-[11px] font-black text-black shadow-md shadow-bmc-gold/40"
               >
                 {itemCount}
               </motion.span>

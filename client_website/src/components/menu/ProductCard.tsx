@@ -53,7 +53,7 @@ export function ProductCard({ product, onAdd }: ProductCardProps) {
             </Badge>
           )}
           {product.popular && !product.is_daily_special && (
-            <Badge variant="orange" size="sm">
+            <Badge variant="gold" size="sm">
               Populaire
             </Badge>
           )}
@@ -97,11 +97,11 @@ export function ProductCard({ product, onAdd }: ProductCardProps) {
             onClick={handleAdd}
             disabled={!product.is_available}
             aria-label={`Ajouter ${product.name} au panier`}
-            className={`flex size-10 items-center justify-center rounded-xl font-bold shadow-xs transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-orange-deep
+            className={`flex size-10 items-center justify-center rounded-xl font-bold shadow-xs transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold
               ${
                 justAdded
                   ? 'bg-emerald-600 text-white'
-                  : 'bg-bmc-orange-braise text-white hover:bg-orange-700'
+                  : 'bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 text-black hover:brightness-110 shadow-md shadow-bmc-gold/20'
               }`}
           >
             <AnimatePresence mode="wait" initial={false}>

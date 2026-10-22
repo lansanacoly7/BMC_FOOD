@@ -23,8 +23,8 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 const variantStyles: Record<BadgeVariant, string> = {
   // Or officiel du logo : Plat du Jour, best-sellers
   gold: 'bg-bmc-gold text-bmc-black font-bold shadow-xs',
-  // Orange braise
-  orange: 'bg-bmc-orange-braise text-white font-semibold shadow-xs',
+  // Or / Jaune officiel
+  orange: 'bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 text-black font-black shadow-xs',
   // Succès
   success: 'bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold',
   // Erreur

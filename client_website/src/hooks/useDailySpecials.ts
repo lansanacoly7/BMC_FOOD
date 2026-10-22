@@ -35,8 +35,22 @@ export function useDailySpecials(): DailySpecials {
         })
         setSpecials(daily_specials)
       } catch {
-        // En cas d'échec, on garde le dernier Plat du Jour connu : le reste du site reste utilisable.
+        // En cas d'absence d'API Django, on synchronise avec le choix fait dans l'Admin local
         failed = true
+        try {
+          const storedCode = localStorage.getItem('bmc_active_special_code')
+          if (storedCode === '') {
+            setSpecials([])
+          } else if (storedCode) {
+            const { FALLBACK_PRODUCTS } = await import('../data/mockMenu')
+            const matched = FALLBACK_PRODUCTS.find((p) => p.code === storedCode)
+            if (matched) {
+              setSpecials([{ ...matched, is_daily_special: true }])
+            }
+          }
+        } catch {
+          // Utilisation du fallback standard
+        }
       }
       isFetching = false
       if (controller.signal.aborted) return
@@ -48,12 +62,18 @@ export function useDailySpecials(): DailySpecials {
       if (document.visibilityState === 'visible') void load()
     }
 
+    const handleStorageChange = () => {
+      void load()
+    }
+
     void load()
     document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('storage', handleStorageChange)
     return () => {
       controller.abort()
       window.clearTimeout(refreshTimer)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('storage', handleStorageChange)
     }
   }, [])
 

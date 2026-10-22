@@ -31,7 +31,7 @@ export function CategoryNav({
       <button
         type="button"
         onClick={() => onSelectCategory('all')}
-        className={`relative flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-colors cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-bmc-orange-braise
+        className={`relative flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-colors cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-bmc-gold
           ${
             activeCategoryId === 'all'
               ? 'bg-bmc-charcoal text-white shadow-xs'
@@ -52,7 +52,7 @@ export function CategoryNav({
             key={category.id}
             type="button"
             onClick={() => onSelectCategory(category.id)}
-            className={`relative flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-colors cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-bmc-orange-braise
+            className={`relative flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-colors cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-bmc-gold
               ${
                 isActive
                   ? 'bg-bmc-charcoal text-white shadow-xs'

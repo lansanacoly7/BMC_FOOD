@@ -1,0 +1,35 @@
+@import 'tailwindcss';
+
+/*
+ * Charte graphique officielle BMC Food v1.1 pour l'Administration
+ * Tokens officiels : Or (#FCB800), Braise (#CF4A08), Noir (#0C0C0D)
+ */
+@theme {
+  --color-bmc-gold: #FCB800;
+  --color-bmc-black: #0C0C0D;
+  --color-bmc-orange-braise: #CF4A08;
+  --color-bmc-orange-flame: #F97316;
+  --color-bmc-charcoal: #18181B;
+  --color-bmc-offwhite: #FAFAFA;
+  --color-bmc-lightgray: #F4F4F5;
+
+  --color-bmc-orange-deep: #C2410C;
+  --color-bmc-text-muted: #71717A;
+  --color-bmc-success: #15803D;
+  --color-bmc-error: #B91C1C;
+  --color-payment-wave: #1DC8F2;
+  --color-payment-om: #FF7900;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-zinc-950 font-sans text-zinc-100 antialiased selection:bg-bmc-gold selection:text-black;
+  }
+}

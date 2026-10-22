@@ -22,9 +22,9 @@ export function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowPro
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -48, transition: { duration: 0.2 } }}
-      className="flex gap-3 py-4"
+      className="flex gap-3 py-4 text-zinc-100"
     >
-      <div className="size-16 shrink-0 overflow-hidden rounded-2xl bg-bmc-gold/15">
+      <div className="size-16 shrink-0 overflow-hidden rounded-2xl border border-white/15 bg-zinc-900">
         {product.image_url ? (
           <img
             src={product.image_url}
@@ -36,34 +36,39 @@ export function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowPro
             className="size-full object-cover"
           />
         ) : (
-          <div className="grid size-full place-items-center text-bmc-orange-deep">
+          <div className="grid size-full place-items-center text-bmc-gold">
             <UtensilsCrossed className="size-6" aria-hidden="true" />
           </div>
         )}
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-2">
+      <div className="flex min-w-0 flex-1 flex-col justify-between gap-2">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="line-clamp-2 font-semibold leading-snug">{product.name}</p>
-            <p className="text-sm text-zinc-500">{formatFcfa(product.price)} l'unité</p>
+            <p className="line-clamp-2 font-display text-sm sm:text-base font-extrabold text-white leading-snug">
+              {product.name}
+            </p>
+            <p className="text-xs sm:text-sm text-zinc-400 font-medium">
+              {formatFcfa(product.price)} l'unité
+            </p>
           </div>
           <motion.button
             type="button"
             whileTap={tapBounce}
             onClick={() => onRemove(product.code)}
             aria-label={`Retirer ${product.name} du panier`}
-            className="-mr-2 -mt-1 grid size-10 shrink-0 place-items-center rounded-full text-zinc-500 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-bmc-orange"
+            className="-mr-1 -mt-1 grid size-9 shrink-0 place-items-center rounded-full text-zinc-400 transition-colors hover:bg-red-950/40 hover:text-red-400 hover:border hover:border-red-500/30 focus-visible:outline-2 focus-visible:outline-red-500"
           >
-            <Trash2 className="size-5" aria-hidden="true" />
+            <Trash2 className="size-4.5" aria-hidden="true" />
           </motion.button>
         </div>
 
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 pt-1">
+          {/* Sélecteur de quantité Dark Luxury à fort contraste */}
           <div
             role="group"
             aria-label={`Quantité de ${product.name}`}
-            className="flex items-center rounded-full bg-zinc-100 p-1"
+            className="flex items-center rounded-full bg-zinc-900 border border-white/15 p-1 shadow-inner"
           >
             <motion.button
               type="button"
@@ -73,15 +78,15 @@ export function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowPro
                 if (canDecrement) onUpdateQuantity(product.code, quantity - 1)
               }}
               aria-label={`Diminuer la quantité de ${product.name}`}
-              className="grid size-10 place-items-center rounded-full bg-white shadow-sm transition-opacity focus-visible:outline-2 focus-visible:outline-bmc-orange aria-disabled:cursor-not-allowed aria-disabled:opacity-40 aria-disabled:shadow-none"
+              className="grid size-8 sm:size-9 place-items-center rounded-full bg-zinc-800 text-zinc-200 border border-white/10 shadow-sm transition-all hover:bg-zinc-700 hover:text-white focus-visible:outline-2 focus-visible:outline-bmc-gold aria-disabled:cursor-not-allowed aria-disabled:opacity-30 aria-disabled:text-zinc-600 aria-disabled:border-transparent aria-disabled:shadow-none"
             >
-              <Minus className="size-4" aria-hidden="true" />
+              <Minus className="size-3.5 sm:size-4 stroke-[2.5]" aria-hidden="true" />
             </motion.button>
             <motion.span
               key={quantity}
               initial={{ scale: 1.35 }}
               animate={{ scale: 1 }}
-              className="w-9 text-center font-semibold tabular-nums"
+              className="w-8 sm:w-9 text-center font-display font-black text-sm sm:text-base tabular-nums text-white"
             >
               {quantity}
             </motion.span>
@@ -90,13 +95,15 @@ export function CartItemRow({ item, onUpdateQuantity, onRemove }: CartItemRowPro
               whileTap={tapBounce}
               onClick={() => onUpdateQuantity(product.code, quantity + 1)}
               aria-label={`Augmenter la quantité de ${product.name}`}
-              className="grid size-10 place-items-center rounded-full bg-bmc-orange text-bmc-charcoal shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-orange"
+              className="grid size-8 sm:size-9 place-items-center rounded-full bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 text-black shadow-md shadow-bmc-gold/20 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold cursor-pointer"
             >
-              <Plus className="size-4" aria-hidden="true" />
+              <Plus className="size-3.5 sm:size-4 stroke-[3]" aria-hidden="true" />
             </motion.button>
           </div>
 
-          <p className="font-display text-lg font-bold tabular-nums">{formatFcfa(product.price * quantity)}</p>
+          <p className="font-display text-base sm:text-lg font-black tabular-nums text-bmc-gold">
+            {formatFcfa(product.price * quantity)}
+          </p>
         </div>
       </div>
     </motion.li>
