@@ -54,9 +54,12 @@
   * Largeur majestueuse (`max-w-5xl`), tarif or proéminent et bouton *Commander* reprenant son format large (`sm:h-12 sm:px-7`) avec retour tactile animé (*Ajouté ! ✓*).
 
 #### D. Sélecteur de Catégories (`CategoryPills.tsx`)
-* **Audit de contact visuel** :
+* **Mobile (360 px - 414 px)** :
+  * Défilement horizontal fluide préservé intact sans toucher aux marges mobiles (`-mx-4 px-6 overflow-x-auto`).
   * La bague dorée active de « Tout voir » dispose d'un padding vertical de `py-4` (16 px) et horizontal `px-6` (24 px sur mobile).
-  * **Résultat observé** : la bague dorée est 100% ronde, parfaitement centrée, avec zéro rognage en haut et une marge de sécurité nette de 24 px sur le bord gauche. Défilement horizontal fluide au doigt sans saccade.
+  * Zéro rognage, halo net et lisibilité parfaite au pouce.
+* **Desktop (1024 px - 1440 px+)** :
+  * **Centrage au milieu de la page** (`sm:justify-center sm:mx-0 sm:px-0 sm:gap-6 md:gap-8`) : l'ensemble des 6 vignettes circulaires est désormais parfaitement aligné au centre géométrique de l'écran, éliminant tout vide à droite.
 
 #### E. Barre Panier Flottante (`StickyCartBar.tsx`)
 * **Mobile (Pensé pour le pouce)** :

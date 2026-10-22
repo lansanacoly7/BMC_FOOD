@@ -51,7 +51,7 @@ interface CategoryPillsProps {
 export function CategoryPills({ activeId, onSelect }: CategoryPillsProps) {
   return (
     <section aria-label="Catégories du menu" className="w-full">
-      <div className="-mx-4 flex gap-3.5 overflow-x-auto px-6 py-4 overscroll-x-contain [scrollbar-width:none] sm:mx-0 sm:px-2">
+      <div className="-mx-4 flex gap-3.5 overflow-x-auto px-6 py-4 overscroll-x-contain [scrollbar-width:none] sm:mx-0 sm:px-0 sm:justify-center sm:gap-6 md:gap-8">
         {CATEGORIES.map((cat) => {
           const isActive = cat.id === activeId
           return (
