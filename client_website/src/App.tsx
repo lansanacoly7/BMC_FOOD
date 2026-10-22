@@ -15,7 +15,7 @@ import { useCart } from './hooks/useCart'
 export default function App() {
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState('all')
-  const [searchQuery, setSearchQuery] = useState('')
+  const searchQuery = ''
   const [isCheckingOut, setIsCheckingOut] = useState(false)
 
   // Gestion centralisée du panier BMC Food (Pape Aliou)

@@ -5,7 +5,7 @@ import { formatFcfa } from '../../lib/format'
 import type { Product } from '../../types'
 import { SpecialOfferBanner } from './SpecialOfferBanner'
 
-export const CATALOG_PRODUCTS: Product[] = [
+const CATALOG_PRODUCTS: Product[] = [
   {
     id: 1,
     code: 'tp-viande',
