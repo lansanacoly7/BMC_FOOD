@@ -7,10 +7,8 @@ import {
   ArrowRight,
   ShieldCheck,
   Sparkles,
-  ChefHat,
   ChevronLeft,
   ChevronRight,
-  Flame,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 
@@ -258,14 +256,10 @@ export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcasePr
               </motion.div>
             </AnimatePresence>
 
-            {/* Voiles dégradés protecteurs haut et bas */}
+            {/* Voile dégradé protecteur subtil en haut pour les barres de progression */}
             <div
               aria-hidden="true"
               className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/80 via-black/30 to-transparent z-10"
-            />
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/90 via-black/30 to-transparent z-10"
             />
 
             {/* Flèche Gauche (Précédent) */}
@@ -288,38 +282,24 @@ export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcasePr
               <ChevronRight className="size-5" />
             </button>
 
-            {/* Boutons de contrôle (Play/Pause et Son/Mute) */}
-            <div className="absolute top-7 right-4 flex items-center gap-2 z-20">
+            {/* Boutons de contrôle discrets en haut à droite (Play/Pause et Son/Mute) */}
+            <div className="absolute top-6 right-3.5 flex items-center gap-1.5 z-20">
               <button
                 type="button"
                 onClick={togglePlay}
                 aria-label={isPlaying ? 'Mettre en pause' : 'Lancer la vidéo'}
-                className="flex size-8 sm:size-9 items-center justify-center rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 transition-all hover:bg-black/90 hover:border-bmc-gold hover:text-bmc-gold cursor-pointer"
+                className="flex size-7 sm:size-8 items-center justify-center rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 transition-all hover:bg-black/90 hover:border-bmc-gold hover:text-bmc-gold cursor-pointer"
               >
-                {isPlaying ? <Pause className="size-3.5" /> : <Play className="size-3.5 fill-current ml-0.5" />}
+                {isPlaying ? <Pause className="size-3" /> : <Play className="size-3 fill-current ml-0.5" />}
               </button>
               <button
                 type="button"
                 onClick={toggleMute}
                 aria-label={isMuted ? 'Activer le son' : 'Couper le son'}
-                className="flex size-8 sm:size-9 items-center justify-center rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 transition-all hover:bg-black/90 hover:border-bmc-gold hover:text-bmc-gold cursor-pointer"
+                className="flex size-7 sm:size-8 items-center justify-center rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 transition-all hover:bg-black/90 hover:border-bmc-gold hover:text-bmc-gold cursor-pointer"
               >
-                {isMuted ? <VolumeX className="size-3.5" /> : <Volume2 className="size-3.5 text-bmc-gold" />}
+                {isMuted ? <VolumeX className="size-3" /> : <Volume2 className="size-3 text-bmc-gold" />}
               </button>
-            </div>
-
-            {/* Badges descriptifs en temps réel au bas de la vidéo */}
-            <div className="absolute bottom-3 left-4 right-4 flex flex-wrap items-center justify-between gap-2 z-20">
-              <div className="flex items-center gap-2 rounded-full bg-black/75 backdrop-blur-md border border-white/15 px-3 py-1 text-xs text-white font-medium">
-                <ChefHat className="size-3.5 text-bmc-gold shrink-0" />
-                <span className="font-bold text-white">{currentScene.title}</span>
-                <span className="text-zinc-400 text-[11px] hidden xs:inline">· {currentScene.badge}</span>
-              </div>
-
-              <div className="flex items-center gap-1.5 rounded-full bg-amber-500/20 backdrop-blur-md border border-amber-500/40 px-3 py-1 text-[11px] font-black text-bmc-gold uppercase tracking-wider">
-                <Flame className="size-3 text-amber-400" />
-                <span>Scène {activeSceneIndex + 1}/{CULINARY_SCENES.length}</span>
-              </div>
             </div>
           </div>
         </motion.div>
