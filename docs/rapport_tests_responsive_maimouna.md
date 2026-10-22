@@ -55,11 +55,15 @@
 
 #### D. Sélecteur de Catégories (`CategoryPills.tsx`)
 * **Mobile (360 px - 414 px)** :
-  * Défilement horizontal fluide préservé intact sans toucher aux marges mobiles (`-mx-4 px-6 overflow-x-auto`).
+  * Défilement tactile horizontal fluide préservé intact sans toucher aux marges mobiles (`-mx-4 px-6 overflow-x-auto`).
   * La bague dorée active de « Tout voir » dispose d'un padding vertical de `py-4` (16 px) et horizontal `px-6` (24 px sur mobile).
   * Zéro rognage, halo net et lisibilité parfaite au pouce.
-* **Desktop (1024 px - 1440 px+)** :
-  * **Centrage au milieu de la page** (`sm:justify-center sm:mx-0 sm:px-0 sm:gap-6 md:gap-8`) : l'ensemble des 6 vignettes circulaires est désormais parfaitement aligné au centre géométrique de l'écran, éliminant tout vide à droite.
+* **Desktop (1024 px - 1440 px+ — Spécifications Dynamiques Validées)** :
+  * **Défilement Fluide de Gauche à Droite (Non statique)** :
+    * Autoscroll continu et doux à vitesse de croisière lisible (0.5 px/frame), évitant tout aspect figé.
+    * **Pause automatique intelligente au survol de la souris** (`isHovered`) pour permettre une sélection confortable sans mouvement.
+    * **Flèches de navigation Or BMC (`ChevronLeft` / `ChevronRight`)** : boutons circulaires élégants permettant un défilement manuel immédiat vers la gauche ou la droite.
+    * **Recentrage automatique & Bague Or** : au clic, la catégorie choisie s'illumine d'une bague dorée (`ring-2 ring-bmc-gold scale-105`) et se recentre automatiquement au cœur de l'écran.
 
 #### E. Barre Panier Flottante (`StickyCartBar.tsx`)
 * **Mobile (Pensé pour le pouce)** :
