@@ -1,4 +1,4 @@
-import { Check, Plus, Star, Sparkles, Tag } from 'lucide-react'
+import { Check, Plus, Sparkles, Star, Tag } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useState } from 'react'
 import { formatFcfa } from '../../lib/format'
@@ -174,7 +174,7 @@ interface FeaturedGridProps {
   isLoading?: boolean
   onAddToCart: (product: Product) => void
   activeCategory: string
-  searchQuery: string
+  searchQuery?: string
   onSeeAll?: () => void
   hasSpecialOffers?: boolean
 }
@@ -191,7 +191,7 @@ export function FeaturedGrid({
   isLoading = false,
   onAddToCart,
   activeCategory,
-  searchQuery,
+  searchQuery = '',
   onSeeAll,
   hasSpecialOffers = true,
 }: FeaturedGridProps) {

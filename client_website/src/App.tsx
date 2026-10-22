@@ -19,7 +19,6 @@ export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState('all')
-  const [searchQuery] = useState('')
   const [hasSpecialOffers] = useState(true)
 
   // Hooks de données officiels BMC Food (avec support fallback)
@@ -127,7 +126,6 @@ export default function App() {
           products={menuProducts}
           isLoading={isMenuLoading}
           activeCategory={activeCategory}
-          searchQuery={searchQuery}
           onAddToCart={addToCart}
           onSeeAll={() => handleNavigate('menu')}
           hasSpecialOffers={hasSpecialOffers}

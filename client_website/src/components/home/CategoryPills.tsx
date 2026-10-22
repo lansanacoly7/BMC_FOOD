@@ -138,27 +138,30 @@ export function CategoryPills({ activeId, onSelect }: CategoryPillsProps) {
               <motion.button
                 key={cat.id}
                 type="button"
+                whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.94 }}
                 onClick={(e) => handleCategoryClick(cat.id, e)}
-                className="group flex w-18 shrink-0 flex-col items-center gap-2.5 focus:outline-none sm:w-22 cursor-pointer p-1"
+                className="group relative flex w-18 shrink-0 flex-col items-center gap-2 focus:outline-none sm:w-22 cursor-pointer p-1"
               >
-                {/* Vignette photo circulaire cerclée d'Or BMC (#FCB800) */}
-                <div
-                  className={`relative aspect-square w-full overflow-hidden rounded-full bg-zinc-900 transition-all duration-300 ${
-                    isActive
-                      ? 'ring-2 ring-bmc-gold ring-offset-2 ring-offset-zinc-950 shadow-md shadow-bmc-gold/40 scale-105'
-                      : 'ring-1 ring-white/15 group-hover:ring-bmc-gold/50 group-hover:scale-105'
-                  }`}
-                >
-                  <img
-                    src={cat.image}
-                    alt={cat.name}
-                    width={80}
-                    height={80}
-                    loading="lazy"
-                    decoding="async"
-                    className="size-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
+                {/* Vignette photo circulaire épurée sans bague jaune */}
+                <div className="relative aspect-square w-full rounded-full bg-zinc-900">
+                  <div
+                    className={`size-full overflow-hidden rounded-full ring-1 transition-all duration-300 ${
+                      isActive
+                        ? 'ring-white/30 scale-105 shadow-lg shadow-black/60'
+                        : 'ring-white/10 group-hover:ring-white/25 group-hover:scale-105'
+                    }`}
+                  >
+                    <img
+                      src={cat.image}
+                      alt={cat.name}
+                      width={80}
+                      height={80}
+                      loading="lazy"
+                      decoding="async"
+                      className="size-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                  </div>
                 </div>
 
                 {/* Libellé centré sous la vignette */}
