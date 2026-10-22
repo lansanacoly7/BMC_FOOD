@@ -50,4 +50,39 @@
   body {
     @apply bg-zinc-950 font-sans text-zinc-100 antialiased selection:bg-bmc-gold selection:text-black;
   }
+
+  /* Respect universel de l'accessibilité « réduire les animations » */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Masque la barre de défilement sur mobile pour un rendu épuré façon application native */
+  @media (max-width: 1024px) {
+    html,
+    body {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
+    }
+  }
+
+  /* Sur écrans tactiles (smartphones / tablettes), neutralise les styles de curseurs inadaptés */
+  @media (hover: none) and (pointer: coarse) {
+    * {
+      -webkit-touch-callout: none;
+    }
+  }
 }
+
