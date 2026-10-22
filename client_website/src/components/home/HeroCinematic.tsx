@@ -1,18 +1,89 @@
 import { Sparkles, ArrowRight, UtensilsCrossed, Clock } from 'lucide-react'
 import { motion } from 'motion/react'
+import type { Variants } from 'motion/react'
 
 interface HeroCinematicProps {
   onExploreMenu: () => void
   onOrderNow?: () => void
 }
 
+/** Variantes Motion harmonieuses pour l'entrée cadencée (stagger) */
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.12,
+      delayChildren: 0.08,
+    },
+  },
+}
+
+const badgeVariants: Variants = {
+  hidden: { opacity: 0, y: -10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.48,
+      ease: 'easeOut',
+    },
+  },
+}
+
+const titleVariants: Variants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.6,
+      ease: 'easeOut',
+    },
+  },
+}
+
+const textVariants: Variants = {
+  hidden: { opacity: 0, y: 14 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.55,
+      ease: 'easeOut',
+    },
+  },
+}
+
+const buttonVariants: Variants = {
+  hidden: { opacity: 0, y: 12, scale: 0.98 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      duration: 0.55,
+      ease: 'easeOut',
+    },
+  },
+}
+
+const metaVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      duration: 0.5,
+    },
+  },
+}
+
 /**
- * Hero Cinématique BMC Food — Version Vidéo Unique Slow Motion Officielle (Maimouna Sall) :
- * - Vidéo MP4 officielle unique bmc_video_hero.mp4 en arrière-plan complet plein écran (SANS BOÎTE / SANS CADRE).
- * - Net, fluide, contraste natif 100% sur fond noir sans animations WebP ni multi-scènes.
+ * Hero Cinématique BMC Food — Version Vidéo Unique Slow Motion Officielle :
+ * - Vidéo MP4 officielle bmc_video_hero.mp4 en arrière-plan complet plein écran (SANS BOÎTE / SANS CADRE).
+ * - Entrée séquentielle coordonnée (stagger) des éléments textuels.
+ * - Discret reflet lumineux doré sur le bouton « Explorer le Menu » sans perturber le design.
  * - Voile dégradé protecteur à GAUCHE pour assurer la parfaite lisibilité des textes.
- * - Texte aéré avec décalage maîtrisé à droite (pl-3 sm:pl-6 md:pl-10 lg:pl-12).
- * - Bouton unique Or brossé « Explorer le Menu » qui fait défiler la carte en douceur.
  */
 export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
   return (
@@ -21,7 +92,7 @@ export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
       className="relative isolate w-full overflow-hidden bg-black text-white"
     >
       {/* 
-        1. VIDÉO UNIQUE SLOW MOTION EN BACKGROUND COMPLET (PREND TOUTE LA LARGEUR ET HAUTEUR SANS CADRE)
+        1. VIDÉO UNIQUE SLOW MOTION EN BACKGROUND COMPLET
       */}
       <div aria-hidden="true" className="absolute inset-0 -z-20 overflow-hidden bg-black">
         <video
@@ -38,7 +109,6 @@ export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
 
       {/* 
         2. DÉGRADÉ LATÉRAL CINÉMA (SCRIM)
-        Voile sombre progressif à gauche sous le texte, laissant la vidéo totalement libre et visible à droite
       */}
       <div
         aria-hidden="true"
@@ -50,26 +120,27 @@ export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
       />
 
       {/* 
-        3. CONTENU TEXTE ÉQUILIBRÉ & CALIBRÉ UI/UX MOBILE & DESKTOP (DÉCALAGE LÉGER À DROITE)
+        3. CONTENU TEXTE ÉQUILIBRÉ & ENTRÉE EN SCÈNE SÉQUENTIELLE
       */}
       <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-14">
-        <div className="max-w-2xl text-left pl-3 sm:pl-6 md:pl-10 lg:pl-12">
-          {/* Sur-titre Or officiel BMC FOOD */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="max-w-2xl text-left pl-3 sm:pl-6 md:pl-10 lg:pl-12"
+        >
+          {/* 1. Sur-titre Or officiel BMC FOOD */}
           <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            variants={badgeVariants}
             className="inline-flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-bold uppercase tracking-[0.18em] sm:tracking-[0.25em] text-bmc-gold"
           >
             <Sparkles className="size-3 sm:size-3.5 text-bmc-gold" />
             <span>BMC FOOD · SAVEURS SIGNATURES</span>
           </motion.div>
 
-          {/* Grand Titre proportionné (24px sur mobile, 48-60px sur desktop) */}
+          {/* 2. Grand Titre proportionné */}
           <motion.h1
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.08 }}
+            variants={titleVariants}
             className="mt-2.5 sm:mt-3 font-display text-2xl font-extrabold uppercase tracking-tight text-white sm:text-4xl lg:text-5xl xl:text-6xl leading-[1.08] sm:leading-[1.04]"
           >
             La Révolution <br />
@@ -79,56 +150,64 @@ export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
             Est Arrivée.
           </motion.h1>
 
-          {/* Descriptif officiel */}
+          {/* 3. Descriptif officiel */}
           <motion.p
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.16 }}
+            variants={textVariants}
             className="mt-2.5 sm:mt-3.5 max-w-lg text-xs sm:text-sm lg:text-base text-zinc-200 font-normal leading-relaxed"
           >
             L'incontournable <strong className="font-bold text-white">Tacos de Dakar</strong> : viandes marinées savoureuses, frites fraîches et sauce fromagère onctueuse maison. Préparé à la commande.
           </motion.p>
 
-          {/* Bouton d'Action Unique Or brossé : « Explorer le Menu » */}
+          {/* 4. Bouton d'Action Unique Or brossé avec micro-shimmer élégant */}
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.24 }}
+            variants={buttonVariants}
             className="mt-4 sm:mt-5 flex items-center w-full sm:w-auto"
           >
             <motion.button
               type="button"
-              whileHover={{ scale: 1.02 }}
+              whileHover={{ scale: 1.025 }}
               whileTap={{ scale: 0.97 }}
               onClick={onExploreMenu}
               aria-label="Explorer le menu BMC Food"
-              className="h-11 sm:h-13 px-5 sm:px-8 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 font-display text-xs sm:text-sm font-black uppercase tracking-wider text-black shadow-lg shadow-bmc-gold/30 hover:brightness-110 cursor-pointer transition-all whitespace-nowrap"
+              className="relative overflow-hidden h-11 sm:h-13 px-5 sm:px-8 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 font-display text-xs sm:text-sm font-black uppercase tracking-wider text-black shadow-lg shadow-bmc-gold/30 hover:brightness-110 cursor-pointer transition-all whitespace-nowrap group"
             >
+              {/* Discret reflet lumineux (shimmer) balayant le bouton à intervalle régulier */}
+              <motion.span
+                aria-hidden="true"
+                initial={{ x: '-130%' }}
+                animate={{ x: '230%' }}
+                transition={{
+                  repeat: Infinity,
+                  repeatDelay: 5,
+                  duration: 1.5,
+                  ease: 'easeInOut',
+                }}
+                className="pointer-events-none absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/35 to-transparent"
+              />
+
               <UtensilsCrossed className="size-3.5 sm:size-4 text-black stroke-[2.5] shrink-0" />
               <span>Explorer le Menu</span>
-              <ArrowRight className="size-3.5 sm:size-4 text-black stroke-[2.5] shrink-0" />
+              <ArrowRight className="size-3.5 sm:size-4 text-black stroke-[2.5] shrink-0 transition-transform duration-200 group-hover:translate-x-0.5" />
             </motion.button>
           </motion.div>
 
-          {/* Horaires et livraison discrets */}
+          {/* 5. Horaires et livraison discrets */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.32 }}
+            variants={metaVariants}
             className="mt-4 sm:mt-5 flex items-center gap-3 sm:gap-4 text-[10px] sm:text-xs text-zinc-300 font-medium"
           >
             <div className="flex items-center gap-1.5">
               <Clock className="size-3 sm:size-3.5 text-bmc-gold" />
-              <span>Ouvert 11h – 02h (7j/7)</span>
+              <span>Ouvert 11h – 02h (Mar–Dim)</span>
             </div>
             <span className="size-1 rounded-full bg-zinc-500" />
             <span className="text-zinc-200">Livraison express Dakar</span>
           </motion.div>
-        </div>
+        </motion.div>
       </div>
 
       {/* 
-        4. DÉGRADÉ FONDU PROGRESSIF EN BAS (TRANSMISSION FLUIDE SANS CASSER)
+        4. DÉGRADÉ FONDU PROGRESSIF EN BAS
       */}
       <div
         aria-hidden="true"

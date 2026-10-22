@@ -8,6 +8,7 @@ import { FeaturedGrid } from './components/home/FeaturedGrid'
 import { StickyCartBar } from './components/home/StickyCartBar'
 import { NavMenuDrawer } from './components/home/NavMenuDrawer'
 import { Footer } from './components/home/Footer'
+import { CulinaryVideoShowcase } from './components/home/CulinaryVideoShowcase'
 import { ProvisionalCheckout } from './components/checkout/ProvisionalCheckout'
 import { useDailySpecials } from './hooks/useDailySpecials'
 import { useMenu } from './hooks/useMenu'
@@ -97,6 +98,13 @@ export default function App() {
           onSeeAll={() => setActiveCategory('all')}
         />
       </main>
+
+      {/* Capsule Vidéo Culinaire Immersive (« L'Art du Tacos Pané » - 5 Scènes Vidéo) */}
+      <CulinaryVideoShowcase
+        onExploreMenu={() => {
+          document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth' })
+        }}
+      />
 
       {/* 
         6. BARRE PANIER FLOTTANTE (« Pensé pour le pouce », Page 11, Point 6)
