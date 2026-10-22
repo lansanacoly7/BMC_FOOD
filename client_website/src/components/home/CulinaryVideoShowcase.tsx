@@ -7,8 +7,6 @@ import {
   ArrowRight,
   ShieldCheck,
   Sparkles,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 
@@ -90,10 +88,6 @@ export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcasePr
 
   const goToNext = useCallback(() => {
     setActiveSceneIndex((prev) => (prev + 1) % CULINARY_SCENES.length)
-  }, [])
-
-  const goToPrev = useCallback(() => {
-    setActiveSceneIndex((prev) => (prev - 1 + CULINARY_SCENES.length) % CULINARY_SCENES.length)
   }, [])
 
   // Défilement automatique des scènes
@@ -201,29 +195,22 @@ export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcasePr
           onMouseLeave={() => setIsHovered(false)}
           className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl border border-amber-500/30 bg-black shadow-[0_0_50px_rgba(252,184,0,0.14)] group"
         >
-          {/* BARRES DE PROGRESSION ÉLÉGANTES (Style Stories Instagram) */}
-          <div className="absolute top-3 left-4 right-4 z-30 flex items-center gap-1.5 sm:gap-2">
+          {/* PETITS DOTS DE NAVIGATION DISCRETS SUR LA GAUCHE (Style Best-Sellers) */}
+          <div className="absolute top-3.5 left-3.5 sm:top-4 sm:left-4 z-30 flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md px-2.5 py-1.5 border border-white/10">
             {CULINARY_SCENES.map((scene, idx) => {
               const isActive = idx === activeSceneIndex
-              const isPast = idx < activeSceneIndex
               return (
                 <button
                   key={scene.id}
                   type="button"
                   onClick={() => setActiveSceneIndex(idx)}
-                  className="flex-1 h-1 sm:h-1.5 rounded-full overflow-hidden bg-white/20 backdrop-blur-sm cursor-pointer transition-all hover:h-2"
+                  className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                    isActive
+                      ? 'w-5 sm:w-6 bg-gradient-to-r from-bmc-gold to-amber-400 shadow-sm shadow-bmc-gold/50'
+                      : 'w-1.5 bg-white/30 hover:bg-white/60'
+                  }`}
                   aria-label={`Aller à la scène ${idx + 1}: ${scene.title}`}
-                >
-                  <div
-                    className={`h-full transition-all duration-300 ${
-                      isActive
-                        ? 'bg-gradient-to-r from-amber-400 to-bmc-gold w-full'
-                        : isPast
-                        ? 'bg-white/80 w-full'
-                        : 'w-0'
-                    }`}
-                  />
-                </button>
+                />
               )
             })}
           </div>
@@ -256,34 +243,8 @@ export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcasePr
               </motion.div>
             </AnimatePresence>
 
-            {/* Voile dégradé protecteur subtil en haut pour les barres de progression */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/80 via-black/30 to-transparent z-10"
-            />
-
-            {/* Flèche Gauche (Précédent) */}
-            <button
-              type="button"
-              onClick={goToPrev}
-              aria-label="Scène précédente"
-              className="absolute left-3 top-1/2 -translate-y-1/2 z-20 flex size-9 sm:size-10 items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-white border border-white/20 opacity-0 group-hover:opacity-100 transition-all hover:bg-black/90 hover:border-bmc-gold hover:text-bmc-gold cursor-pointer"
-            >
-              <ChevronLeft className="size-5" />
-            </button>
-
-            {/* Flèche Droite (Suivant) */}
-            <button
-              type="button"
-              onClick={goToNext}
-              aria-label="Scène suivante"
-              className="absolute right-3 top-1/2 -translate-y-1/2 z-20 flex size-9 sm:size-10 items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-white border border-white/20 opacity-0 group-hover:opacity-100 transition-all hover:bg-black/90 hover:border-bmc-gold hover:text-bmc-gold cursor-pointer"
-            >
-              <ChevronRight className="size-5" />
-            </button>
-
             {/* Boutons de contrôle discrets en haut à droite (Play/Pause et Son/Mute) */}
-            <div className="absolute top-6 right-3.5 flex items-center gap-1.5 z-20">
+            <div className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 flex items-center gap-1.5 z-20">
               <button
                 type="button"
                 onClick={togglePlay}
@@ -304,7 +265,7 @@ export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcasePr
           </div>
         </motion.div>
 
-        {/* BOUTON D'ACTION COMPACT & DISCRET SOUS LA VIDÉO */}
+        {/* BOUTON D'ACTION (Compact sur mobile, Somptueux et grand sur desktop) */}
         <div className="mt-5 sm:mt-7 text-center space-y-2">
           <motion.button
             type="button"
@@ -312,18 +273,18 @@ export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcasePr
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            whileHover={{ scale: 1.03 }}
+            whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.98 }}
-            className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-400 via-bmc-gold to-amber-500 px-5 sm:px-7 py-2 sm:py-2.5 text-xs sm:text-sm font-black uppercase tracking-wider text-black shadow-md shadow-bmc-gold/20 transition-all cursor-pointer hover:shadow-lg hover:shadow-bmc-gold/30 hover:brightness-105"
+            className="group inline-flex items-center gap-2 sm:gap-3 rounded-full bg-gradient-to-r from-amber-400 via-bmc-gold to-amber-500 px-5 sm:px-8 py-2 sm:py-3.5 text-xs sm:text-sm font-black uppercase tracking-wider text-black shadow-md shadow-bmc-gold/20 sm:shadow-[0_10px_30px_rgba(252,184,0,0.35)] transition-all cursor-pointer hover:shadow-lg sm:hover:shadow-[0_15px_40px_rgba(252,184,0,0.5)] hover:brightness-105"
           >
-            <span>Voir la Carte</span>
-            <span className="hidden sm:inline">& Commander</span>
-            <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
+            <span className="sm:hidden">Voir la Carte</span>
+            <span className="hidden sm:inline">Découvrir la Carte & Commander</span>
+            <ArrowRight className="size-3.5 sm:size-4 transition-transform group-hover:translate-x-1" />
           </motion.button>
 
           <p className="flex items-center justify-center gap-1.5 text-[11px] sm:text-xs text-zinc-400">
             <ShieldCheck className="size-3 text-emerald-400" />
-            <span>Livraison express à Dakar en 30-45 min</span>
+            <span>Livraison express à Dakar en 30-45 min · Emballage isotherme premium</span>
           </p>
         </div>
       </div>
