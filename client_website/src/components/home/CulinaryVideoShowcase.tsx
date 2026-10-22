@@ -103,7 +103,7 @@ export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcasePr
               muted={isMuted}
               playsInline
               preload="metadata"
-              poster="/images/hero/tacos_mixte_pane_cut.webp"
+              poster="/images/hero/tacos_pane_knife_cut.jpg"
               className="size-full object-cover object-center filter contrast-105"
             >
               <source src="/images/hero/bmc_video_hero.mp4" type="video/mp4" />
