@@ -1,4 +1,4 @@
-import { Clock, MapPin, Phone, Sparkles, Utensils, ShieldCheck, ArrowUpRight } from 'lucide-react'
+import { Clock, MapPin, Phone, Sparkles, Utensils, ShieldCheck, ArrowUpRight, Motorbike } from 'lucide-react'
 
 interface FooterProps {
   onExploreMenu?: () => void
@@ -115,7 +115,7 @@ export function Footer({ onExploreMenu }: FooterProps) {
               {/* Livraison Express Dakar */}
               <div className="flex items-start gap-3">
                 <div className="w-5 shrink-0 flex items-center justify-center pt-0.5">
-                  <MapPin className="size-4 text-bmc-gold" />
+                  <Motorbike className="size-4 text-bmc-gold" />
                 </div>
                 <div>
                   <p className="font-bold text-white leading-tight">Livraison Express Dakar</p>
