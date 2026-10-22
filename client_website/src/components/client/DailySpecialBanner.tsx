@@ -231,7 +231,7 @@ export function DailySpecialBanner({
                     <span className="block text-[8px] xs:text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-zinc-400">
                       Tarif
                     </span>
-                    <p className="font-display text-xl xs:text-2xl sm:text-3xl lg:text-4xl font-black tabular-nums text-bmc-gold drop-shadow-[0_2px_14px_rgba(252,184,0,0.4)] leading-none whitespace-nowrap mt-0.5">
+                    <p className="font-display text-xl xs:text-2xl sm:text-3xl lg:text-4xl font-black tabular-nums text-bmc-gold leading-none whitespace-nowrap mt-0.5">
                       {formatFcfa(currentProduct.price)}
                     </p>
                   </div>
@@ -241,7 +241,7 @@ export function DailySpecialBanner({
                     <AddButton
                       product={currentProduct}
                       onAdd={onAdd}
-                      className="h-12 sm:h-13 lg:h-14 px-7 lg:px-9 text-xs sm:text-sm font-black rounded-xl sm:rounded-2xl shadow-xl shadow-bmc-gold/30 hover:scale-105"
+                      className="h-12 sm:h-13 lg:h-14 px-7 lg:px-9 text-xs sm:text-sm font-black rounded-xl sm:rounded-2xl shadow-md shadow-black/50 hover:shadow-lg hover:shadow-black/70 hover:scale-105"
                     />
                   </div>
                 </div>
@@ -333,7 +333,7 @@ function AddButton({
       whileTap={{ scale: 0.96 }}
       onClick={handleClick}
       aria-label={`Ajouter ${product.name} au panier`}
-      className={`group inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 font-display font-black uppercase tracking-wider text-black shadow-lg shadow-bmc-gold/25 hover:shadow-xl hover:shadow-bmc-gold/40 hover:brightness-105 cursor-pointer transition-all shrink-0 whitespace-nowrap active:scale-95 ${className}`}
+      className={`group inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 font-display font-black uppercase tracking-wider text-black shadow-md shadow-black/40 hover:shadow-lg hover:shadow-black/60 hover:brightness-105 cursor-pointer transition-all shrink-0 whitespace-nowrap active:scale-95 ${className}`}
     >
       <AnimatePresence mode="wait" initial={false}>
         {justAdded ? (
