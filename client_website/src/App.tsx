@@ -102,11 +102,8 @@ export default function App() {
            Catégories, Grille & Showcase Vidéos Culinaires
            ========================================================================= */
         <>
-          {/* ÉTAPE 1 : LE HERO CINÉMATIQUE PLEINE LARGEUR AVEC EXPLORER LE MENU & CONNEXION/INSCRIPTION */}
-          <HeroCinematic
-            onExploreMenu={() => handleNavigate('menu')}
-            onOpenAuth={() => setIsAuthModalOpen(true)}
-          />
+          {/* ÉTAPE 1 : LE HERO CINÉMATIQUE PLEINE LARGEUR SANS CARTE */}
+          <HeroCinematic onExploreMenu={() => handleNavigate('menu')} />
 
           {/* BANDEAU VEDETTE HYBRIDE PLAT DU JOUR & BEST-SELLERS */}
           <DailySpecialBanner
