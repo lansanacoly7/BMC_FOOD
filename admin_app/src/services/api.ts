@@ -18,17 +18,12 @@ export const DEV_DEFAULT_TOKEN = '5950ee892e2812d22579dfb9527874765235f85e'
 
 export function getAdminToken(): string | null {
   try {
-    const stored = localStorage.getItem(TOKEN_KEY)
-    if (stored) return stored
-    if (import.meta.env.DEV) {
-      localStorage.setItem(TOKEN_KEY, DEV_DEFAULT_TOKEN)
-      return DEV_DEFAULT_TOKEN
-    }
-    return null
+    return localStorage.getItem(TOKEN_KEY)
   } catch {
     return null
   }
 }
+
 
 export function setAdminToken(token: string): void {
   try {

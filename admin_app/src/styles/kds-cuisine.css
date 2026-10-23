@@ -1,0 +1,105 @@
+/**
+ * BMC FOOD KDS CUISINE - Styles et tokens scopés strictement à l'onglet Cuisine & Commandes
+ * N'affecte aucunement la page / onglet Plat du Jour.
+ */
+
+.kds-cuisine {
+  /* Palette stricte (Neutres + Ambre + Rouge alerte + Vert point API) */
+  --kds-c-bg: #0B0D10;
+  --kds-c-surface: #14171C;
+  --kds-c-surface-raised: #1C2128;
+  --kds-c-border: #232830;
+  --kds-c-border-subtle: #1C2128;
+  --kds-c-text-primary: #F2F4F7;
+  --kds-c-text-secondary: #9AA3AF;
+  --kds-c-text-muted: #6C7684;
+
+  /* Accent unique de marque */
+  --kds-c-amber: #F5B301;
+  --kds-c-amber-hover: #DDA101;
+  --kds-c-amber-bg: rgba(245, 179, 1, 0.12);
+  --kds-c-amber-border: rgba(245, 179, 1, 0.35);
+
+  /* Alertes et statut */
+  --kds-c-red: #EF4444;
+  --kds-c-red-bg: rgba(239, 68, 68, 0.14);
+  --kds-c-red-border: rgba(239, 68, 68, 0.4);
+  --kds-c-green: #22C55E;
+
+  /* Tailles et rayons */
+  --kds-c-radius: 12px;
+}
+
+/* Scrollbar horizontale personnalisée pour le Kanban */
+.kds-kanban-scroll {
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.kds-kanban-scroll::-webkit-scrollbar {
+  height: 10px;
+}
+
+.kds-kanban-scroll::-webkit-scrollbar-track {
+  background: #14171C;
+  border-radius: 9999px;
+  border: 1px solid #232830;
+}
+
+.kds-kanban-scroll::-webkit-scrollbar-thumb {
+  background: #3A414C;
+  border-radius: 9999px;
+  border: 2px solid #14171C;
+  transition: background-color 0.2s ease;
+}
+
+.kds-kanban-scroll::-webkit-scrollbar-thumb:hover {
+  background: #F5B301;
+}
+
+/* Scrollbar verticale discrète pour chaque colonne */
+.kds-col-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #232830 transparent;
+}
+
+.kds-col-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.kds-col-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.kds-col-scroll::-webkit-scrollbar-thumb {
+  background: #232830;
+  border-radius: 9999px;
+}
+
+.kds-col-scroll::-webkit-scrollbar-thumb:hover {
+  background: #3A414C;
+}
+
+/* Pulsation douce réservée au retard critique (> 15 min) */
+@keyframes kds-pulse-danger-soft {
+  0%, 100% {
+    border-color: #EF4444;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+  }
+  50% {
+    border-color: rgba(239, 68, 68, 0.6);
+    box-shadow: 0 0 14px 2px rgba(239, 68, 68, 0.25);
+  }
+}
+
+.kds-pulse-danger-soft {
+  animation: kds-pulse-danger-soft 2s infinite ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kds-pulse-danger-soft {
+    animation: none;
+    border-color: #EF4444 !important;
+  }
+}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { CartDrawer } from './components/cart/CartDrawer'
 import { DailySpecialBanner } from './components/client/DailySpecialBanner'
 import { TopHeader } from './components/home/TopHeader'
@@ -12,6 +12,7 @@ import { CulinaryVideoShowcase } from './components/home/CulinaryVideoShowcase'
 import { MenuHero } from './components/home/MenuHero'
 import { MenuView } from './components/menu/MenuView'
 import { ProvisionalCheckout } from './components/checkout/ProvisionalCheckout'
+import { AuthModal, type ClientUser } from './components/auth/AuthModal'
 import { useDailySpecials } from './hooks/useDailySpecials'
 import { useMenu } from './hooks/useMenu'
 import { useCart } from './hooks/useCart'
@@ -19,9 +20,23 @@ import { useCart } from './hooks/useCart'
 export default function App() {
   const [currentPage, setCurrentPage] = useState<'home' | 'menu'>('home')
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false)
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+  const [clientUser, setClientUser] = useState<ClientUser | null>(null)
   const [activeCategory, setActiveCategory] = useState('all')
   const searchQuery = ''
   const [isCheckingOut, setIsCheckingOut] = useState(false)
+
+  // Chargement du compte client BMC sauvegardé
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('bmc_client_user')
+      if (saved) {
+        setClientUser(JSON.parse(saved))
+      }
+    } catch {
+      // Ignorer
+    }
+  }, [])
 
   // Navigation fluide entre Accueil et la page Menu d'El Hadji
   const handleNavigate = (page: 'home' | 'menu') => {
@@ -49,7 +64,7 @@ export default function App() {
     <div className="min-h-dvh bg-zinc-950 text-zinc-100 pb-28 selection:bg-bmc-gold selection:text-black">
       {/* 
         1. EN-TÊTE NOIR ET LOGO
-        Menu hamburger à gauche, logo BMC Food centré, navigation Accueil / Menu & La Carte, panier à droite.
+        Menu hamburger à gauche, logo BMC Food centré, navigation Accueil / Menu & La Carte, bouton Connexion / Inscription avec Logo BMC, panier à droite.
       */}
       <TopHeader
         cartItemCount={itemCount}
@@ -58,6 +73,8 @@ export default function App() {
         onSelectCategory={setActiveCategory}
         currentPage={currentPage}
         onNavigate={handleNavigate}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        clientUser={clientUser}
       />
 
       {/* Tiroir latéral de navigation & informations (accessible via hamburger) */}
@@ -66,6 +83,17 @@ export default function App() {
         onClose={() => setIsNavMenuOpen(false)}
         onSelectCategory={setActiveCategory}
         onNavigate={handleNavigate}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        clientUser={clientUser}
+      />
+
+      {/* Modal d'authentification client BMC Food (Connexion / Inscription) */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={(user) => {
+          setClientUser(user)
+        }}
       />
 
       {currentPage === 'home' ? (
@@ -74,8 +102,11 @@ export default function App() {
            Catégories, Grille & Showcase Vidéos Culinaires
            ========================================================================= */
         <>
-          {/* ÉTAPE 1 : LE HERO CINÉMATIQUE PLEINE LARGEUR SANS CARTE */}
-          <HeroCinematic onExploreMenu={() => handleNavigate('menu')} />
+          {/* ÉTAPE 1 : LE HERO CINÉMATIQUE PLEINE LARGEUR AVEC EXPLORER LE MENU & CONNEXION/INSCRIPTION */}
+          <HeroCinematic
+            onExploreMenu={() => handleNavigate('menu')}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+          />
 
           {/* BANDEAU VEDETTE HYBRIDE PLAT DU JOUR & BEST-SELLERS */}
           <DailySpecialBanner

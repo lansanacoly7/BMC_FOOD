@@ -8,5 +8,17 @@ export default defineConfig({
   server: {
     // Port fixe : le site client tourne sur 5173, l'app admin sur 5174.
     port: 5174,
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/media': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
+    },
   },
 })
+

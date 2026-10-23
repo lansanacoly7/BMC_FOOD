@@ -7,13 +7,15 @@ interface NavMenuDrawerProps {
   onClose: () => void
   onSelectCategory: (categoryId: string) => void
   onNavigate?: (page: 'home' | 'menu') => void
+  onOpenAuth?: () => void
+  clientUser?: { name: string; phone: string } | null
 }
 
 /**
  * Tiroir latéral d'informations et navigation BMC Food Dakar.
  * Déclenché par le bouton menu hamburger de l'en-tête (TopHeader).
  */
-export function NavMenuDrawer({ isOpen, onClose, onSelectCategory, onNavigate }: NavMenuDrawerProps) {
+export function NavMenuDrawer({ isOpen, onClose, onSelectCategory, onNavigate, onOpenAuth, clientUser }: NavMenuDrawerProps) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -86,6 +88,25 @@ export function NavMenuDrawer({ isOpen, onClose, onSelectCategory, onNavigate }:
                   La Carte
                 </button>
               </div>
+
+              {/* Bouton Espace Client / Connexion avec Logo BMC */}
+              <button
+                type="button"
+                onClick={() => {
+                  onClose()
+                  onOpenAuth?.()
+                }}
+                className="w-full flex items-center justify-center gap-2.5 rounded-xl border border-bmc-gold/40 bg-zinc-900/90 py-3 px-4 text-center text-xs font-black uppercase tracking-wider text-white hover:border-bmc-gold hover:bg-zinc-800 transition-all cursor-pointer shadow-md"
+              >
+                <img
+                  src="/images/brand/logo.png"
+                  alt="BMC"
+                  className="h-5.5 w-auto object-contain shrink-0"
+                />
+                <span className="text-bmc-gold font-bold">
+                  {clientUser ? `Compte (${clientUser.name.split(' ')[0]})` : 'Connexion / Inscription'}
+                </span>
+              </button>
 
               {/* Raccourcis Catégories — Style App Mobile */}
               <div className="space-y-2">

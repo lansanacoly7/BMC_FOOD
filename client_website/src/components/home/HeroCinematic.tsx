@@ -5,6 +5,7 @@ import type { Variants } from 'motion/react'
 interface HeroCinematicProps {
   onExploreMenu: () => void
   onOrderNow?: () => void
+  onOpenAuth?: () => void
 }
 
 /** Variantes Motion harmonieuses pour l'entrée cadencée (stagger) */
@@ -85,7 +86,7 @@ const metaVariants: Variants = {
  * - Discret reflet lumineux doré sur le bouton « Explorer le Menu » sans perturber le design.
  * - Voile dégradé protecteur à GAUCHE pour assurer la parfaite lisibilité des textes.
  */
-export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
+export function HeroCinematic({ onExploreMenu, onOpenAuth }: HeroCinematicProps) {
   return (
     <section
       aria-label="Hero Signature BMC Food"
@@ -158,10 +159,10 @@ export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
             L'incontournable <strong className="font-bold text-white">Tacos de Dakar</strong> : viandes marinées savoureuses, frites fraîches et sauce fromagère onctueuse maison. Préparé à la commande.
           </motion.p>
 
-          {/* 4. Bouton d'Action Unique Or brossé avec micro-shimmer élégant */}
+          {/* 4. Boutons d'Action : Explorer le Menu & Connexion / Inscription */}
           <motion.div
             variants={buttonVariants}
-            className="mt-4 sm:mt-5 flex items-center w-full sm:w-auto"
+            className="mt-4 sm:mt-5 flex flex-wrap items-center gap-3 w-full sm:w-auto"
           >
             <motion.button
               type="button"
@@ -189,6 +190,26 @@ export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
               <span>Explorer le Menu</span>
               <ArrowRight className="size-3.5 sm:size-4 text-black stroke-[2.5] shrink-0 transition-transform duration-200 group-hover:translate-x-0.5" />
             </motion.button>
+
+            {onOpenAuth && (
+              <motion.button
+                type="button"
+                whileHover={{ scale: 1.025 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={onOpenAuth}
+                aria-label="Connexion ou Inscription client BMC Food"
+                className="relative overflow-hidden h-11 sm:h-13 px-4 sm:px-6 flex items-center justify-center gap-2.5 rounded-xl border border-bmc-gold/60 bg-zinc-950/80 hover:bg-zinc-900 text-white font-display text-xs sm:text-sm font-black uppercase tracking-wider shadow-lg shadow-black/50 hover:border-bmc-gold cursor-pointer transition-all whitespace-nowrap group backdrop-blur-md"
+              >
+                <img
+                  src="/images/brand/logo.png"
+                  alt="BMC"
+                  className="h-5 sm:h-6 w-auto object-contain transition-transform group-hover:scale-110 shrink-0"
+                />
+                <span className="text-zinc-100 group-hover:text-bmc-gold transition-colors">
+                  Connexion / Inscription
+                </span>
+              </motion.button>
+            )}
           </motion.div>
 
           {/* 5. Horaires et livraison discrets */}

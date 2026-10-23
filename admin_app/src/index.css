@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+@import './styles/tokens.css';
+@import './styles/kds-cuisine.css';
 
 /*
  * Charte graphique officielle BMC Food v1.1 (Charte_graphique_BMC_Food.pdf).

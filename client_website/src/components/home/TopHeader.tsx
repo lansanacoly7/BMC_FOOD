@@ -8,6 +8,8 @@ interface TopHeaderProps {
   onSelectCategory?: (categoryId: string) => void
   currentPage?: 'home' | 'menu'
   onNavigate?: (page: 'home' | 'menu') => void
+  onOpenAuth?: () => void
+  clientUser?: { name: string; phone: string } | null
 }
 
 /**
@@ -20,6 +22,8 @@ export function TopHeader({
   onToggleMenu,
   currentPage = 'home',
   onNavigate,
+  onOpenAuth,
+  clientUser,
 }: TopHeaderProps) {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-zinc-950/95 backdrop-blur-md transition-all">
@@ -83,13 +87,39 @@ export function TopHeader({
           </div>
         </nav>
 
-        {/* DROITE : Téléphone direct + Panier + Menu mobile */}
-        <div className="flex items-center gap-2 sm:gap-4">
-          {/* Appel direct (visible dès tablette) */}
+        {/* DROITE : Connexion/Inscription + Téléphone direct + Panier + Menu mobile */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Bouton Connexion / Inscription avec Logo BMC */}
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            onClick={onOpenAuth}
+            aria-label={clientUser ? `Espace Client (${clientUser.name})` : "Connexion ou Inscription"}
+            className="flex h-10 items-center gap-2 rounded-full border border-bmc-gold/40 bg-zinc-900/90 px-3 sm:px-3.5 text-zinc-100 hover:border-bmc-gold hover:bg-zinc-800 transition-all cursor-pointer shadow-md group"
+          >
+            <img
+              src="/images/brand/logo.png"
+              alt="BMC Logo"
+              className="h-5 sm:h-5.5 w-auto object-contain transition-transform group-hover:scale-110 shrink-0"
+            />
+            {clientUser ? (
+              <span className="text-xs font-bold text-bmc-gold truncate max-w-[80px] sm:max-w-none">
+                {clientUser.name.split(' ')[0]}
+              </span>
+            ) : (
+              <span className="text-xs font-bold tracking-tight">
+                <span className="hidden sm:inline">Connexion / Inscription</span>
+                <span className="sm:hidden">Connexion</span>
+              </span>
+            )}
+          </motion.button>
+
+          {/* Appel direct (visible dès desktop) */}
           <a
             href="tel:778561313"
             aria-label="Appeler le restaurant au 77 856 13 13"
-            className="hidden md:inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-900 px-3.5 py-1.5 text-xs font-bold text-zinc-200 transition-colors hover:border-bmc-gold hover:text-bmc-gold"
+            className="hidden xl:inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-900 px-3.5 py-1.5 text-xs font-bold text-zinc-200 transition-colors hover:border-bmc-gold hover:text-bmc-gold"
           >
             <Phone className="size-3.5 text-emerald-400" />
             <span>77 856 13 13</span>
@@ -102,7 +132,7 @@ export function TopHeader({
             whileTap={{ scale: 0.95 }}
             onClick={onOpenCart}
             aria-label={`Voir le panier (${cartItemCount} articles)`}
-            className="relative flex h-10 items-center gap-2 rounded-full bg-zinc-900 px-3.5 text-zinc-200 border border-white/10 hover:border-bmc-gold hover:text-white transition-all cursor-pointer shadow-md"
+            className="relative flex h-10 items-center gap-2 rounded-full bg-zinc-900 px-3 sm:px-3.5 text-zinc-200 border border-white/10 hover:border-bmc-gold hover:text-white transition-all cursor-pointer shadow-md"
           >
             <ShoppingBag className="size-4.5 text-bmc-gold" aria-hidden="true" />
             <span className="hidden sm:inline text-xs font-bold">Panier</span>
