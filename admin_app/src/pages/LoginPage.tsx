@@ -122,26 +122,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           </div>
         </div>
 
-        {/* FUSION : SÉLECTEUR DE RÔLE */}
-        <div className="flex rounded-xl p-1 border" style={{ backgroundColor: '#0B0D10', borderColor: '#232830' }}>
-          <button
-            type="button"
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-black uppercase tracking-wider rounded-lg shadow-md cursor-default"
-            style={{ backgroundColor: '#F5B301', color: '#0B0D10' }}
-          >
-            <ShieldCheck size={14} />
-            <span>Admin & KDS</span>
-          </button>
-          <a
-            href="http://localhost:5173/#login"
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-colors cursor-pointer hover:text-white"
-            style={{ color: '#9AA3AF' }}
-          >
-            <User size={14} />
-            <span>Espace Client</span>
-          </a>
-        </div>
-
         {/* MESSAGE D'ERREUR */}
         {errorMessage && (
           <div
