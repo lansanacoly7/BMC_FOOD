@@ -1,0 +1,144 @@
+/**
+ * BMC FOOD KDS (Kitchen Display System) - Design Tokens
+ * Spécifiquement calibré pour écrans tactiles 21-24" et tablettes en cuisine.
+ * Lisibilité garantie à 1,5 - 2 mètres sous éclairage chaud et ambiance bruyante.
+ */
+
+:root {
+  /* =========================================================================
+     01. COULEURS DE BASE & SURFACES (Fond ultra-sombre, contraste maximal)
+     ========================================================================= */
+  --kds-bg-app: #080B10;
+  --kds-bg-surface: #10151E;
+  --kds-bg-surface-raised: #18202D;
+  --kds-bg-surface-overlay: #1F293A;
+  
+  --kds-border-subtle: rgba(255, 255, 255, 0.08);
+  --kds-border-default: rgba(255, 255, 255, 0.15);
+  --kds-border-strong: rgba(255, 255, 255, 0.28);
+  --kds-border-highlight: rgba(252, 184, 0, 0.4);
+
+  /* Textes WCAG AAA */
+  --kds-text-primary: #FFFFFF;
+  --kds-text-secondary: #CBD5E1;
+  --kds-text-muted: #94A3B8;
+  --kds-text-faint: #64748B;
+
+  /* =========================================================================
+     02. COULEURS DE STATUT (Couleur + Icône + Libellé explicite)
+     ========================================================================= */
+  /* Or / Marque BMC Food */
+  --kds-gold: #FCB800;
+  --kds-gold-hover: #E5A700;
+  --kds-gold-glow: rgba(252, 184, 0, 0.25);
+  --kds-gold-surface: rgba(252, 184, 0, 0.12);
+
+  /* Colonne 1 : À PRÉPARER (Ambre vigilant) */
+  --kds-status-pending: #F59E0B;
+  --kds-status-pending-bg: rgba(245, 158, 11, 0.14);
+  --kds-status-pending-border: rgba(245, 158, 11, 0.35);
+  --kds-status-pending-text: #FDE68A;
+
+  /* Colonne 2 : EN CUISINE / AU GRIL (Orange feu intense) */
+  --kds-status-prep: #FF6B00;
+  --kds-status-prep-bg: rgba(255, 107, 0, 0.16);
+  --kds-status-prep-border: rgba(255, 107, 0, 0.4);
+  --kds-status-prep-text: #FFEDD5;
+
+  /* Colonne 3 : PRÊT À RÉCUPÉRER (Vert émeraude franc) */
+  --kds-status-ready: #10B981;
+  --kds-status-ready-bg: rgba(16, 185, 129, 0.16);
+  --kds-status-ready-border: rgba(16, 185, 129, 0.4);
+  --kds-status-ready-text: #A7F3D0;
+
+  /* Colonne 4 : EN LIVRAISON (Teal / Cyan Dakar) */
+  --kds-status-delivery: #06B6D4;
+  --kds-status-delivery-bg: rgba(6, 182, 212, 0.15);
+  --kds-status-delivery-border: rgba(6, 182, 212, 0.35);
+  --kds-status-delivery-text: #CFFAFE;
+
+  /* URGENCE & RETARD : Rouge braise avec pulsation douce */
+  --kds-urgent-danger: #EF4444;
+  --kds-urgent-danger-bg: rgba(239, 68, 68, 0.22);
+  --kds-urgent-danger-border: rgba(239, 68, 68, 0.6);
+  --kds-urgent-danger-text: #FECACA;
+
+  /* =========================================================================
+     03. ÉCHELLE TYPOGRAPHIQUE (Lisible à 1,5m - 2m)
+     ========================================================================= */
+  --kds-font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --kds-font-display: 'Bricolage Grotesque', var(--kds-font-body);
+  --kds-font-mono: 'JetBrains Mono', 'Roboto Mono', monospace;
+
+  --kds-text-xs: 0.8125rem;   /* 13px */
+  --kds-text-sm: 0.9375rem;   /* 15px */
+  --kds-text-base: 1.125rem;  /* 18px - Base cuisine distance */
+  --kds-text-lg: 1.25rem;     /* 20px */
+  --kds-text-xl: 1.5rem;      /* 24px - Titres de cartes */
+  --kds-text-2xl: 1.875rem;   /* 30px - #Réf ticket */
+  --kds-text-3xl: 2.25rem;    /* 36px - Chiffres KPI & Horloge */
+  --kds-text-4xl: 2.75rem;    /* 44px */
+
+  /* =========================================================================
+     04. ESPACEMENTS & ZONES TACTILES (Conçu pour mains gantées / occupées)
+     ========================================================================= */
+  --kds-touch-min: 48px;
+  --kds-touch-btn: 58px;
+
+  --kds-radius-sm: 8px;
+  --kds-radius-md: 14px;
+  --kds-radius-lg: 20px;
+  --kds-radius-xl: 28px;
+  --kds-radius-pill: 9999px;
+
+  /* Ombres KDS */
+  --kds-shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.5), 0 2px 6px -1px rgba(0, 0, 0, 0.3);
+  --kds-shadow-urgent: 0 0 24px rgba(239, 68, 68, 0.35);
+  --kds-shadow-action: 0 6px 20px -2px rgba(252, 184, 0, 0.3);
+}
+
+/* =========================================================================
+   ANIMATIONS KDS (Pulsation douce non agressive, respect reduce-motion)
+   ========================================================================= */
+@keyframes kds-pulse-subtle {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+    border-color: rgba(239, 68, 68, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 22px 4px rgba(239, 68, 68, 0.25);
+    border-color: rgba(239, 68, 68, 1);
+  }
+}
+
+@keyframes kds-enter-slide {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.kds-card-urgent {
+  animation: kds-pulse-subtle 2.2s infinite ease-in-out;
+}
+
+.kds-card-new {
+  animation: kds-enter-slide 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Chiffres tabulaires universels pour chronos & prix */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Accessibilité: réduit les animations si demandé dans l'OS */
+@media (prefers-reduced-motion: reduce) {
+  .kds-card-urgent,
+  .kds-card-new {
+    animation: none !important;
+  }
+}
