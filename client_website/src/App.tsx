@@ -26,7 +26,7 @@ export default function App() {
   const searchQuery = ''
   const [isCheckingOut, setIsCheckingOut] = useState(false)
 
-  // Chargement du compte client BMC sauvegardé
+  // Chargement du compte client BMC sauvegardé et écoute hash #login
   useEffect(() => {
     try {
       const saved = localStorage.getItem('bmc_client_user')
@@ -36,6 +36,18 @@ export default function App() {
     } catch {
       // Ignorer
     }
+
+    if (window.location.hash === '#login') {
+      setIsAuthModalOpen(true)
+    }
+
+    const handleHash = () => {
+      if (window.location.hash === '#login') {
+        setIsAuthModalOpen(true)
+      }
+    }
+    window.addEventListener('hashchange', handleHash)
+    return () => window.removeEventListener('hashchange', handleHash)
   }, [])
 
   // Navigation fluide entre Accueil et la page Menu d'El Hadji
