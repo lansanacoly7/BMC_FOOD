@@ -66,6 +66,7 @@ export default function App() {
   if (isCheckingOut) {
     return (
       <ProvisionalCheckout
+        clientUser={clientUser}
         onBack={() => setIsCheckingOut(false)}
         onNewOrder={() => setIsCheckingOut(false)}
       />
@@ -105,6 +106,9 @@ export default function App() {
         onClose={() => setIsAuthModalOpen(false)}
         onSuccess={(user) => {
           setClientUser(user)
+        }}
+        onLogout={() => {
+          setClientUser(null)
         }}
       />
 

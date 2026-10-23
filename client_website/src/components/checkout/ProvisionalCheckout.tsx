@@ -1,6 +1,6 @@
-import { AlertTriangle, ArrowLeft, Check, Crosshair, ExternalLink, LoaderCircle, MapPin } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Check, Crosshair, ExternalLink, LoaderCircle, MapPin, UserCheck } from 'lucide-react'
 import { motion } from 'motion/react'
-import { type FormEvent, useId, useState } from 'react'
+import { type FormEvent, useId, useState, useEffect } from 'react'
 import { useCart } from '../../hooks/useCart'
 import { useOrderSubmission } from '../../hooks/useOrderSubmission'
 import { findDeliveryArea } from '../../lib/delivery'
@@ -17,6 +17,7 @@ import { WavePaymentModal } from './WavePaymentModal'
 const EMPTY_FORM: OrderCustomerDetails = { customer_name: '', phone: '', address: '', notes: '', payment_method: 'cash' }
 
 interface ProvisionalCheckoutProps {
+  clientUser?: { name: string; phone: string; email?: string } | null
   onBack: () => void
   onNewOrder: () => void
 }
@@ -25,11 +26,51 @@ interface ProvisionalCheckoutProps {
  * Écran « Finaliser la commande » (Univers Dark Luxury).
  * Design 100% harmonisé avec le thème sombre, les contrastes dorés et les cartes Ardoise.
  */
-export function ProvisionalCheckout({ onBack, onNewOrder }: ProvisionalCheckoutProps) {
+export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: ProvisionalCheckoutProps) {
   const formId = useId()
   const { items, subtotal } = useCart()
   const { status, isSubmitting, order, error, submit, clearError, reset } = useOrderSubmission()
-  const [form, setForm] = useState<OrderCustomerDetails>(EMPTY_FORM)
+
+  // Récupération automatique des coordonnées du client connecté (depuis props ou localStorage)
+  const [form, setForm] = useState<OrderCustomerDetails>(() => {
+    if (clientUser?.name || clientUser?.phone) {
+      return {
+        customer_name: clientUser.name || '',
+        phone: clientUser.phone || '',
+        address: '',
+        notes: '',
+        payment_method: 'cash',
+      }
+    }
+    try {
+      const saved = localStorage.getItem('bmc_client_user')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        return {
+          customer_name: parsed.name || '',
+          phone: parsed.phone || '',
+          address: '',
+          notes: '',
+          payment_method: 'cash',
+        }
+      }
+    } catch {
+      // Ignorer
+    }
+    return EMPTY_FORM
+  })
+
+  // Synchronisation dynamique si le compte client est connecté en cours de session
+  useEffect(() => {
+    if (clientUser) {
+      setForm((prev) => ({
+        ...prev,
+        customer_name: prev.customer_name || clientUser.name || '',
+        phone: prev.phone || clientUser.phone || '',
+      }))
+    }
+  }, [clientUser])
+
   const [selectedAreaId, setSelectedAreaId] = useState('')
   const [isWaveModalOpen, setIsWaveModalOpen] = useState(true)
   const [isOmModalOpen, setIsOmModalOpen] = useState(true)
@@ -201,10 +242,29 @@ export function ProvisionalCheckout({ onBack, onNewOrder }: ProvisionalCheckoutP
         <form id={formId} onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
           {/* Card 1 : Coordonnées client */}
           <div className="space-y-4.5 rounded-2xl bg-zinc-900/90 p-5 shadow-xl border border-white/10 backdrop-blur-xs">
-            <h2 className="font-display text-base font-extrabold text-white flex items-center gap-2">
-              <MapPin className="size-4 text-bmc-gold" />
-              Vos coordonnées de livraison
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-base font-extrabold text-white flex items-center gap-2">
+                <MapPin className="size-4 text-bmc-gold" />
+                Vos coordonnées de livraison
+              </h2>
+              {(clientUser || form.customer_name) && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-bmc-gold/15 border border-bmc-gold/40 px-2.5 py-1 text-[11px] font-bold text-bmc-gold">
+                  <UserCheck className="size-3.5" />
+                  <span>Compte connecté</span>
+                </span>
+              )}
+            </div>
+
+            {(clientUser || form.customer_name) && (
+              <div className="flex items-center gap-2.5 rounded-xl bg-zinc-950/80 border border-bmc-gold/30 px-3.5 py-2.5 text-xs text-zinc-300">
+                <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-bmc-gold/20 text-bmc-gold font-bold text-xs">
+                  ✓
+                </div>
+                <p className="text-[12px] text-zinc-300">
+                  Coordonnées récupérées automatiquement : <strong className="text-white">{form.customer_name}</strong> {form.phone ? `(${form.phone})` : ''}
+                </p>
+              </div>
+            )}
 
             <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300">
               Nom et prénom
