@@ -1,248 +1,195 @@
-import { Clock, MapPin, Phone, Sparkles, Utensils, ShieldCheck, ArrowUpRight } from 'lucide-react'
+import { ArrowUp, MapPin, MessageCircle } from 'lucide-react'
+import { isOpenAt } from '../../lib/greeting'
+
+type Page = 'home' | 'menu' | 'contact' | 'profile'
 
 interface FooterProps {
   onExploreMenu?: () => void
+  onNavigate?: (page: Page) => void
 }
 
-/**
- * Footer Officiel BMC Food Dakar
- * Conforme aux directives de Maimouna Sall :
- * - Logo officiel BMC Food mis en valeur (grand, net, lumineux à gauche)
- * - Éléments parfaitement équilibrés et alignés sur la même ligne (suppression des décalages haut/bas)
- * - Badges de paiement Wave, Orange Money et Espèces spacieux et alignés horizontalement
- * - Données de redirection BMC (Menus, Horaires, Livraison Dakar, Qualité)
- */
-export function Footer({ onExploreMenu }: FooterProps) {
-  const scrollTo = (elementId: string) => {
-    const el = document.getElementById(elementId)
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' })
-    } else if (onExploreMenu) {
-      onExploreMenu()
-    }
-  }
+const WHATSAPP_URL = 'https://wa.me/221778561313'
+const MAPS_URL = 'https://maps.google.com/?q=PGXV%2B6R7,+Dakar'
+
+const PAYMENTS = [
+  { name: 'Wave', src: '/images/payments/wave.png' },
+  { name: 'Orange Money', src: '/images/payments/orange_money.png' },
+  { name: 'Espèces', src: '/images/payments/cash.png' },
+]
+
+const NAV_LINKS: { page: Page; label: string }[] = [
+  { page: 'home', label: 'Accueil' },
+  { page: 'menu', label: 'La carte' },
+  { page: 'contact', label: 'Contact' },
+  { page: 'profile', label: 'Mon compte' },
+]
+
+/** Semaine affichée dans la colonne Horaires (index = Date.getDay()). Le lundi est fermé. */
+const WEEK = [
+  { day: 1, letter: 'L', name: 'Lundi', open: false },
+  { day: 2, letter: 'M', name: 'Mardi', open: true },
+  { day: 3, letter: 'M', name: 'Mercredi', open: true },
+  { day: 4, letter: 'J', name: 'Jeudi', open: true },
+  { day: 5, letter: 'V', name: 'Vendredi', open: true },
+  { day: 6, letter: 'S', name: 'Samedi', open: true },
+  { day: 0, letter: 'D', name: 'Dimanche', open: true },
+]
+
+const columnTitle = 'font-display text-sm font-semibold text-white'
+const linkClass = 'cursor-pointer text-left text-sm text-zinc-300 transition-colors hover:text-white'
+
+export function Footer({ onNavigate }: FooterProps) {
+  const isOpen = isOpenAt()
+  const now = new Date()
+  const today = now.getHours() < 2 ? (now.getDay() + 6) % 7 : now.getDay()
 
   return (
-    <footer
-      aria-label="Pied de page institutionnel BMC Food"
-      className="relative mt-16 sm:mt-24 border-t border-amber-500/20 bg-gradient-to-b from-zinc-950 via-black to-black text-zinc-300 overflow-hidden"
-    >
-      {/* Halo doré d'ambiance en arrière-plan */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-48 bg-amber-500/10 blur-3xl rounded-full"
-      />
-
-      <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8 space-y-10">
-        
-        {/* =====================================================================
-            LIGNE 1 : MARQUE BMC FOOD MISE EN VALEUR + MOYENS DE PAIEMENT ALIGNÉS
-            ===================================================================== */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 pb-8 border-b border-white/10">
-          
-          {/* Logo BMC Food majestueux mis en valeur à gauche */}
-          <div className="flex items-center gap-4 sm:gap-5">
-            <div className="relative shrink-0 p-1.5 rounded-2xl bg-gradient-to-br from-amber-500/20 via-zinc-900 to-black border border-amber-500/40 shadow-xl shadow-amber-500/10">
-              <img
-                src="/images/brand/logo.png"
-                alt="Logo officiel BMC Food Dakar"
-                width={96}
-                height={96}
-                className="size-16 sm:size-20 object-contain filter drop-shadow-[0_4px_16px_rgba(252,184,0,0.4)]"
-              />
+    <footer aria-label="Pied de page" className="mt-16 border-t border-white/10 bg-zinc-900 sm:mt-24">
+      {/* ===== Colonnes ===== */}
+      <div className="mx-auto max-w-7xl px-4 pt-12 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-12">
+          <div className="col-span-2 space-y-4 lg:col-span-4">
+            <div className="flex items-center gap-3">
+              <img src="/images/brand/logo.png" alt="BMC Food" width={64} height={64} className="size-14 object-contain" />
+              <p className="font-display text-xl font-bold text-white">BMC Food</p>
             </div>
-            <div>
-              <div className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-bmc-gold">
-                <Sparkles className="size-3 text-bmc-gold" />
-                <span>Fast-Food Gourmet · Dakar</span>
-              </div>
-              <h3 className="font-display text-xl sm:text-2xl font-black uppercase tracking-tight text-white mt-0.5">
-                BMC FOOD <span className="bg-gradient-to-r from-bmc-gold to-amber-400 bg-clip-text text-transparent">Dakar</span>
-              </h3>
-              <p className="text-xs text-zinc-300 mt-1 max-w-md">
-                Tacos panés signatures, Burgers gourmets saisis à la flamme & Poulet crispy préparés minute à la commande.
-              </p>
-            </div>
+            <p className="max-w-xs text-sm leading-relaxed text-zinc-300">
+              Tacos, burgers et poulet crispy, préparés à la commande à Dakar.
+            </p>
+            <a
+              href={MAPS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm text-zinc-300 transition-colors hover:text-white"
+            >
+              <MapPin className="size-4 shrink-0 text-bmc-gold" aria-hidden="true" />
+              PGXV+6R7, Dakar
+              <span className="text-bmc-gold underline underline-offset-4">Itinéraire</span>
+            </a>
           </div>
 
-          {/* Moyens de paiement : alignés horizontalement sur la même ligne */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 shrink-0">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 sm:hidden">
-              Paiements Sécurisés :
-            </span>
-
-            {/* Wave */}
-            <div className="inline-flex items-center gap-2.5 rounded-xl bg-zinc-900/90 border border-[#1DC8F2]/30 px-3.5 py-2 shadow-sm transition-all hover:border-[#1DC8F2]/70 hover:bg-zinc-900">
-              <img
-                src="/images/payments/wave.png"
-                alt="Paiement Wave Sénégal"
-                width={32}
-                height={32}
-                className="size-7 sm:size-8 rounded-lg object-contain bg-white/5 p-0.5 shrink-0"
-              />
-              <div className="text-left">
-                <span className="font-bold text-xs text-[#1DC8F2] block leading-tight">Wave</span>
-                <span className="text-[10px] text-zinc-300 block leading-tight">0% frais</span>
-              </div>
-            </div>
-
-            {/* Orange Money */}
-            <div className="inline-flex items-center gap-2.5 rounded-xl bg-zinc-900/90 border border-[#FF7900]/30 px-3.5 py-2 shadow-sm transition-all hover:border-[#FF7900]/70 hover:bg-zinc-900">
-              <img
-                src="/images/payments/orange_money.png"
-                alt="Paiement Orange Money Sénégal"
-                width={32}
-                height={32}
-                className="size-7 sm:size-8 rounded-lg object-contain bg-white/5 p-0.5 shrink-0"
-              />
-              <div className="text-left">
-                <span className="font-bold text-xs text-[#FF7900] block leading-tight">Orange Money</span>
-                <span className="text-[10px] text-zinc-300 block leading-tight">Code / QR</span>
-              </div>
-            </div>
-
-            {/* Espèces */}
-            <div className="inline-flex items-center gap-2.5 rounded-xl bg-zinc-900/90 border border-amber-500/30 px-3.5 py-2 shadow-sm transition-all hover:border-amber-400/70 hover:bg-zinc-900">
-              <img
-                src="/images/payments/cash.png"
-                alt="Paiement en Espèces"
-                width={32}
-                height={32}
-                className="size-7 sm:size-8 rounded-lg object-contain bg-white/5 p-0.5 shrink-0"
-              />
-              <div className="text-left">
-                <span className="font-bold text-xs text-amber-300 block leading-tight">Espèces</span>
-                <span className="text-[10px] text-zinc-300 block leading-tight">Au livreur</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* =====================================================================
-            LIGNE 2 : 3 COLONNES PARFAITEMENT ÉQUILIBRÉES & ALIGNÉES SUR LA MÊME LIGNE
-            ===================================================================== */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
-          
-          {/* Colonne 1 : Redirections Carte & Menus */}
-          <div className="space-y-3">
-            <h4 className="font-display text-xs font-black uppercase tracking-wider text-bmc-gold flex items-center gap-1.5 pb-2 border-b border-white/10">
-              <Utensils className="size-3.5 text-bmc-gold" />
-              <span>Redirection & Menus</span>
-            </h4>
-            <ul className="space-y-2 text-xs sm:text-sm">
-              <li>
-                <button
-                  type="button"
-                  onClick={() => scrollTo('menu-section')}
-                  className="group flex items-center gap-2 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                >
-                  <span className="size-1.5 rounded-full bg-amber-500/50 group-hover:bg-bmc-gold transition-colors" />
-                  <span>Notre Carte Complète</span>
-                  <ArrowUpRight className="size-3 opacity-0 group-hover:opacity-100 transition-opacity text-bmc-gold" />
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => scrollTo('menu-catalog-grid')}
-                  className="group flex items-center gap-2 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                >
-                  <span className="size-1.5 rounded-full bg-amber-500/50 group-hover:bg-bmc-gold transition-colors" />
-                  <span>Les Plus Commandés</span>
-                  <ArrowUpRight className="size-3 opacity-0 group-hover:opacity-100 transition-opacity text-bmc-gold" />
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => scrollTo('menu-section')}
-                  className="group flex items-center gap-2 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                >
-                  <span className="size-1.5 rounded-full bg-amber-500/50 group-hover:bg-bmc-gold transition-colors" />
-                  <span>Tacos Panés Signatures</span>
-                  <ArrowUpRight className="size-3 opacity-0 group-hover:opacity-100 transition-opacity text-bmc-gold" />
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => scrollTo('menu-section')}
-                  className="group flex items-center gap-2 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                >
-                  <span className="size-1.5 rounded-full bg-amber-500/50 group-hover:bg-bmc-gold transition-colors" />
-                  <span>Burgers Gourmets & Frites</span>
-                  <ArrowUpRight className="size-3 opacity-0 group-hover:opacity-100 transition-opacity text-bmc-gold" />
-                </button>
-              </li>
+          <nav aria-label="Navigation du pied de page" className="space-y-3 lg:col-span-2">
+            <h3 className={columnTitle}>Naviguer</h3>
+            <ul className="space-y-2.5">
+              {NAV_LINKS.map((link) => (
+                <li key={link.page}>
+                  <button type="button" onClick={() => onNavigate?.(link.page)} className={linkClass}>
+                    {link.label}
+                  </button>
+                </li>
+              ))}
             </ul>
+          </nav>
+
+          <div className="space-y-3 lg:col-span-2">
+            <h3 className={columnTitle}>Horaires</h3>
+            <p className="flex items-center gap-2 text-sm text-zinc-300">
+              <span className={`size-2 shrink-0 rounded-full ${isOpen ? 'bg-bmc-success' : 'bg-zinc-500'}`} />
+              {isOpen ? 'Ouvert maintenant' : 'Fermé pour le moment'}
+            </p>
+            <p className="text-sm text-zinc-300">
+              Mardi – dimanche
+              <br />
+              <span className="tabular-nums">11h – 02h</span>
+            </p>
+            <ol className="flex gap-1.5 pt-1" aria-label="Jours d'ouverture">
+              {WEEK.map((d) => (
+                <li
+                  key={d.day}
+                  title={`${d.name} : ${d.open ? '11h – 02h' : 'fermé'}`}
+                  aria-current={d.day === today ? 'date' : undefined}
+                  className={`grid size-7 place-items-center rounded-full text-xs font-semibold ${
+                    d.day === today
+                      ? 'bg-bmc-gold text-black'
+                      : d.open
+                        ? 'bg-white/10 text-zinc-200'
+                        : 'border border-dashed border-white/20 text-zinc-500'
+                  }`}
+                >
+                  {d.letter}
+                </li>
+              ))}
+            </ol>
+            <p className="text-sm text-zinc-400">Fermé le lundi</p>
           </div>
 
-          {/* Colonne 2 : Horaires d'Ouverture & Livraison */}
-          <div className="space-y-3">
-            <h4 className="font-display text-xs font-black uppercase tracking-wider text-bmc-gold flex items-center gap-1.5 pb-2 border-b border-white/10">
-              <Clock className="size-3.5 text-bmc-gold" />
-              <span>Horaires & Livraison</span>
-            </h4>
-            <div className="space-y-2.5 text-xs sm:text-sm">
-              <div className="flex items-start gap-2.5">
-                <span className="size-2 rounded-full bg-emerald-400 mt-1.5 shrink-0 animate-pulse shadow-sm shadow-emerald-400/50" />
-                <div>
-                  <p className="font-bold text-white">Service Continu 7j/7</p>
-                  <p className="text-zinc-300 text-xs">De 11h00 à 02h00 du matin (non-stop)</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <MapPin className="size-4 text-bmc-gold shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-bold text-white">Livraison Express Dakar</p>
-                  <p className="text-zinc-300 text-xs">Livré chaud en 30 à 45 minutes</p>
-                </div>
-              </div>
-            </div>
+          <div className="space-y-3 lg:col-span-2">
+            <h3 className={columnTitle}>Livraison</h3>
+            <p className="text-sm text-zinc-300">
+              À partir de <span className="font-semibold tabular-nums text-white">1 000 F</span>
+            </p>
+            <p className="text-sm text-zinc-400">20 à 45 min selon le quartier</p>
+            <button
+              type="button"
+              onClick={() => onNavigate?.('contact')}
+              className={`${linkClass} text-bmc-gold underline underline-offset-4`}
+            >
+              Zones et tarifs
+            </button>
           </div>
 
-          {/* Colonne 3 : Contact & Engagements Qualité */}
-          <div className="space-y-3">
-            <h4 className="font-display text-xs font-black uppercase tracking-wider text-bmc-gold flex items-center gap-1.5 pb-2 border-b border-white/10">
-              <ShieldCheck className="size-3.5 text-bmc-gold" />
-              <span>Contact & Engagements</span>
-            </h4>
-            <div className="space-y-2.5 text-xs sm:text-sm">
-              <div className="flex items-start gap-2.5">
-                <Phone className="size-4 text-bmc-gold shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-bold text-white">Commande Directe Dakar</p>
-                  <p className="text-zinc-300 text-xs">Service client dédié & écoute active</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-zinc-900 border border-white/10 text-[11px] font-semibold text-zinc-300">
-                  <ShieldCheck className="size-3 text-bmc-gold" />
-                  100% Halal
-                </span>
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-zinc-900 border border-white/10 text-[11px] font-semibold text-zinc-300">
-                  <Sparkles className="size-3 text-bmc-gold" />
-                  Produits Frais
-                </span>
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-zinc-900 border border-white/10 text-[11px] font-semibold text-zinc-300">
-                  Fait Maison
-                </span>
-              </div>
-            </div>
+          <div className="space-y-3 lg:col-span-2">
+            <h3 className={columnTitle}>Nous joindre</h3>
+            <p className="flex flex-col gap-2 text-sm text-zinc-300">
+              <a href="tel:778561313" className="tabular-nums transition-colors hover:text-white">
+                77 856 13 13
+              </a>
+              <a href="tel:771067575" className="tabular-nums transition-colors hover:text-white">
+                77 106 75 75
+              </a>
+            </p>
+            <a
+              href={WHATSAPP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm font-medium text-bmc-gold underline underline-offset-4 transition-colors hover:text-white"
+            >
+              <MessageCircle className="size-4" aria-hidden="true" />
+              WhatsApp
+            </a>
           </div>
-
         </div>
 
-        {/* =====================================================================
-            LIGNE 3 : BARRE COPYRIGHT & MENTIONS
-            ===================================================================== */}
-        <div className="pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-zinc-300 text-center sm:text-left">
-          <p>© {new Date().getFullYear()} BMC FOOD Dakar · Tous droits réservés.</p>
-          <p>
-            Plateforme conçue avec passion par <span className="text-zinc-300 font-semibold">Teranga Labs</span>.
-          </p>
+        {/* Paiements */}
+        <div className="mt-10 border-t border-white/10 pt-6 sm:flex sm:items-center sm:gap-6">
+          <p className="mb-3 text-sm text-zinc-400 sm:mb-0">Paiement</p>
+          <ul className="grid grid-cols-3 gap-2 sm:flex sm:gap-6">
+            {PAYMENTS.map((payment) => (
+              <li
+                key={payment.name}
+                className="flex flex-col items-center gap-2 rounded-xl bg-white/5 px-2 py-3 text-center text-xs text-zinc-200 sm:flex-row sm:gap-2 sm:bg-transparent sm:p-0 sm:text-sm"
+              >
+                <img
+                  src={payment.src}
+                  alt=""
+                  width={32}
+                  height={32}
+                  loading="lazy"
+                  className="size-8 rounded-md object-contain sm:size-7 sm:bg-white/5 sm:p-0.5"
+                />
+                {payment.name}
+              </li>
+            ))}
+          </ul>
         </div>
 
+        {/* Barre du bas */}
+        <div className="mt-6 flex flex-col-reverse items-center justify-between gap-4 border-t border-white/10 py-6 text-sm text-zinc-400 sm:flex-row">
+          <div className="text-center sm:text-left">
+            <p>© {new Date().getFullYear()} BMC Food Dakar</p>
+            <p className="mt-0.5">
+              Site réalisé par <span className="whitespace-nowrap text-zinc-300">Teranga Labs</span>
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-lg border border-white/15 px-4 text-sm font-medium text-zinc-200 transition-colors hover:border-white/30 hover:text-white"
+          >
+            Retour en haut
+            <ArrowUp className="size-4" aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </footer>
   )

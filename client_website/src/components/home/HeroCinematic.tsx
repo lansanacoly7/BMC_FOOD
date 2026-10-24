@@ -1,4 +1,5 @@
-import { Sparkles, ArrowRight, UtensilsCrossed, Clock } from 'lucide-react'
+import { ArrowRight, Clock } from 'lucide-react'
+import { LoopingFadeVideo } from './LoopingFadeVideo'
 import { motion } from 'motion/react'
 import type { Variants } from 'motion/react'
 
@@ -95,16 +96,10 @@ export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
         1. VIDÉO UNIQUE SLOW MOTION EN BACKGROUND COMPLET
       */}
       <div aria-hidden="true" className="absolute inset-0 -z-20 overflow-hidden bg-black">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          className="size-full object-cover object-center filter contrast-105"
-        >
-          <source src="/images/hero/bmc_video_hero.mp4" type="video/mp4" />
-        </video>
+        <LoopingFadeVideo
+          src="/images/hero/bmc_video_hero.mp4"
+          className="size-full object-cover object-center"
+        />
       </div>
 
       {/* 
@@ -129,79 +124,55 @@ export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
           animate="visible"
           className="max-w-2xl text-left pl-3 sm:pl-6 md:pl-10 lg:pl-12"
         >
-          {/* 1. Sur-titre Or officiel BMC FOOD */}
-          <motion.div
-            variants={badgeVariants}
-            className="inline-flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-bold uppercase tracking-[0.18em] sm:tracking-[0.25em] text-bmc-gold"
-          >
-            <Sparkles className="size-3 sm:size-3.5 text-bmc-gold" />
-            <span>BMC FOOD · SAVEURS SIGNATURES</span>
-          </motion.div>
-
-          {/* 2. Grand Titre proportionné */}
-          <motion.h1
-            variants={titleVariants}
-            className="mt-2.5 sm:mt-3 font-display text-2xl font-extrabold uppercase tracking-tight text-white sm:text-4xl lg:text-5xl xl:text-6xl leading-[1.08] sm:leading-[1.04]"
-          >
-            La Révolution <br />
-            <span className="bg-gradient-to-r from-bmc-gold via-amber-200 to-amber-500 bg-clip-text text-transparent">
-              Culinaire
-            </span>{' '}
-            Est Arrivée.
-          </motion.h1>
-
-          {/* 3. Descriptif officiel */}
+          {/* 1. Sur-titre */}
           <motion.p
-            variants={textVariants}
-            className="mt-2.5 sm:mt-3.5 max-w-lg text-xs sm:text-sm lg:text-base text-zinc-200 font-normal leading-relaxed"
+            variants={badgeVariants}
+            className="text-xs sm:text-sm font-medium text-bmc-gold"
           >
-            L'incontournable <strong className="font-bold text-white">Tacos de Dakar</strong> : viandes marinées savoureuses, frites fraîches et sauce fromagère onctueuse maison. Préparé à la commande.
+            BMC Food · Dakar
           </motion.p>
 
-          {/* 4. Bouton d'Action Unique Or brossé avec micro-shimmer élégant */}
+          {/* 2. Titre */}
+          <motion.h1
+            variants={titleVariants}
+            className="mt-2.5 sm:mt-3 font-display text-3xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl leading-[1.08]"
+          >
+            Le tacos de Dakar.
+          </motion.h1>
+
+          {/* 3. Descriptif */}
+          <motion.p
+            variants={textVariants}
+            className="mt-3 max-w-lg text-sm sm:text-base text-zinc-200 leading-relaxed"
+          >
+            Viandes marinées, frites fraîches et sauce fromagère maison. Préparé à la commande.
+          </motion.p>
+
+          {/* 4. Bouton d'action */}
           <motion.div
             variants={buttonVariants}
-            className="mt-4 sm:mt-5 flex items-center w-full sm:w-auto"
+            className="mt-5 flex items-center w-full sm:w-auto"
           >
-            <motion.button
+            <button
               type="button"
-              whileHover={{ scale: 1.025 }}
-              whileTap={{ scale: 0.97 }}
               onClick={onExploreMenu}
-              aria-label="Explorer le menu BMC Food"
-              className="relative overflow-hidden h-11 sm:h-13 px-5 sm:px-8 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 font-display text-xs sm:text-sm font-black uppercase tracking-wider text-black shadow-lg shadow-bmc-gold/30 hover:brightness-110 cursor-pointer transition-all whitespace-nowrap group"
+              className="h-12 px-6 sm:px-8 flex items-center justify-center gap-2 rounded-lg bg-bmc-gold font-display text-sm sm:text-base font-semibold text-black hover:bg-amber-400 cursor-pointer transition-colors whitespace-nowrap group"
             >
-              {/* Discret reflet lumineux (shimmer) balayant le bouton à intervalle régulier */}
-              <motion.span
-                aria-hidden="true"
-                initial={{ x: '-130%' }}
-                animate={{ x: '230%' }}
-                transition={{
-                  repeat: Infinity,
-                  repeatDelay: 5,
-                  duration: 1.5,
-                  ease: 'easeInOut',
-                }}
-                className="pointer-events-none absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/35 to-transparent"
-              />
-
-              <UtensilsCrossed className="size-3.5 sm:size-4 text-black stroke-[2.5] shrink-0" />
-              <span>Explorer le Menu</span>
-              <ArrowRight className="size-3.5 sm:size-4 text-black stroke-[2.5] shrink-0 transition-transform duration-200 group-hover:translate-x-0.5" />
-            </motion.button>
+              <span>Voir la carte</span>
+              <ArrowRight className="size-4 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5" />
+            </button>
           </motion.div>
 
-          {/* 5. Horaires et livraison discrets */}
+          {/* 5. Horaires et livraison */}
           <motion.div
             variants={metaVariants}
-            className="mt-4 sm:mt-5 flex items-center gap-3 sm:gap-4 text-[10px] sm:text-xs text-zinc-300 font-medium"
+            className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm text-zinc-300"
           >
             <div className="flex items-center gap-1.5">
-              <Clock className="size-3 sm:size-3.5 text-bmc-gold" />
-              <span>Ouvert 11h – 02h (Mar–Dim)</span>
+              <Clock className="size-3.5 text-bmc-gold" />
+              <span>Mardi – dimanche, 11h – 02h</span>
             </div>
-            <span className="size-1 rounded-full bg-zinc-500" />
-            <span className="text-zinc-200">Livraison express Dakar</span>
+            <span className="text-zinc-200">Livraison à Dakar</span>
           </motion.div>
         </motion.div>
       </div>

@@ -19,26 +19,12 @@ export interface HeroSlide {
 const HERO_SLIDES: HeroSlide[] = [
   {
     id: 1,
-    eyebrow: 'Obtenez une remise spéciale',
-    titleLine1: 'Réduction de 25%',
-    titleLine2: 'sur le Menu Duo',
+    eyebrow: 'Tacos panés',
+    titleLine1: 'Le tacos pané',
+    titleLine2: 'de BMC Food',
     description:
-      'Burger gourmet au choix, tenders dorés croustillants et frites fraîches maison. Le vrai goût du partage chez BMC Dakar !',
-    ctaLabel: 'Réclamer mon bon',
-    image: '/images/hero/hero-steaming-burger.jpg',
-    floatingBadge: {
-      sub: 'Menu Duo dès',
-      value: '6 500 F',
-    },
-  },
-  {
-    id: 2,
-    eyebrow: 'Spécialité Signature BMC',
-    titleLine1: 'Le vrai goût',
-    titleLine2: 'des Tacos Panés',
-    description:
-      'Nos tacos signatures entièrement panés et dorés à la main : fromage coulant maison, viandes assaisonnées et frites croustillantes.',
-    ctaLabel: 'Découvrir la carte',
+      'Viande ou poulet, frites et sauce fromagère maison, dans une panure dorée.',
+    ctaLabel: 'Voir la carte',
     image: '/images/hero/hero-banner-tacos.jpg',
     floatingBadge: {
       sub: 'À partir de',
@@ -46,48 +32,41 @@ const HERO_SLIDES: HeroSlide[] = [
     },
   },
   {
-    id: 3,
-    eyebrow: 'Bœuf Smashé Minute',
-    titleLine1: 'Smash Burger',
-    titleLine2: 'Double Cheddar & Bacon',
+    id: 2,
+    eyebrow: 'Burgers',
+    titleLine1: 'Les burgers',
+    titleLine2: 'de la carte',
     description:
-      'Steaks saisis à la minute sur plaque brûlante, sauce secrète BMC et pain brioché artisanal aux graines de sésame torréfiées.',
-    ctaLabel: 'Commander ce burger',
+      'Steak de bœuf ou poulet crispy, fromage, salade et sauce.',
+    ctaLabel: 'Voir les burgers',
     image: '/images/hero/hero-steaming-burger.jpg',
     floatingBadge: {
-      sub: 'Cheddar fondant',
-      value: '4 500 F',
+      sub: 'À partir de',
+      value: '1 500 F',
     },
   },
   {
-    id: 4,
-    eyebrow: 'Le Goût du Partage',
-    titleLine1: 'Le Croustillant',
-    titleLine2: "Chicken Tenders d'Or",
+    id: 3,
+    eyebrow: 'Poulet',
+    titleLine1: 'Tenders',
+    titleLine2: 'de poulet',
     description:
-      'Filets de poulet marinés aux épices douces, panure dorée extra-craquante servie avec notre sauce fromagère signature maison.',
-    ctaLabel: 'Goûter au croustillant',
+      'Aiguillettes de poulet marinées, panure croustillante aux épices douces.',
+    ctaLabel: 'Voir la carte',
     image: '/images/hero/hero-banner-duo.jpg',
     floatingBadge: {
-      sub: 'Panure dorée',
-      value: '4 000 F',
-    },
-  },
-  {
-    id: 5,
-    eyebrow: 'Ouvert 7j/7 de 11h à 02h',
-    titleLine1: 'Pack BMC Box',
-    titleLine2: 'Pour 2 à 4 personnes',
-    description:
-      'Tacos panés, burgers, wings BBQ, frites fraîches et rafraîchissements. Votre festin livré bien chaud partout à Dakar.',
-    ctaLabel: 'Commander le pack',
-    image: '/images/hero/hero-banner-duo.jpg',
-    floatingBadge: {
-      sub: 'Formule groupe',
-      value: '12 500 F',
+      sub: 'À partir de',
+      value: '2 500 F',
     },
   },
 ]
+/** Teinte du fond de page à une opacité donnée : le voile se fond dans la page en clair comme en sombre. */
+const page = (opacity: number) => `color-mix(in oklab, var(--color-zinc-950) ${opacity}%, transparent)`
+
+/** Dégradés à paliers progressifs (jamais de saut brutal d'opacité entre deux paliers). */
+const SCRIM_FROM_LEFT = `linear-gradient(to right, ${page(94)} 0%, ${page(86)} 22%, ${page(70)} 40%, ${page(46)} 58%, ${page(22)} 76%, ${page(6)} 90%, transparent 100%)`
+const SCRIM_FROM_BOTTOM = `linear-gradient(to top, ${page(100)} 0%, ${page(88)} 25%, ${page(58)} 50%, ${page(26)} 75%, transparent 100%)`
+const SCRIM_FROM_TOP = `linear-gradient(to bottom, ${page(80)} 0%, ${page(46)} 40%, ${page(16)} 75%, transparent 100%)`
 
 export interface MenuHeroProps {
   onExploreMenu: () => void
@@ -109,33 +88,36 @@ export function MenuHero({ onExploreMenu }: MenuHeroProps) {
   return (
     <section
       aria-label="Présentation vedette BMC Food"
-      className="relative w-full overflow-hidden bg-[#0C0C0D] min-h-[380px] sm:min-h-[430px] lg:min-h-[480px] flex flex-col justify-between select-none"
+      className="relative w-full overflow-hidden bg-zinc-950 min-h-[380px] sm:min-h-[430px] lg:min-h-[480px] flex flex-col justify-between select-none"
     >
       {/* 1. IMAGE DE FOND PLEIN ÉCRAN */}
       <AnimatePresence mode="wait">
         <motion.div
           key={slide.id}
-          initial={{ opacity: 0, scale: 1.03 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.98 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
           transition={{ duration: 0.55, ease: 'easeOut' }}
           className="absolute inset-0 bg-cover bg-center lg:bg-[right_center]"
           style={{ backgroundImage: `url('${slide.image}')` }}
         />
       </AnimatePresence>
 
-      {/* Dégradés cinématiques compacts pour contraste maximal */}
+      {/* Voiles progressifs : plusieurs paliers pour que l'image apparaisse sans aucune coupure nette */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#0C0C0D] via-[#0C0C0D]/90 to-transparent sm:via-[#0C0C0D]/80 lg:from-[#0C0C0D] lg:via-[#0C0C0D]/70 lg:to-transparent lg:to-[58%]"
+        className="pointer-events-none absolute inset-0"
+        style={{ backgroundImage: SCRIM_FROM_LEFT }}
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#0C0C0D] via-[#0C0C0D]/80 to-transparent"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-32 sm:h-40"
+        style={{ backgroundImage: SCRIM_FROM_BOTTOM }}
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-[#0C0C0D]/80 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-24"
+        style={{ backgroundImage: SCRIM_FROM_TOP }}
       />
 
       {/* 2. CONTENU PRINCIPAL CENTRÉ PLEIN ÉCRAN */}
@@ -146,14 +128,13 @@ export function MenuHero({ onExploreMenu }: MenuHeroProps) {
           <AnimatePresence mode="wait">
             <motion.div
               key={slide.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
               className="flex items-center gap-2"
             >
-              <span className="flex size-2 rounded-full bg-bmc-gold animate-pulse" />
-              <span className="text-xs sm:text-sm font-bold tracking-wide text-zinc-300 uppercase">
+              <span className="text-sm font-medium text-bmc-gold">
                 {slide.eyebrow}
               </span>
             </motion.div>
@@ -163,7 +144,7 @@ export function MenuHero({ onExploreMenu }: MenuHeroProps) {
           <div
             role="tablist"
             aria-label="Navigation carrousel"
-            className="flex items-center gap-2 sm:gap-2.5 rounded-full bg-black/60 backdrop-blur-md px-3 py-1.5 border border-white/10"
+            className="flex items-center gap-2 sm:gap-2.5 rounded-full bg-black/60 px-3 py-1.5 border border-white/10"
           >
             {HERO_SLIDES.map((s, idx) => {
               const isActive = currentSlide === idx
@@ -177,8 +158,8 @@ export function MenuHero({ onExploreMenu }: MenuHeroProps) {
                   aria-label={`Slide ${idx + 1} : ${s.titleLine1}`}
                   className={`transition-all duration-300 cursor-pointer flex items-center justify-center ${
                     isActive
-                      ? 'size-3.5 sm:size-4 rounded-full ring-2 ring-bmc-gold ring-offset-2 ring-offset-black bg-bmc-gold shadow-[0_0_12px_rgba(252,184,0,0.8)]'
-                      : 'size-2 sm:size-2.5 rounded-full bg-white/70 hover:bg-white hover:scale-125'
+                      ? 'size-3 rounded-full bg-bmc-gold'
+                      : 'size-2.5 rounded-full bg-white/50 hover:bg-white/80'
                   }`}
                 />
               )
@@ -191,37 +172,33 @@ export function MenuHero({ onExploreMenu }: MenuHeroProps) {
           <AnimatePresence mode="wait">
             <motion.div
               key={slide.id}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
               className="flex flex-col items-start gap-3 sm:gap-3.5"
             >
               {/* Titre percutant avec Or BMC */}
-              <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-[1.1] tracking-tight">
+              <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-[1.1] tracking-tight">
                 {slide.titleLine1} <br />
-                <span className="inline-block mt-0.5 text-bmc-gold font-display font-black">
+                <span className="inline-block mt-0.5 text-bmc-gold">
                   {slide.titleLine2}
                 </span>
               </h1>
 
-              {/* Description soignée */}
-              <p className="max-w-md sm:max-w-lg text-xs sm:text-sm text-zinc-300 leading-relaxed">
+              <p className="max-w-md sm:max-w-lg text-sm sm:text-base text-zinc-300 leading-relaxed">
                 {slide.description}
               </p>
 
-              {/* BOUTON UNIQUE EN JAUNE (Or BMC #FCB800) */}
               <div className="mt-1 flex items-center">
-                <motion.button
+                <button
                   type="button"
-                  whileHover={{ scale: 1.04 }}
-                  whileTap={{ scale: 0.96 }}
                   onClick={onExploreMenu}
-                  className="flex items-center gap-2 rounded-xl sm:rounded-2xl bg-bmc-gold hover:bg-yellow-400 px-7 sm:px-9 py-3 sm:py-3.5 font-display font-black text-xs sm:text-sm text-black shadow-[0_6px_25px_rgba(252,184,0,0.4)] transition-all cursor-pointer"
+                  className="flex h-12 items-center gap-2 rounded-lg bg-bmc-gold hover:bg-amber-400 px-6 sm:px-8 font-display font-semibold text-sm sm:text-base text-black transition-colors cursor-pointer"
                 >
                   <span>{slide.ctaLabel}</span>
-                  <ArrowRight className="size-4.5 stroke-[3]" />
-                </motion.button>
+                  <ArrowRight className="size-4" />
+                </button>
               </div>
             </motion.div>
           </AnimatePresence>
@@ -258,16 +235,16 @@ export function MenuHero({ onExploreMenu }: MenuHeroProps) {
           {slide.floatingBadge && (
             <motion.div
               key={`badge-${slide.id}`}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
-              className="flex items-center gap-2.5 rounded-xl bg-black/65 backdrop-blur-md border border-zinc-700/80 px-3.5 py-1.5 text-right"
+              className="flex items-center gap-2.5 rounded-lg bg-black/65 border border-white/10 px-3.5 py-1.5 text-right"
             >
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                <span className="text-xs text-zinc-400">
                   {slide.floatingBadge.sub}
                 </span>
-                <span className="font-display text-xs sm:text-sm font-black text-bmc-gold tracking-tight">
+                <span className="font-display text-sm font-bold text-bmc-gold">
                   {slide.floatingBadge.value}
                 </span>
               </div>

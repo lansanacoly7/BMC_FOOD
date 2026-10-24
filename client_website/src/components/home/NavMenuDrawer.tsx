@@ -6,7 +6,7 @@ interface NavMenuDrawerProps {
   isOpen: boolean
   onClose: () => void
   onSelectCategory: (categoryId: string) => void
-  onNavigate?: (page: 'home' | 'menu') => void
+  onNavigate?: (page: 'home' | 'menu' | 'contact') => void
   onOpenAuth?: () => void
   clientUser?: { name: string; phone: string } | null
 }
@@ -20,100 +20,80 @@ export function NavMenuDrawer({ isOpen, onClose, onSelectCategory, onNavigate, o
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          {/* Arrière-plan assombri avec flou */}
+          {/* Arrière-plan assombri */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/70 backdrop-blur-xs"
+            className="fixed inset-0 bg-black/70"
             aria-hidden="true"
           />
 
-          {/* Panneau coulissant depuis la DROITE */}
+          {/* Panneau coulissant depuis la droite */}
           <motion.aside
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 26, stiffness: 280 }}
-            className="relative z-10 flex h-full w-[85%] max-w-xs flex-col justify-between bg-zinc-950 p-5 text-white shadow-2xl border-l border-white/10 overflow-y-auto"
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="relative z-10 flex h-full w-[85%] max-w-xs flex-col justify-between overflow-y-auto border-l border-white/10 bg-zinc-950 p-5 text-white"
             aria-label="Menu principal"
           >
-            <div className="space-y-5">
-              {/* En-tête du tiroir avec logo BMC Food et bouton fermer */}
+            <div className="space-y-6">
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                <div className="flex items-center gap-2">
-                  <img
-                    src="/images/brand/logo.png"
-                    alt="BMC Food"
-                    width={110}
-                    height={44}
-                    className="h-10 w-auto object-contain"
-                  />
-                  <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
-                    <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>Ouvert</span>
-                  </div>
-                </div>
+                <img
+                  src="/images/brand/logo.png"
+                  alt="BMC Food"
+                  width={110}
+                  height={44}
+                  className="h-10 w-auto object-contain"
+                />
                 <button
                   type="button"
                   onClick={onClose}
                   aria-label="Fermer le menu"
-                  className="flex size-9 items-center justify-center rounded-full bg-white/10 text-zinc-300 hover:bg-white/20 hover:text-white cursor-pointer"
+                  className="flex size-10 cursor-pointer items-center justify-center rounded-lg text-zinc-300 hover:bg-white/10 hover:text-white"
                 >
                   <X className="size-5" />
                 </button>
               </div>
 
-              {/* Navigation principale Mobile */}
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    onNavigate?.('home')
-                    onClose()
-                  }}
-                  className="rounded-xl border border-white/10 bg-zinc-900/90 py-2.5 px-3 text-center text-xs font-black uppercase tracking-wider text-zinc-200 hover:border-bmc-gold hover:text-bmc-gold transition-colors cursor-pointer"
-                >
-                  Accueil
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onNavigate?.('menu')
-                    onClose()
-                  }}
-                  className="rounded-xl border border-bmc-gold/40 bg-zinc-900/90 py-2.5 px-3 text-center text-xs font-black uppercase tracking-wider text-bmc-gold hover:border-bmc-gold hover:bg-bmc-gold/10 transition-colors cursor-pointer"
-                >
-                  La Carte
-                </button>
+              <div className="grid grid-cols-3 gap-2">
+                {(
+                  [
+                    ['home', 'Accueil'],
+                    ['menu', 'La carte'],
+                    ['contact', 'Contact'],
+                  ] as const
+                ).map(([page, label]) => (
+                  <button
+                    key={page}
+                    type="button"
+                    onClick={() => {
+                      onNavigate?.(page)
+                      onClose()
+                    }}
+                    className="cursor-pointer rounded-lg border border-white/15 px-2 py-2.5 text-center text-sm font-medium text-zinc-200 transition-colors hover:border-bmc-gold hover:text-bmc-gold"
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
 
-              {/* Bouton Espace Client / Connexion avec Logo BMC */}
               <button
                 type="button"
                 onClick={() => {
                   onClose()
                   onOpenAuth?.()
                 }}
-                className="w-full flex items-center justify-center gap-2.5 rounded-xl border border-bmc-gold/40 bg-zinc-900/90 py-3 px-4 text-center text-xs font-black uppercase tracking-wider text-white hover:border-bmc-gold hover:bg-zinc-800 transition-all cursor-pointer shadow-md"
+                className="w-full cursor-pointer rounded-lg border border-white/15 px-4 py-3 text-center text-sm font-medium text-white transition-colors hover:border-white/30"
               >
-                <img
-                  src="/images/brand/logo.png"
-                  alt="BMC"
-                  className="h-5.5 w-auto object-contain shrink-0"
-                />
-                <span className="text-bmc-gold font-bold">
-                  {clientUser ? `Compte (${clientUser.name.split(' ')[0]})` : 'Connexion / Inscription'}
-                </span>
+                {clientUser ? `Mon compte (${clientUser.name.split(' ')[0]})` : 'Connexion / Inscription'}
               </button>
 
-              {/* Raccourcis Catégories — Style App Mobile */}
               <div className="space-y-2">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-                  La Carte BMC Food
-                </p>
-                <div className="grid grid-cols-1 gap-1">
+                <p className="text-sm text-zinc-400">La carte</p>
+                <div className="grid grid-cols-1 gap-0.5">
                   {CATEGORIES.map((cat) => (
                     <button
                       key={cat.id}
@@ -122,80 +102,50 @@ export function NavMenuDrawer({ isOpen, onClose, onSelectCategory, onNavigate, o
                         onSelectCategory(cat.id)
                         onClose()
                       }}
-                      className="flex items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-zinc-200 transition-colors hover:bg-white/10 hover:text-bmc-gold cursor-pointer"
+                      className="cursor-pointer rounded-lg px-3 py-2.5 text-left text-sm font-medium text-zinc-200 transition-colors hover:bg-white/10 hover:text-bmc-gold"
                     >
-                      <span>{cat.name}</span>
-                      <span className="text-xs text-zinc-500">→</span>
+                      {cat.name}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Infos pratiques restaurant & contact direct */}
-              <div className="space-y-3 rounded-2xl border border-white/10 bg-zinc-900/80 p-3.5 text-xs text-zinc-300">
-                <div className="flex items-start gap-2.5">
-                  <Clock className="size-4 shrink-0 text-bmc-gold mt-0.5" />
+              <div className="space-y-4 border-t border-white/10 pt-5 text-sm text-zinc-300">
+                <div className="flex items-start gap-3">
+                  <Clock className="mt-0.5 size-4 shrink-0 text-bmc-gold" />
                   <div>
-                    <p className="font-bold text-white">Horaires d'ouverture</p>
-                    <p className="text-zinc-400">11h00 – 02h00 (7j/7 non-stop)</p>
+                    <p className="font-medium text-white">Horaires</p>
+                    <p className="text-zinc-400">Mardi – dimanche, 11h – 02h</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-2.5">
-                  <MapPin className="size-4 shrink-0 text-bmc-gold mt-0.5" />
+                <div className="flex items-start gap-3">
+                  <MapPin className="mt-0.5 size-4 shrink-0 text-bmc-gold" />
                   <div>
-                    <p className="font-bold text-white">Livraison express</p>
-                    <p className="text-zinc-400">Partout à Dakar & banlieue</p>
+                    <p className="font-medium text-white">Livraison</p>
+                    <p className="text-zinc-400">Dakar, selon les zones</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-2.5">
-                  <Phone className="size-4 shrink-0 text-emerald-400 mt-0.5" />
+                <div className="flex items-start gap-3">
+                  <Phone className="mt-0.5 size-4 shrink-0 text-bmc-gold" />
                   <div>
-                    <p className="font-bold text-white">Commandes directes</p>
-                    <div className="flex flex-col gap-0.5 text-zinc-300 mt-0.5">
-                      <a href="tel:778561313" className="hover:text-bmc-gold font-medium">
-                        📞 77 856 13 13
-                      </a>
-                      <a href="tel:771067575" className="hover:text-bmc-gold font-medium">
-                        📞 77 106 75 75
-                      </a>
+                    <p className="font-medium text-white">Téléphone</p>
+                    <div className="mt-0.5 flex flex-col text-zinc-300">
+                      <a href="tel:778561313" className="hover:text-bmc-gold">77 856 13 13</a>
+                      <a href="tel:771067575" className="hover:text-bmc-gold">77 106 75 75</a>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Bas du panneau : Vraies Icônes de Paiement (Wave, Orange Money, Espèces) */}
-            <div className="border-t border-white/10 pt-4 space-y-2.5 text-center mt-4">
-              <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">
-                Paiements acceptés à la livraison
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="flex flex-col items-center gap-1 rounded-xl bg-zinc-900/90 border border-white/10 p-2">
-                  <img
-                    src="/images/payments/cash.png"
-                    alt="Espèces"
-                    className="size-7 rounded-lg object-contain shadow-sm"
-                  />
-                  <span className="text-[10px] font-bold text-zinc-200">Espèces</span>
-                </div>
-                <div className="flex flex-col items-center gap-1 rounded-xl bg-zinc-900/90 border border-white/10 p-2">
-                  <img
-                    src="/images/payments/wave.png"
-                    alt="Wave"
-                    className="size-7 rounded-lg object-contain shadow-sm"
-                  />
-                  <span className="text-[10px] font-bold text-[#1DC8F2]">Wave</span>
-                </div>
-                <div className="flex flex-col items-center gap-1 rounded-xl bg-zinc-900/90 border border-white/10 p-2">
-                  <img
-                    src="/images/payments/orange_money.png"
-                    alt="Orange Money"
-                    className="size-7 rounded-lg object-contain shadow-sm"
-                  />
-                  <span className="text-[10px] font-bold text-[#FF7900]">Orange Money</span>
-                </div>
+            <div className="mt-6 space-y-2 border-t border-white/10 pt-4">
+              <p className="text-sm text-zinc-400">Paiement</p>
+              <div className="flex items-center gap-4 text-sm text-zinc-200">
+                <span>Espèces</span>
+                <span>Wave</span>
+                <span>Orange Money</span>
               </div>
             </div>
           </motion.aside>
