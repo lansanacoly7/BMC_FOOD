@@ -1,8 +1,10 @@
 import { ArrowRight, ShoppingBag, X } from 'lucide-react'
 import { AnimatePresence, motion, useDragControls } from 'motion/react'
-import { useEffect, useEffectEvent, useId, useRef } from 'react'
+import { useEffect, useEffectEvent, useId, useRef, useState } from 'react'
 import { formatFcfa } from '../../lib/format'
 import type { CartItem } from '../../types'
+import { getLineId } from '../../context/cart'
+import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { CartItemRow } from './CartItemRow'
 
 /** Glissement vers le bas (en px) ou vitesse (en px/s) au-delà desquels le tiroir se ferme. */
@@ -35,6 +37,12 @@ export function CartDrawer({
   const titleId = useId()
   const sheetRef = useRef<HTMLDivElement>(null)
   const dragControls = useDragControls()
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  // Lu par les écouteurs clavier : tant que la confirmation est ouverte, Échap la ferme elle, pas le tiroir.
+  const confirmOpenRef = useRef(false)
+  useEffect(() => {
+    confirmOpenRef.current = confirmOpen
+  }, [confirmOpen])
   const handleEscape = useEffectEvent(onClose)
 
   const itemCount = items.reduce((count, item) => count + item.quantity, 0)
@@ -50,6 +58,7 @@ export function CartDrawer({
     sheetRef.current?.focus()
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (confirmOpenRef.current) return
       if (event.key === 'Escape') {
         handleEscape()
         return
@@ -81,6 +90,7 @@ export function CartDrawer({
   }, [isOpen])
 
   return (
+    <>
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -123,7 +133,7 @@ export function CartDrawer({
           >
             <div className="mx-auto h-1.5 w-12 rounded-full bg-zinc-700" aria-hidden="true" />
             <div className="flex items-center justify-between gap-4 py-3">
-              <h2 id={titleId} className="font-display text-xl font-black text-white">
+              <h2 id={titleId} className="font-display text-xl font-bold text-white">
                 Votre panier
                 {itemCount > 0 && (
                   <span className="ml-2 font-sans text-sm font-bold text-zinc-400">
@@ -135,14 +145,8 @@ export function CartDrawer({
                 type="button"
                 whileTap={{ scale: 0.95 }}
                 onPointerDown={(event) => event.stopPropagation()}
-                onClick={() => {
-                  if (onClearCart) {
-                    onClearCart()
-                  } else {
-                    onClose()
-                  }
-                }}
-                aria-label="Fermer et vider le panier"
+                onClick={onClose}
+                aria-label="Fermer le panier"
                 className="grid size-9 shrink-0 place-items-center rounded-full bg-zinc-900 border border-white/10 text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white focus-visible:outline-2 focus-visible:outline-bmc-gold cursor-pointer"
               >
                 <X className="size-4.5" aria-hidden="true" />
@@ -161,7 +165,7 @@ export function CartDrawer({
                 type="button"
                 whileTap={{ scale: 0.95 }}
                 onClick={onClose}
-                className="mt-4 rounded-xl bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 px-6 py-3 font-display font-black uppercase tracking-wider text-black shadow-md shadow-bmc-gold/25 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold cursor-pointer"
+                className="mt-4 rounded-xl bg-bmc-gold px-6 py-3 transition-colors hover:bg-amber-400 font-display font-bold uppercase tracking-wider text-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold cursor-pointer"
               >
                 Voir le menu
               </motion.button>
@@ -172,7 +176,7 @@ export function CartDrawer({
                 <AnimatePresence initial={false}>
                   {items.map((item) => (
                     <CartItemRow
-                      key={item.product.code}
+                      key={getLineId(item)}
                       item={item}
                       onUpdateQuantity={onUpdateQuantity}
                       onRemove={onRemove}
@@ -187,7 +191,7 @@ export function CartDrawer({
                   <span
                     aria-live="polite"
                     aria-atomic="true"
-                    className="font-display text-2xl font-black tabular-nums text-bmc-gold"
+                    className="font-display text-2xl font-bold tabular-nums text-bmc-gold"
                   >
                     {formatFcfa(subtotal)}
                   </span>
@@ -201,7 +205,7 @@ export function CartDrawer({
                     whileTap={{ scale: 0.97 }}
                     onClick={onCheckout}
                     aria-label="Valider la commande"
-                    className="flex-1 h-12 sm:h-14 inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-2xl bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 font-display text-xs sm:text-base font-black uppercase tracking-wider text-black shadow-lg shadow-bmc-gold/25 hover:brightness-110 cursor-pointer transition-all whitespace-nowrap min-w-0"
+                    className="flex-1 h-12 sm:h-14 inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-2xl bg-bmc-gold font-display text-xs sm:text-base font-bold uppercase tracking-wider text-black hover:brightness-110 cursor-pointer transition-all whitespace-nowrap min-w-0"
                   >
                     <span className="sm:hidden">Valider</span>
                     <span className="hidden sm:inline">Valider la commande</span>
@@ -213,15 +217,9 @@ export function CartDrawer({
                     type="button"
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.97 }}
-                    onClick={() => {
-                      if (onClearCart) {
-                        onClearCart()
-                      } else {
-                        onClose()
-                      }
-                    }}
+                    onClick={() => setConfirmOpen(true)}
                     aria-label="Annuler la commande et vider le panier"
-                    className="h-12 sm:h-14 px-3.5 sm:px-5 inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-2xl border border-red-500/40 bg-gradient-to-r from-red-600 to-rose-700 font-display text-xs sm:text-base font-bold uppercase tracking-wider text-white shadow-lg shadow-red-900/30 hover:brightness-110 cursor-pointer transition-all whitespace-nowrap shrink-0"
+                    className="h-12 sm:h-14 px-3.5 sm:px-5 inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-2xl border border-red-500/40 bg-red-700 font-display text-xs sm:text-base font-bold uppercase tracking-wider text-white shadow-lg shadow-red-900/30 hover:brightness-110 cursor-pointer transition-all whitespace-nowrap shrink-0"
                   >
                     <X className="size-4 sm:size-5 text-white stroke-[2.5] shrink-0" aria-hidden="true" />
                     <span>Annuler</span>
@@ -233,5 +231,24 @@ export function CartDrawer({
         </motion.div>
       )}
     </AnimatePresence>
+
+    <ConfirmDialog
+      isOpen={confirmOpen}
+      title="Annuler votre commande ?"
+      description={`Les ${itemCount} article${itemCount > 1 ? 's' : ''} de votre panier seront retirés. Cette action est définitive.`}
+      confirmLabel="Oui, annuler"
+      cancelLabel="Garder mon panier"
+      destructive
+      onCancel={() => setConfirmOpen(false)}
+      onConfirm={() => {
+        setConfirmOpen(false)
+        if (onClearCart) {
+          onClearCart()
+        } else {
+          onClose()
+        }
+      }}
+    />
+    </>
   )
 }

@@ -1,284 +1,422 @@
-import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
-import { ArrowLeft, Check, Heart, Minus, Plus, ShoppingBag } from 'lucide-react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
+import { Check, ChevronDown, Minus, Plus, X } from 'lucide-react'
 import type { Product } from '../../types'
-import { formatFcfa } from '../../lib/format'
-import { FALLBACK_PRODUCTS } from '../../data/mockMenu'
+import { MAX_ITEM_QUANTITY } from '../../context/cart'
+import { getAccompaniments, getProductOptions } from '../../data/productOptions'
+import { getProductImageUrl } from '../../lib/productImages'
 
 export interface ProductDetailModalProps {
   product: Product | null
   onClose: () => void
-  onAddToCart: (product: Product, quantity: number) => void
+  /** `note` : personnalisation du plat (sans…, sauces, précision). Les accompagnements sont ajoutés séparément. */
+  onAddToCart: (product: Product, quantity: number, note?: string) => void
+  /** Carte complète, pour proposer boissons, frites, desserts… en accompagnement. */
+  catalog?: Product[]
 }
 
-export function ProductDetailModal({
+/** Nombre d'accompagnements visibles avant « Voir plus ». */
+const VISIBLE_EXTRAS = 3
+
+const formatPrice = (value: number) => `${value.toLocaleString('fr-FR')} F`
+
+const stepButton =
+  'grid size-11 shrink-0 cursor-pointer place-items-center rounded-full border border-white/15 text-white transition-colors hover:border-white/35 disabled:cursor-not-allowed disabled:opacity-30'
+
+const chipBase = 'inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors'
+
+/**
+ * Liste déroulante : une ligne avec le titre et le résumé du choix, qui s'ouvre pour montrer les options.
+ * Tout est replié au départ : on voit d'un coup d'œil ce qu'on peut personnaliser, sans défiler.
+ */
+function Disclosure({
+  title,
+  summary,
+  defaultOpen = false,
+  children,
+}: {
+  title: string
+  summary: string
+  /** Ouverte dès l'affichage de la fiche (les autres restent repliées). */
+  defaultOpen?: boolean
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  const panelId = useId()
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        aria-controls={panelId}
+        className="flex min-h-14 w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-white/5"
+      >
+        <span className="text-sm font-semibold text-white">{title}</span>
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-sm text-zinc-400">{summary}</span>
+          <ChevronDown
+            className={`size-4 shrink-0 text-zinc-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+            aria-hidden="true"
+          />
+        </span>
+      </button>
+      {open && (
+        <div id={panelId} className="px-4 pb-4 pt-1">
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Fiche produit. Grand écran : photo à gauche, informations à droite. Téléphone : photo pleine largeur
+ * en haut, puis les choix. Les options sont des listes déroulantes repliées, et la barre du bas
+ * (quantité, total, ajout) reste toujours visible. La quantité démarre à 1.
+ */
+export function ProductDetailModal({ product, onClose, onAddToCart, catalog = [] }: ProductDetailModalProps) {
+  return (
+    <AnimatePresence>
+      {product && <ModalBody key={product.code} product={product} onClose={onClose} onAddToCart={onAddToCart} catalog={catalog} />}
+    </AnimatePresence>
+  )
+}
+
+function ModalBody({
   product,
   onClose,
   onAddToCart,
-}: ProductDetailModalProps) {
-  const [quantity, setQuantity] = useState(0)
-  const [favorite, setFavorite] = useState(false)
-  const [justAdded, setJustAdded] = useState(false)
-  const [prevProductId, setPrevProductId] = useState<number | undefined>(product?.id)
+  catalog,
+}: {
+  product: Product
+  onClose: () => void
+  onAddToCart: ProductDetailModalProps['onAddToCart']
+  catalog: Product[]
+}) {
+  const titleId = useId()
+  const closeRef = useRef<HTMLButtonElement>(null)
+  const options = useMemo(() => getProductOptions(product), [product])
+  const accompaniments = useMemo(() => getAccompaniments(product, catalog), [product, catalog])
 
-  if (product?.id !== prevProductId) {
-    setPrevProductId(product?.id)
-    setQuantity(0)
-    setJustAdded(false)
-  }
+  const [quantity, setQuantity] = useState(1)
+  const [removed, setRemoved] = useState<string[]>([])
+  const [sauces, setSauces] = useState<string[]>([])
+  const [remark, setRemark] = useState('')
+  const [showRemark, setShowRemark] = useState(false)
+  const [extras, setExtras] = useState<Record<string, number>>({})
+  const [showAllExtras, setShowAllExtras] = useState(false)
+  const [justAdded, setJustAdded] = useState(false)
 
   useEffect(() => {
-    if (!product) return
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    closeRef.current?.focus()
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
     }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [product, onClose])
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = previousOverflow
+    }
+  }, [onClose])
 
-  if (!product) return null
+  const extrasTotal = accompaniments.reduce((sum, item) => sum + item.price * (extras[item.code] ?? 0), 0)
+  const extrasCount = accompaniments.reduce((sum, item) => sum + (extras[item.code] ?? 0), 0)
+  const total = product.price * quantity + extrasTotal
+  const image = getProductImageUrl(product) || product.image_url
 
+  // Les accompagnements déjà choisis restent visibles même quand la liste est repliée
+  const visibleExtras = accompaniments.filter(
+    (item, index) => showAllExtras || index < VISIBLE_EXTRAS || (extras[item.code] ?? 0) > 0,
+  )
+  const hiddenCount = accompaniments.length - visibleExtras.length
 
-  const toggleFavorite = () => setFavorite((v) => !v)
-
-  const handleAdd = () => {
-    if (quantity < 1) return
-    onAddToCart(product, quantity)
-    setJustAdded(true)
-    setTimeout(() => {
-      setJustAdded(false)
-      onClose()
-      setQuantity(0)
-    }, 500)
+  const toggle = (list: string[], value: string, setList: (next: string[]) => void, max = Infinity) => {
+    if (list.includes(value)) setList(list.filter((entry) => entry !== value))
+    else if (list.length < max) setList([...list, value])
   }
 
-  // Suggestions d'association (sauces et rafraîchissements pour compléter le plat)
-  const suggestions = FALLBACK_PRODUCTS.filter(
-    (p) => p.id !== product.id && (p.category === 4 || p.category === 5),
-  ).slice(0, 5)
+  const setExtra = (code: string, next: number) =>
+    setExtras((current) => ({ ...current, [code]: Math.min(MAX_ITEM_QUANTITY, Math.max(0, next)) }))
+
+  const handleAdd = () => {
+    const parts: string[] = []
+    if (removed.length > 0) parts.push(`Sans ${removed.map((item) => item.toLowerCase()).join(', ')}`)
+    if (sauces.length > 0) parts.push(`Sauce : ${sauces.join(', ')}`)
+    if (remark.trim()) parts.push(remark.trim())
+    onAddToCart(product, quantity, parts.join(' · ') || undefined)
+    for (const item of accompaniments) {
+      const count = extras[item.code] ?? 0
+      if (count > 0) onAddToCart(item, count)
+    }
+    setJustAdded(true)
+    window.setTimeout(onClose, 450)
+  }
+
+  const hasChoices = Boolean(options) || accompaniments.length > 0
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 overflow-y-auto bg-black/85 backdrop-blur-md">
-        {/* Backdrop cliquable */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+    <div className="fixed inset-0 z-50 flex items-stretch justify-center md:items-center md:p-6">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        aria-hidden="true"
+        className="fixed inset-0 bg-black/75"
+      />
+
+      <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 20 }}
+        transition={{ duration: 0.22, ease: 'easeOut' }}
+        className="relative z-10 flex h-dvh w-full flex-col overflow-hidden bg-zinc-950 text-left md:h-[min(88vh,640px)] md:max-w-4xl md:flex-row md:rounded-2xl md:border md:border-white/10"
+      >
+        <button
+          ref={closeRef}
+          type="button"
           onClick={onClose}
-          aria-hidden="true"
-          className="fixed inset-0"
-        />
-
-        {/* Conteneur principal de la vue produit : plein écran complet sur mobile, modale centrée sur desktop */}
-        <motion.div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="product-modal-title"
-          initial={{ opacity: 0, y: 35, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 35, scale: 0.98 }}
-          transition={{ type: 'spring', damping: 28, stiffness: 350 }}
-          className="relative z-10 w-full h-dvh sm:h-auto sm:max-h-[92vh] sm:max-w-lg sm:rounded-3xl bg-[#0C0C0D] text-white shadow-2xl border-0 sm:border sm:border-zinc-800 overflow-hidden flex flex-col text-left"
+          aria-label="Fermer la fiche du plat"
+          className="absolute right-3 top-3 z-20 grid size-11 cursor-pointer place-items-center rounded-full bg-[#0c0c0d]/70 text-[#ffffff] transition-colors hover:bg-[#0c0c0d]/90"
         >
-          {/* ScrollView interne pour tout le contenu */}
-          <div className="flex-1 overflow-y-auto scrollbar-none pb-4">
-            {/* 1. HERO : Image du plat nette et lumineuse en plein format (sans flou et sans arrondi asymétrique) */}
-            <div className="relative h-64 sm:h-72 w-full overflow-hidden bg-zinc-950">
-              <img
-                src={product.image_url}
-                alt={product.name}
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 hover:scale-105"
-              />
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 bg-gradient-to-t from-[#121214] via-transparent to-black/60 pointer-events-none"
-              />
+          <X className="size-5" aria-hidden="true" />
+        </button>
 
-              {/* Header avec bouton retour (flèche blanche), badge 'BMC FOOD' et favori '♥' */}
-              <div className="absolute top-0 inset-x-0 z-20 flex items-center justify-between px-5 pt-4">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  aria-label="Retour au menu"
-                  className="flex size-10 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/15 hover:bg-black/80 text-white transition-all cursor-pointer group shadow-lg active:scale-95"
-                >
-                  <ArrowLeft className="size-5 stroke-[2.5] text-white transition-transform group-hover:-translate-x-0.5" />
-                </button>
+        {/* Photo : colonne de gauche sur grand écran, moitié de la fenêtre */}
+        <div className="relative hidden bg-zinc-900 md:block md:w-1/2 md:shrink-0">
+          <img src={image} alt={product.name} className="absolute inset-0 size-full object-cover" />
+        </div>
 
-                <span className="font-display text-xs sm:text-sm font-black text-white/90 tracking-wider uppercase bg-black/50 backdrop-blur-md px-3.5 py-1 rounded-full border border-white/10">
-                  BMC FOOD
-                </span>
+        {/* Colonne de droite : contenu défilant + barre du bas fixe */}
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            {/* Photo pleine largeur sur téléphone */}
+            <img src={image} alt={product.name} className="aspect-16/10 w-full bg-zinc-900 object-cover md:hidden" />
 
-                <button
-                  type="button"
-                  onClick={toggleFavorite}
-                  aria-label={favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-                  className="flex size-10 items-center justify-center rounded-full bg-black/60 backdrop-blur-md border border-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
-                >
-                  <Heart
-                    className={`size-5 transition-colors ${
-                      favorite ? 'fill-red-500 text-red-500' : 'text-white'
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
-
-            {/* 2. SHEET SOMBRE (#121214) : Bords arrondis qui glissent sous le Hero */}
-            <div className="relative -mt-6 rounded-t-3xl bg-[#121214] px-5 sm:px-6 pt-5 pb-6 border-t border-zinc-800">
-              {/* 3. INFORMATIONS DU PLAT : Titre, Prix Or BMC et Note */}
-              <div className="flex items-start justify-between gap-3 pt-1">
-                <div className="flex-1">
-                  <h2
-                    id="product-modal-title"
-                    className="font-display text-2xl sm:text-3xl font-black text-white leading-tight"
-                  >
-                    {product.name}
-                  </h2>
-                  <div className="mt-1 flex items-center gap-1.5 text-xs text-zinc-400 font-semibold">
-                    <span className="text-bmc-gold font-bold">★</span>
-                    <span className="text-white font-bold">4.9</span>
-                    <span>·</span>
-                    <span>Spécialité maison BMC</span>
-                  </div>
-                </div>
-
-                <div className="shrink-0 text-right">
-                  <span className="font-display text-2xl sm:text-3xl font-black text-bmc-gold tracking-tight">
-                    {formatFcfa(product.price)}
+            <div className="space-y-5 p-5 md:p-8">
+              <div>
+                {/* Marge à droite : le titre ne passe jamais sous la croix de fermeture */}
+                <h2 id={titleId} className="pr-12 font-display text-2xl font-bold leading-tight text-white md:text-3xl">
+                  {product.name}
+                </h2>
+                <div className="mt-3 flex flex-wrap items-center gap-2.5">
+                  <span className="inline-flex items-baseline rounded-full bg-bmc-gold px-4 py-1.5 font-display text-xl font-bold tabular-nums text-black md:text-2xl">
+                    {formatPrice(product.price)}
                   </span>
+                  {product.category_name && (
+                    <span className="rounded-full border border-white/15 px-3 py-1 text-xs font-medium text-zinc-300">
+                      {product.category_name}
+                    </span>
+                  )}
                 </div>
+                <p className="mt-4 text-sm leading-relaxed text-zinc-300 md:text-base">{product.description}</p>
               </div>
 
-              {/* Description concise */}
-              <p className="mt-3 text-xs sm:text-sm text-zinc-300 leading-relaxed">
-                {product.description}
-              </p>
-
-              {/* Sélecteur de quantité */}
-              <div className="mt-5 flex items-center justify-between border-t border-zinc-800/80 pt-4">
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wide">
-                  Quantité
-                </span>
-
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    disabled={quantity === 0}
-                    onClick={() => setQuantity((v) => Math.max(0, v - 1))}
-                    aria-label="Diminuer la quantité"
-                    className="flex size-9 items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 disabled:opacity-30 cursor-pointer transition-colors"
-                  >
-                    <Minus className="size-4" />
-                  </button>
-
-                  <span className="w-8 text-center font-display font-black text-white text-lg">
-                    {quantity}
-                  </span>
-
-                  <button
-                    type="button"
-                    onClick={() => setQuantity((v) => v + 1)}
-                    aria-label="Augmenter la quantité"
-                    className="flex size-9 items-center justify-center rounded-xl bg-bmc-gold hover:bg-yellow-400 text-black font-black shadow-md cursor-pointer transition-colors"
-                  >
-                    <Plus className="size-4 stroke-[3]" />
-                  </button>
-                </div>
-              </div>
-
-              {/* 4. SUGGESTIONS D'ASSOCIATION (Positionnées immédiatement ici avant le bas) */}
-              <div className="mt-6 border-t border-zinc-800/80 pt-5">
-                <div className="flex items-center justify-between mb-3.5">
-                  <h3 className="font-display text-base font-extrabold text-white">
-                    Suggestions d'association
-                  </h3>
-                  <span className="text-xs text-bmc-gold font-semibold">
-                    À ajouter au repas
-                  </span>
-                </div>
-
-                <div className="scrollbar-none -mx-5 flex gap-3 overflow-x-auto px-5 pb-1">
-                  {suggestions.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex w-32 shrink-0 flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-[#18181B] text-center transition-all hover:border-zinc-700 shadow-md"
+              {hasChoices && (
+                <div className="divide-y divide-white/10 overflow-hidden rounded-xl border border-white/10 bg-zinc-900">
+                  {options && options.removable.length > 0 && (
+                    <Disclosure
+                      title="Sans…"
+                      summary={removed.length > 0 ? removed.join(', ').toLowerCase() : 'Rien à retirer'}
                     >
-                      {/* Image plein conteneur (aucun espace vide à l'intérieur) */}
-                      <div className="h-24 w-full overflow-hidden bg-zinc-950 flex items-center justify-center">
-                        <img
-                          src={item.image_url}
-                          alt={item.name}
-                          className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
-                        />
+                      <div className="flex flex-wrap gap-2">
+                        {options.removable.map((item) => {
+                          const active = removed.includes(item)
+                          return (
+                            <button
+                              key={item}
+                              type="button"
+                              aria-pressed={active}
+                              onClick={() => toggle(removed, item, setRemoved)}
+                              className={`${chipBase} ${
+                                active
+                                  ? 'border-red-500/60 bg-red-500/10 text-red-400'
+                                  : 'border-white/15 text-zinc-200 hover:border-white/35'
+                              }`}
+                            >
+                              {active && <X className="size-3.5" aria-hidden="true" />}
+                              <span className={active ? 'line-through' : ''}>{item}</span>
+                            </button>
+                          )
+                        })}
                       </div>
+                    </Disclosure>
+                  )}
 
-                      {/* Contenu textuel et action avec espacement soigné */}
-                      <div className="flex flex-col items-center p-2.5 w-full">
-                        <span
-                          className="font-display text-xs font-bold text-white line-clamp-1 w-full"
-                          title={item.name}
-                        >
-                          {item.name}
-                        </span>
-                        <span className="mt-0.5 font-display text-xs font-black text-bmc-gold">
-                          +{item.price} F
-                        </span>
+                  {options && options.sauces.length > 0 && (
+                    <Disclosure
+                      title="Sauce"
+                      summary={sauces.length > 0 ? sauces.join(', ') : `${options.maxSauces} au choix, incluse${options.maxSauces > 1 ? 's' : ''}`}
+                    >
+                      <div className="flex flex-wrap gap-2">
+                        {options.sauces.map((item) => {
+                          const active = sauces.includes(item)
+                          const locked = !active && sauces.length >= options.maxSauces
+                          return (
+                            <button
+                              key={item}
+                              type="button"
+                              aria-pressed={active}
+                              disabled={locked}
+                              onClick={() => toggle(sauces, item, setSauces, options.maxSauces)}
+                              className={`${chipBase} disabled:cursor-not-allowed disabled:opacity-35 ${
+                                active
+                                  ? 'border-bmc-gold bg-bmc-gold/10 text-bmc-gold'
+                                  : 'border-white/15 text-zinc-200 hover:border-white/35'
+                              }`}
+                            >
+                              {active && <Check className="size-3.5" aria-hidden="true" />}
+                              {item}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </Disclosure>
+                  )}
+
+                  {accompaniments.length > 0 && (
+                    <Disclosure
+                      title="Accompagnements"
+                      defaultOpen
+                      summary={extrasCount > 0 ? `${extrasCount} ajouté${extrasCount > 1 ? 's' : ''} · + ${formatPrice(extrasTotal)}` : 'Boissons, frites…'}
+                    >
+                      <ul className="divide-y divide-white/10">
+                        {visibleExtras.map((item) => {
+                          const count = extras[item.code] ?? 0
+                          return (
+                            <li key={item.code} className="flex items-center gap-3 py-2.5">
+                              <img
+                                src={getProductImageUrl(item) || item.image_url}
+                                alt=""
+                                width={44}
+                                height={44}
+                                loading="lazy"
+                                className="size-11 shrink-0 rounded-lg bg-zinc-950 object-cover"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium text-white">{item.name}</p>
+                                <p className="text-sm tabular-nums text-bmc-gold">+ {formatPrice(item.price)}</p>
+                              </div>
+                              <div className="flex items-center gap-1" role="group" aria-label={`Quantité de ${item.name}`}>
+                                {count > 0 && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => setExtra(item.code, count - 1)}
+                                      aria-label={`Retirer ${item.name}`}
+                                      className={stepButton}
+                                    >
+                                      <Minus className="size-4" aria-hidden="true" />
+                                    </button>
+                                    <span className="w-6 text-center font-display font-bold tabular-nums text-white">{count}</span>
+                                  </>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setExtra(item.code, count + 1)}
+                                  aria-label={`Ajouter ${item.name}`}
+                                  className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full bg-bmc-gold text-black transition-colors hover:bg-amber-400"
+                                >
+                                  <Plus className="size-4" aria-hidden="true" />
+                                </button>
+                              </div>
+                            </li>
+                          )
+                        })}
+                      </ul>
+
+                      {accompaniments.length > VISIBLE_EXTRAS && (
                         <button
                           type="button"
-                          onClick={() => onAddToCart(item, 1)}
-                          className="mt-2 w-full rounded-xl bg-zinc-800 hover:bg-zinc-700 py-1.5 text-[11px] font-bold text-zinc-200 hover:text-white transition-colors cursor-pointer active:scale-95"
+                          onClick={() => setShowAllExtras((value) => !value)}
+                          aria-expanded={showAllExtras}
+                          className="mt-1 inline-flex h-11 cursor-pointer items-center gap-1.5 text-sm font-medium text-bmc-gold transition-colors hover:text-white"
                         >
-                          + Ajouter
+                          {showAllExtras ? 'Voir moins' : `Voir plus (${hiddenCount})`}
+                          <ChevronDown className={`size-4 transition-transform ${showAllExtras ? 'rotate-180' : ''}`} aria-hidden="true" />
                         </button>
-                      </div>
-                    </div>
-                  ))}
+                      )}
+                    </Disclosure>
+                  )}
+
+                  {options && (
+                    <Disclosure title="Précision" summary={remark.trim() ? remark.trim() : 'Pour la cuisine'}>
+                      <label htmlFor={`${titleId}-remark`} className="sr-only">
+                        Une précision pour la cuisine
+                      </label>
+                      <textarea
+                        id={`${titleId}-remark`}
+                        rows={2}
+                        maxLength={140}
+                        value={remark}
+                        onChange={(event) => {
+                          setRemark(event.target.value)
+                          setShowRemark(true)
+                        }}
+                        placeholder="Ex. bien cuit, sans piment…"
+                        className="w-full resize-none rounded-lg border border-white/10 bg-zinc-950 px-3.5 py-3 text-base text-white placeholder-zinc-500 outline-none transition-colors focus:border-bmc-gold md:text-sm"
+                      />
+                      {showRemark && null}
+                    </Disclosure>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
-          {/* 5. FOOTER FIXE EN BAS (Total Box + Grand Bouton JAUNE d'action) */}
-          <div className="sticky bottom-0 inset-x-0 z-30 flex items-stretch gap-3 border-t border-zinc-800 bg-[#121214]/95 backdrop-blur-md px-5 py-4">
-            <div className="min-w-28 sm:min-w-32 flex flex-col items-center justify-center rounded-2xl bg-zinc-900 border border-zinc-800 px-4 py-2">
-              <span className="text-[11px] font-bold text-zinc-400">Total</span>
-              <span className="font-display text-base sm:text-lg font-black text-bmc-gold tracking-tight">
-                {formatFcfa(product.price * quantity)}
-              </span>
+          {/* Barre du bas : toujours visible */}
+          <div className="flex items-center gap-3 border-t border-white/10 bg-zinc-950 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-8">
+            <div className="flex items-center gap-1" role="group" aria-label="Quantité">
+              <button
+                type="button"
+                onClick={() => setQuantity((value) => Math.max(1, value - 1))}
+                disabled={quantity <= 1}
+                aria-label="Diminuer la quantité"
+                className={stepButton}
+              >
+                <Minus className="size-4" aria-hidden="true" />
+              </button>
+              <span className="w-8 text-center font-display text-lg font-bold tabular-nums text-white">{quantity}</span>
+              <button
+                type="button"
+                onClick={() => setQuantity((value) => Math.min(MAX_ITEM_QUANTITY, value + 1))}
+                disabled={quantity >= MAX_ITEM_QUANTITY}
+                aria-label="Augmenter la quantité"
+                className={stepButton}
+              >
+                <Plus className="size-4" aria-hidden="true" />
+              </button>
             </div>
 
-            <motion.button
+            <button
               type="button"
-              whileTap={{ scale: 0.96 }}
-              whileHover={{ scale: 1.02 }}
               onClick={handleAdd}
-              disabled={quantity === 0 && !justAdded}
-              className={`flex-1 flex items-center justify-center gap-2.5 rounded-2xl py-3.5 px-6 font-display font-black text-sm sm:text-base transition-all cursor-pointer shadow-lg disabled:cursor-not-allowed
-                ${
-                  justAdded
-                    ? 'bg-emerald-500 text-white shadow-emerald-500/30'
-                    : quantity === 0
-                    ? 'bg-zinc-800 text-zinc-500 shadow-none'
-                    : 'bg-bmc-gold hover:bg-yellow-400 text-black shadow-[0_4px_25px_rgba(252,184,0,0.4)]'
-                }`}
+              disabled={!product.is_available || justAdded}
+              className={`inline-flex h-12 min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed sm:text-base ${
+                justAdded ? 'bg-bmc-success text-white' : 'bg-bmc-gold text-black hover:bg-amber-400 disabled:opacity-40'
+              }`}
             >
               {justAdded ? (
                 <>
-                  <Check className="size-5 stroke-[3]" />
-                  <span>Ajouté !</span>
+                  <Check className="size-5" aria-hidden="true" /> Ajouté
+                </>
+              ) : product.is_available ? (
+                <>
+                  Ajouter <span className="tabular-nums">· {formatPrice(total)}</span>
                 </>
               ) : (
-                <>
-                  <ShoppingBag className="size-4.5 stroke-[2.5]" />
-                  <span>Ajouter au panier</span>
-                </>
+                'Indisponible'
               )}
-            </motion.button>
+            </button>
           </div>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+        </div>
+      </motion.div>
+    </div>
   )
 }
