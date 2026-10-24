@@ -84,16 +84,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           boxShadow: '0 20px 50px rgba(0, 0, 0, 0.7), 0 0 1px rgba(255, 255, 255, 0.1)',
         }}
       >
-        {/* EN-TÊTE : LOGO + TITRE */}
-        <div className="flex flex-col items-center text-center gap-3">
-          <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-lg tracking-wider shadow-lg"
-            style={{
-              backgroundColor: '#F5B301',
-              color: '#0B0D10',
-            }}
-          >
-            BMC
+        {/* EN-TÊTE : LOGO OFFICIEL + TITRE */}
+        <div className="flex flex-col items-center text-center gap-2.5">
+          <div className="relative inline-block mb-1">
+            <div
+              className="absolute -inset-2 rounded-full blur-md opacity-30"
+              style={{ backgroundColor: '#F5B301' }}
+            />
+            <img
+              src="/images/brand/logo.png"
+              alt="BMC Food"
+              width={80}
+              height={80}
+              className="relative h-14 w-auto object-contain mx-auto"
+            />
           </div>
 
           <div>

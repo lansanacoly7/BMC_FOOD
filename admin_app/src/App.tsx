@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { clearAuthToken, getAuthToken, getAuthUser } from './api/client'
 import { calculateTodayKpis } from './api/orders'
-import { AppHeader } from './components/common/AppHeader'
+import { AppHeader, type AdminTab } from './components/common/AppHeader'
 import { ConnectionBanner } from './components/common/ConnectionBanner'
 import { KpiBar } from './components/common/KpiBar'
 import { Toast } from './components/common/Toast'
@@ -15,6 +15,8 @@ import { DailySpecialPage } from './pages/DailySpecialPage'
 import { HistoryPage } from './pages/HistoryPage'
 import { KdsPage } from './pages/KdsPage'
 import { LoginPage } from './pages/LoginPage'
+import { PromotionsPage } from './pages/PromotionsPage'
+import { TransactionsPage } from './pages/TransactionsPage'
 import type { KdsOrder, KdsOrderStatus } from './types/kds'
 
 export default function App() {
@@ -33,7 +35,7 @@ export default function App() {
     setCurrentUserState(null)
   }
 
-  const [headerTab, setHeaderTab] = useState<'kds' | 'special'>('kds')
+  const [headerTab, setHeaderTab] = useState<AdminTab>('kds')
   const [viewMode, setViewMode] = useState<'kanban' | 'history'>('kanban')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [selectedOrder, setSelectedOrder] = useState<KdsOrder | null>(null)
@@ -215,10 +217,18 @@ export default function App() {
         />
       )}
 
-      {/* ZONE PRINCIPALE SANS AUCUN SCROLL DE PAGE (100% de la hauteur restante) */}
+      {/* ZONE PRINCIPALE (100% de la hauteur restante) */}
       <main className="flex-1 flex flex-col min-h-0 overflow-hidden" role="main">
         {headerTab === 'special' ? (
           <DailySpecialPage />
+        ) : headerTab === 'promotions' ? (
+          <PromotionsPage />
+        ) : headerTab === 'transactions' ? (
+          <TransactionsPage
+            orders={orders}
+            onRefresh={() => void refresh()}
+            isRefreshing={isLoading}
+          />
         ) : viewMode === 'kanban' ? (
           <KdsPage
             orders={orders}

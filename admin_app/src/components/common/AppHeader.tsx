@@ -7,14 +7,18 @@ import {
   Maximize2,
   Minimize2,
   LogOut,
+  Tag,
+  CreditCard,
 } from 'lucide-react'
 import { audioAlert } from '../../lib/audioAlert'
 import { formatClockTime } from '../../lib/formatters'
 import type { ApiConnectionState } from '../../hooks/useOrders'
 
+export type AdminTab = 'kds' | 'special' | 'promotions' | 'transactions'
+
 interface AppHeaderProps {
-  currentTab: 'kds' | 'special'
-  onTabChange: (tab: 'kds' | 'special') => void
+  currentTab: AdminTab
+  onTabChange: (tab: AdminTab) => void
   connectionState: ApiConnectionState
   lastSyncTime: Date | null
   onManualRefresh: () => void
@@ -125,14 +129,14 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               color: '#F5B301',
             }}
           >
-            KDS CUISINE
+            BACK-OFFICE & KDS
           </span>
         </div>
       </div>
 
-      {/* CENTRE : ONGLETS CUISINE / PLAT DU JOUR */}
+      {/* CENTRE : 4 ONGLETS MODERNES (Cuisine, Promotions, Transactions, Plat du Jour) */}
       <nav
-        className="flex items-center p-1 rounded-xl border"
+        className="flex items-center p-1 rounded-xl border gap-1"
         style={{
           backgroundColor: '#0B0D10',
           borderColor: '#232830',
@@ -142,26 +146,52 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         <button
           type="button"
           onClick={() => onTabChange('kds')}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all"
+          className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer"
           style={{
             backgroundColor: currentTab === 'kds' ? '#F5B301' : 'transparent',
             color: currentTab === 'kds' ? '#0B0D10' : '#9AA3AF',
           }}
         >
-          <Flame size={16} strokeWidth={2.5} />
+          <Flame size={15} strokeWidth={2.5} />
           <span>Cuisine & Commandes</span>
         </button>
 
         <button
           type="button"
+          onClick={() => onTabChange('promotions')}
+          className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer"
+          style={{
+            backgroundColor: currentTab === 'promotions' ? '#F5B301' : 'transparent',
+            color: currentTab === 'promotions' ? '#0B0D10' : '#9AA3AF',
+          }}
+        >
+          <Tag size={15} strokeWidth={2.5} />
+          <span>Plats en Promotion</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onTabChange('transactions')}
+          className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer"
+          style={{
+            backgroundColor: currentTab === 'transactions' ? '#F5B301' : 'transparent',
+            color: currentTab === 'transactions' ? '#0B0D10' : '#9AA3AF',
+          }}
+        >
+          <CreditCard size={15} strokeWidth={2.5} />
+          <span>Transactions</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => onTabChange('special')}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all"
+          className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer"
           style={{
             backgroundColor: currentTab === 'special' ? '#F5B301' : 'transparent',
             color: currentTab === 'special' ? '#0B0D10' : '#9AA3AF',
           }}
         >
-          <UtensilsCrossed size={16} strokeWidth={2.5} />
+          <UtensilsCrossed size={15} strokeWidth={2.5} />
           <span>Plat du Jour</span>
         </button>
       </nav>
