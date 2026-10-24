@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
+import { recordOrder } from '../services/clientData'
 import { type OrderCustomerDetails, OrderSubmitError, submitOrder } from '../services/orders'
 import type { Order } from '../types'
 import { useCart } from './useCart'
@@ -42,6 +43,7 @@ export function useOrderSubmission(): OrderSubmission {
       setError(null)
       try {
         const created = await submitOrder(items, customer)
+        recordOrder(created)
         setOrder(created)
         setStatus('success')
         clearCart()
