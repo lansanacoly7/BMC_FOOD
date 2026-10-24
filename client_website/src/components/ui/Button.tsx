@@ -17,7 +17,7 @@ export interface ButtonProps extends Omit<HTMLMotionProps<'button'>, 'children'>
 const variantStyles: Record<ButtonVariant, string> = {
   // Or officiel BMC Food (Jaune/Or signature) : contraste certifié avec texte noir
   primary:
-    'bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 text-black font-black hover:brightness-110 active:scale-97 focus-visible:outline-bmc-gold shadow-md shadow-bmc-gold/25',
+    'bg-bmc-gold text-black font-bold hover:brightness-110 active:scale-97 focus-visible:outline-bmc-gold',
   // Charbon sombre
   secondary:
     'bg-bmc-charcoal text-white hover:bg-zinc-800 active:bg-zinc-900 focus-visible:outline-bmc-charcoal shadow-sm',

@@ -24,9 +24,9 @@ const variantStyles: Record<BadgeVariant, string> = {
   // Or officiel du logo : Plat du Jour, best-sellers
   gold: 'bg-bmc-gold text-bmc-black font-bold shadow-xs',
   // Or / Jaune officiel
-  orange: 'bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 text-black font-black shadow-xs',
+  orange: 'bg-bmc-gold text-black font-bold shadow-xs',
   // Succès
-  success: 'bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold',
+  success: 'bg-green-100 text-green-800 border border-green-200 font-semibold',
   // Erreur
   error: 'bg-red-100 text-red-800 border border-red-200 font-semibold',
   // Avertissement / En attente
@@ -41,7 +41,7 @@ const variantStyles: Record<BadgeVariant, string> = {
 }
 
 const sizeStyles: Record<BadgeSize, string> = {
-  sm: 'px-2 py-0.5 text-[11px] gap-1',
+  sm: 'px-2 py-0.5 text-xs gap-1',
   md: 'px-2.5 py-1 text-xs gap-1.5',
 }
 
