@@ -103,7 +103,7 @@ function WaveScreen({ onClose, amount, orderRef, onConfirm }: WaveScreenProps) {
               whileTap={isProcessing ? undefined : { scale: 0.97 }}
               onClick={confirm}
               disabled={isProcessing}
-              className="mt-9 flex h-[3.75rem] w-full items-center justify-center gap-2 rounded-full bg-wave text-xl font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wave-indigo disabled:opacity-80"
+              className="mt-9 flex h-[3.75rem] w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-wave text-xl font-bold text-white transition-[filter] hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wave-indigo disabled:opacity-80"
             >
               {isProcessing ? (
                 <>

@@ -1,9 +1,11 @@
-import { AlertTriangle, ArrowLeft, Check, Crosshair, ExternalLink, LoaderCircle, MapPin } from 'lucide-react'
-import { motion } from 'motion/react'
-import { type FormEvent, useId, useState } from 'react'
+import { AlertTriangle, ArrowLeft, Check, Clock, ExternalLink, LoaderCircle, LocateFixed, Store, Truck } from 'lucide-react'
+import { type FormEvent, useEffect, useId, useState } from 'react'
+import { loadProfile, saveProfile, USER_KEY } from '../../services/clientData'
 import { useCart } from '../../hooks/useCart'
 import { useOrderSubmission } from '../../hooks/useOrderSubmission'
 import { findDeliveryArea } from '../../lib/delivery'
+import { formatFcfa } from '../../lib/format'
+import { getProductImageUrl } from '../../lib/productImages'
 import type { OrderCustomerDetails, OrderField } from '../../services/orders'
 import type { PaymentMethod } from '../../types'
 import { DeliveryZoneSelect } from './DeliveryZoneSelect'
@@ -16,21 +18,81 @@ import { WavePaymentModal } from './WavePaymentModal'
 
 const EMPTY_FORM: OrderCustomerDetails = { customer_name: '', phone: '', address: '', notes: '', payment_method: 'cash' }
 
+/** Mode de réception : livraison chez le client, ou à emporter (le client vient chercher sa commande au restaurant). */
+type FulfillmentMode = 'delivery' | 'pickup'
+const MODE_STORAGE_KEY = 'bmc_order_mode'
+const RESTAURANT_ADDRESS = 'PGXV+6R7, Dakar'
+const RESTAURANT_MAPS_URL = 'https://maps.google.com/?q=PGXV%2B6R7,+Dakar'
+/** Le serveur exige une adresse : pour un retrait, on envoie celle du restaurant, et la cuisine voit la mention dans les notes. */
+const PICKUP_ADDRESS = `Retrait sur place – ${RESTAURANT_ADDRESS}`
+const PICKUP_NOTE = 'À EMPORTER : le client vient récupérer sa commande au restaurant.'
+
+const MODES: { value: FulfillmentMode; label: string; hint: string; Icon: typeof Truck }[] = [
+  { value: 'delivery', label: 'Livraison', hint: 'Chez vous, à Dakar', Icon: Truck },
+  { value: 'pickup', label: 'À emporter', hint: 'Je viens le chercher', Icon: Store },
+]
+
+/** Nombre de plats montrés dans le récapitulatif avant « + N autres ». */
+const VISIBLE_ITEMS = 3
+
+/** Voile du bandeau : teinte du fond de page à une opacité donnée, en paliers progressifs (aucune coupure nette). */
+const page = (opacity: number) => `color-mix(in oklab, var(--color-zinc-950) ${opacity}%, transparent)`
+const BANNER_SCRIM = `linear-gradient(to right, ${page(96)} 0%, ${page(88)} 30%, ${page(66)} 52%, ${page(36)} 72%, ${page(12)} 88%, transparent 100%)`
+
 interface ProvisionalCheckoutProps {
+  /** Compte client connecté : ses coordonnées sont reprises dans le formulaire. */
+  clientUser?: { name: string; phone: string } | null
   onBack: () => void
   onNewOrder: () => void
 }
 
 /**
- * Écran « Finaliser la commande » (Univers Dark Luxury).
- * Design 100% harmonisé avec le thème sombre, les contrastes dorés et les cartes Ardoise.
+ * Écran « Finaliser la commande » : deux colonnes sur grand écran (coordonnées à gauche, paiement et
+ * récapitulatif à droite) pour tenir sans défiler ; une seule colonne compacte sur téléphone.
  */
-export function ProvisionalCheckout({ onBack, onNewOrder }: ProvisionalCheckoutProps) {
+export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: ProvisionalCheckoutProps) {
   const formId = useId()
   const { items, subtotal } = useCart()
   const { status, isSubmitting, order, error, submit, clearError, reset } = useOrderSubmission()
-  const [form, setForm] = useState<OrderCustomerDetails>(EMPTY_FORM)
-  const [selectedAreaId, setSelectedAreaId] = useState('')
+  // Préremplit avec le compte et l'adresse enregistrés dans « Mon compte », s'ils existent
+  // Priorité au compte connecté, sinon aux coordonnées de la dernière commande ; l'adresse mémorisée est reprise telle quelle.
+  const [form, setForm] = useState<OrderCustomerDetails>(() => {
+    try {
+      const user = JSON.parse(localStorage.getItem(USER_KEY) ?? 'null') as { name?: string; phone?: string } | null
+      const profile = loadProfile()
+      return {
+        ...EMPTY_FORM,
+        customer_name: user?.name || profile.contactName || '',
+        phone: user?.phone || profile.contactPhone || '',
+        address: profile.address,
+      }
+    } catch {
+      return EMPTY_FORM
+    }
+  })
+
+  // Si le client se connecte pendant la commande, on complète les champs encore vides
+  useEffect(() => {
+    if (!clientUser) return
+    setForm((current) => ({
+      ...current,
+      customer_name: current.customer_name || clientUser.name,
+      phone: current.phone || clientUser.phone,
+    }))
+  }, [clientUser])
+
+  const [mode, setMode] = useState<FulfillmentMode>(() => {
+    try {
+      return localStorage.getItem(MODE_STORAGE_KEY) === 'pickup' ? 'pickup' : 'delivery'
+    } catch {
+      return 'delivery'
+    }
+  })
+  // Quartier habituel mémorisé (s'il existe toujours dans la grille de livraison)
+  const [selectedAreaId, setSelectedAreaId] = useState(() => {
+    const saved = loadProfile().areaId
+    return saved && findDeliveryArea(saved) ? saved : ''
+  })
   const [isWaveModalOpen, setIsWaveModalOpen] = useState(true)
   const [isOmModalOpen, setIsOmModalOpen] = useState(true)
   const [isLocating, setIsLocating] = useState(false)
@@ -38,6 +100,18 @@ export function ProvisionalCheckout({ onBack, onNewOrder }: ProvisionalCheckoutP
   const [locationError, setLocationError] = useState<string | null>(null)
 
   const selectedArea = selectedAreaId ? findDeliveryArea(selectedAreaId) : undefined
+  const isPickup = mode === 'pickup'
+  // Pas de frais de livraison quand le client vient chercher sa commande
+  const deliveryFee = isPickup ? undefined : selectedArea?.fee
+
+  const changeMode = (next: FulfillmentMode) => {
+    setMode(next)
+    try {
+      localStorage.setItem(MODE_STORAGE_KEY, next)
+    } catch {
+      /* le choix vaut pour cette commande */
+    }
+  }
 
   const update = (field: OrderField, value: string) => {
     setForm((current) => ({ ...current, [field]: value }))
@@ -71,19 +145,14 @@ export function ProvisionalCheckout({ onBack, onNewOrder }: ProvisionalCheckoutP
         try {
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
-            { headers: { 'Accept-Language': 'fr' } }
+            { headers: { 'Accept-Language': 'fr' } },
           )
           if (response.ok) {
             const data = await response.json()
             const road = data.address?.road || data.address?.pedestrian || ''
             const suburb = data.address?.suburb || data.address?.neighbourhood || data.address?.city_district || ''
             const label = [road, suburb].filter(Boolean).join(', ')
-
-            if (label) {
-              update('address', `${label} (${googleMapsUrl})`)
-            } else {
-              update('address', `Position GPS : ${googleMapsUrl}`)
-            }
+            update('address', label ? `${label} (${googleMapsUrl})` : `Position GPS : ${googleMapsUrl}`)
           } else {
             update('address', `Position GPS : ${googleMapsUrl}`)
           }
@@ -98,13 +167,13 @@ export function ProvisionalCheckout({ onBack, onNewOrder }: ProvisionalCheckoutP
       (err) => {
         setIsLocating(false)
         if (err.code === err.PERMISSION_DENIED) {
-          setLocationError('Autorisation refusée. Veuillez autoriser la localisation ou saisir votre adresse.')
+          setLocationError('Autorisation refusée. Autorisez la localisation ou saisissez votre adresse.')
         } else {
-          setLocationError('Impossible de récupérer la position GPS. Saisissez votre adresse manuellement.')
+          setLocationError('Position introuvable. Saisissez votre adresse.')
         }
         setTimeout(() => setLocationError(null), 5000)
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
     )
   }
 
@@ -112,17 +181,41 @@ export function ProvisionalCheckout({ onBack, onNewOrder }: ProvisionalCheckoutP
     event.preventDefault()
     setIsWaveModalOpen(true)
     setIsOmModalOpen(true)
-    void submit(form)
+    // Retrait : adresse du restaurant et mention « à emporter » pour la cuisine
+    const payload: OrderCustomerDetails = isPickup
+      ? { ...form, address: PICKUP_ADDRESS, notes: [PICKUP_NOTE, form.notes?.trim()].filter(Boolean).join('\n') }
+      : form
+    void submit(payload)
   }
 
-  // Écran officiel de confirmation reproduisant fidèlement la page 12 de la charte graphique
+  // Une fois la commande acceptée, on mémorise coordonnées et adresse pour les prochaines commandes :
+  // le client n'a plus à les ressaisir (il peut les modifier ici ou dans « Mon compte »).
+  useEffect(() => {
+    if (status !== 'success' || !order) return
+    const profile = loadProfile()
+    const next = { ...profile, contactName: form.customer_name.trim(), contactPhone: form.phone.trim() }
+    if (!isPickup && form.address.trim()) {
+      next.address = form.address.trim()
+      if (selectedAreaId) next.areaId = selectedAreaId
+      // Une position GPS partagée est reprise dans le profil (lien Google Maps contenu dans l'adresse)
+      const gps = form.address.match(/q=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/)
+      if (gps) {
+        next.latitude = Number(gps[1])
+        next.longitude = Number(gps[2])
+      }
+    }
+    saveProfile(next)
+    // On ne mémorise qu'une fois par commande
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, order])
+
+  // Écran de confirmation de commande
   if (status === 'success' && order) {
     const isWave = order.payment_method === 'wave'
     const isOm = order.payment_method === 'orange_money'
 
     return (
       <>
-        {/* Simulation Wave en superposition avant la confirmation si Wave choisi */}
         {isWave && (
           <WavePaymentModal
             isOpen={isWaveModalOpen}
@@ -133,7 +226,6 @@ export function ProvisionalCheckout({ onBack, onNewOrder }: ProvisionalCheckoutP
           />
         )}
 
-        {/* Simulation Orange Money en superposition si Orange Money choisi */}
         {isOm && (
           <OrangeMoneyModal
             isOpen={isOmModalOpen}
@@ -144,11 +236,11 @@ export function ProvisionalCheckout({ onBack, onNewOrder }: ProvisionalCheckoutP
           />
         )}
 
-        {/* Reproduction exacte de la page 12 de la charte graphique */}
         <OrderConfirmation
           order={order}
           deliveryAreaName={selectedArea?.name}
-          deliveryFee={selectedArea?.fee}
+          deliveryFee={deliveryFee}
+          fulfillment={mode}
           onNewOrder={() => {
             reset()
             onNewOrder()
@@ -160,223 +252,294 @@ export function ProvisionalCheckout({ onBack, onNewOrder }: ProvisionalCheckoutP
 
   const fieldError = (field: OrderField) => error?.fieldErrors[field]
   const inputClass = (field: OrderField) =>
-    `mt-1.5 h-12 w-full rounded-xl border bg-zinc-950/90 px-3.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 transition-all ${
-      fieldError(field)
-        ? 'border-red-500 focus:ring-red-500/25'
-        : 'border-white/15 focus:border-bmc-gold focus:ring-bmc-gold/25'
+    `h-12 w-full rounded-lg border bg-zinc-950 px-3.5 text-base text-white placeholder:text-zinc-500 outline-none transition-colors sm:text-sm ${
+      fieldError(field) ? 'border-red-500' : 'border-white/10 focus:border-bmc-gold'
     }`
+  const labelClass = 'mb-1.5 block text-sm font-medium text-zinc-200'
+  const card = 'warm-card rounded-2xl border bg-zinc-900 p-5'
+
+  const visibleItems = items.slice(0, VISIBLE_ITEMS)
+  const hiddenItems = items.length - visibleItems.length
 
   return (
-    <div className="min-h-dvh bg-zinc-950 text-zinc-100 pb-16 pt-5 selection:bg-bmc-gold selection:text-black">
-      <section className="mx-auto flex max-w-lg flex-col gap-6 px-4">
-        {/* En-tête noir et or avec bouton retour contrasté */}
-        <div className="flex items-center gap-3.5">
-          <button
-            type="button"
-            onClick={onBack}
-            disabled={isSubmitting}
-            aria-label="Revenir au menu"
-            className="grid size-11 shrink-0 place-items-center rounded-full bg-zinc-900 border border-white/15 text-white hover:border-bmc-gold hover:text-bmc-gold transition-colors focus-visible:outline-2 focus-visible:outline-bmc-gold disabled:opacity-50 cursor-pointer shadow-md"
-          >
-            <ArrowLeft className="size-5" aria-hidden="true" />
-          </button>
-          <div>
-            <h1 className="font-display text-2xl font-black text-white">Finaliser la commande</h1>
-            <p className="text-xs font-semibold text-zinc-400">Paiement Wave, Orange Money & Espèces</p>
+    <div className="min-h-dvh bg-zinc-950 pb-16 text-zinc-100 selection:bg-bmc-gold selection:text-black">
+      <div className="mx-auto max-w-5xl px-4 pt-5 sm:px-6">
+        {/* Bandeau : photo, titre, retour */}
+        <header className="relative isolate mb-5 flex min-h-[104px] items-center overflow-hidden rounded-2xl border border-white/10 bg-zinc-900">
+          <img
+            src="/images/hero/tacos_mixte_pane_cut.webp"
+            alt=""
+            width={800}
+            height={597}
+            decoding="async"
+            className="absolute inset-0 -z-20 size-full object-cover object-[80%_center]"
+          />
+          <div aria-hidden="true" className="absolute inset-0 -z-10" style={{ backgroundImage: BANNER_SCRIM }} />
+          <div className="flex items-center gap-3.5 p-4 sm:p-6">
+            <button
+              type="button"
+              onClick={onBack}
+              disabled={isSubmitting}
+              aria-label="Revenir au menu"
+              className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full border border-white/20 bg-zinc-950/70 text-white transition-colors hover:border-bmc-gold hover:text-bmc-gold focus-visible:outline-2 focus-visible:outline-bmc-gold disabled:opacity-50"
+            >
+              <ArrowLeft className="size-5" aria-hidden="true" />
+            </button>
+            <div>
+              <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">
+                Finaliser la <span className="text-bmc-gold">commande</span>
+              </h1>
+              <p className="text-sm text-zinc-300">Wave, Orange Money ou espèces</p>
+            </div>
           </div>
-        </div>
+        </header>
 
         {error && (
-          <div role="alert" className="flex gap-3 rounded-2xl bg-red-950/80 px-4 py-3.5 text-sm text-red-200 border border-red-500/40 shadow-lg">
+          <div role="alert" className="mb-5 flex gap-3 rounded-2xl border border-red-500/40 bg-red-950/60 px-4 py-3.5 text-sm text-red-200">
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-red-400" aria-hidden="true" />
             <div className="flex flex-col gap-1">
-              <p className="font-bold text-red-100">{error.message}</p>
+              <p className="font-semibold text-red-100">{error.message}</p>
               {error.itemErrors.map((message) => (
-                <p key={message} className="text-xs text-red-300">{message}</p>
+                <p key={message} className="text-xs text-red-300">
+                  {message}
+                </p>
               ))}
             </div>
           </div>
         )}
 
-        <form id={formId} onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
-          {/* Card 1 : Coordonnées client */}
-          <div className="space-y-4.5 rounded-2xl bg-zinc-900/90 p-5 shadow-xl border border-white/10 backdrop-blur-xs">
-            <h2 className="font-display text-base font-extrabold text-white flex items-center gap-2">
-              <MapPin className="size-4 text-bmc-gold" />
-              Vos coordonnées de livraison
-            </h2>
-
-            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300">
-              Nom et prénom
-              <input
-                type="text"
-                autoComplete="name"
-                placeholder="Ex. Aminata Diallo"
-                value={form.customer_name}
-                onChange={(e) => update('customer_name', e.target.value)}
-                disabled={isSubmitting}
-                className={inputClass('customer_name')}
-              />
-              {fieldError('customer_name') && (
-                <span className="mt-1 block text-xs font-semibold text-red-400">{fieldError('customer_name')}</span>
-              )}
-            </label>
-
-            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300">
-              Téléphone sénégalais
-              <input
-                type="tel"
-                autoComplete="tel"
-                placeholder="Ex. 77 123 45 67"
-                value={form.phone}
-                onChange={(e) => update('phone', e.target.value)}
-                disabled={isSubmitting}
-                className={inputClass('phone')}
-              />
-              {fieldError('phone') && (
-                <span className="mt-1 block text-xs font-semibold text-red-400">{fieldError('phone')}</span>
-              )}
-            </label>
-
-            {/* Sélecteur de quartier de Dakar */}
-            <DeliveryZoneSelect
-              value={selectedAreaId}
-              onChange={handleAreaChange}
-              disabled={isSubmitting}
-            />
-
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <label htmlFor="address-input" className="block text-xs font-bold uppercase tracking-wider text-zinc-300">
-                  Adresse exacte ou point de repère
-                </label>
-                <span className="text-[11px] text-zinc-400">Pour le livreur</span>
-              </div>
-
-              {/* Bouton d'action principal Google Maps : visible, premium et ultra-professionnel */}
-              <motion.button
-                type="button"
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleGetLocation}
-                disabled={isLocating || isSubmitting}
-                aria-label="Prendre ma position sur Google Maps"
-                className={`group flex w-full items-center justify-between gap-3 rounded-2xl border p-3.5 transition-all cursor-pointer shadow-md ${
-                  locationSuccess
-                    ? 'border-emerald-500/60 bg-emerald-950/40 text-emerald-200 shadow-emerald-500/10'
-                    : 'border-bmc-gold/40 bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 hover:border-bmc-gold hover:shadow-lg hover:shadow-bmc-gold/15 text-white'
-                }`}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className={`grid size-10 shrink-0 place-items-center rounded-xl border transition-all ${
-                      locationSuccess
-                        ? 'border-emerald-500/50 bg-emerald-500/20 text-emerald-300'
-                        : 'border-bmc-gold/40 bg-bmc-gold/10 text-bmc-gold group-hover:bg-gradient-to-r group-hover:from-bmc-gold group-hover:to-amber-400 group-hover:text-black group-hover:shadow-md'
+        <form id={formId} onSubmit={handleSubmit} className="grid grid-cols-1 gap-5 lg:grid-cols-5 lg:items-start" noValidate>
+          {/* ===== Colonne gauche : mode, coordonnées ===== */}
+          <div className="space-y-5 lg:col-span-3">
+            <div role="radiogroup" aria-label="Mode de réception" className="grid grid-cols-2 gap-3">
+              {MODES.map(({ value, label, hint, Icon }) => {
+                const active = mode === value
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    disabled={isSubmitting}
+                    onClick={() => changeMode(value)}
+                    className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-3.5 text-left transition-colors disabled:opacity-60 ${
+                      active ? 'border-bmc-gold bg-bmc-gold/10' : 'border-white/10 bg-zinc-900 hover:border-white/25'
                     }`}
                   >
-                    {isLocating ? (
-                      <LoaderCircle className="size-5 animate-spin text-bmc-gold" />
-                    ) : locationSuccess ? (
-                      <Check className="size-5 stroke-[2.5]" />
-                    ) : (
-                      <Crosshair className="size-5 stroke-[2.2]" />
-                    )}
-                  </div>
-                  <div className="text-left min-w-0">
-                    <p className="font-display text-sm font-extrabold text-white truncate group-hover:text-amber-200 transition-colors">
-                      {isLocating
-                        ? 'Recherche de votre position GPS…'
-                        : locationSuccess
-                        ? 'Position Google Maps enregistrée'
-                        : 'Prendre ma position via Google Maps'}
-                    </p>
-                    <p className="text-xs text-zinc-400 truncate">
-                      {locationSuccess
-                        ? 'Coordonnées GPS associées à votre commande'
-                        : 'Localisation automatique pour guider le livreur'}
-                    </p>
-                  </div>
-                </div>
+                    <span
+                      className={`grid size-11 shrink-0 place-items-center rounded-xl ${
+                        active ? 'bg-bmc-gold text-black' : 'bg-white/5 text-zinc-300'
+                      }`}
+                    >
+                      <Icon className="size-5" aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block font-display text-base font-bold text-white">{label}</span>
+                      <span className="block truncate text-xs text-zinc-400">{hint}</span>
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
 
-                <div
-                  className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-black uppercase tracking-wider transition-all shadow-sm ${
-                    locationSuccess
-                      ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/40'
-                      : 'bg-gradient-to-r from-bmc-gold to-amber-400 text-black shadow-bmc-gold/20 group-hover:brightness-110'
-                  }`}
-                >
-                  {isLocating ? 'En cours…' : locationSuccess ? 'Capturé ✓' : 'Localiser'}
-                </div>
-              </motion.button>
-
-              {/* Champ texte d'adresse (permettant aussi d'ajouter un complément comme étage ou villa) */}
-              <div className="relative">
-                <input
-                  id="address-input"
-                  type="text"
-                  autoComplete="street-address"
-                  placeholder="Ex. Rue 14 x Boulevard de la République, Villa 42…"
-                  value={form.address}
-                  onChange={(e) => update('address', e.target.value)}
-                  disabled={isSubmitting}
-                  className={inputClass('address')}
-                />
+            <section className={card} aria-labelledby={`${formId}-contact`}>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 id={`${formId}-contact`} className="font-display text-lg font-bold text-white">
+                  {isPickup ? 'Vos coordonnées' : 'Livraison'}
+                </h2>
+                {clientUser && (
+                  <span className="rounded-full bg-bmc-gold/15 px-2.5 py-0.5 text-xs font-semibold text-bmc-gold">Compte connecté</span>
+                )}
               </div>
 
-              {locationError && (
-                <div className="flex items-center gap-2 rounded-xl bg-amber-950/40 border border-amber-500/30 px-3 py-2 text-xs text-amber-300">
-                  <AlertTriangle className="size-4 shrink-0 text-amber-400" />
-                  <span>{locationError}</span>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor={`${formId}-name`} className={labelClass}>
+                    Nom et prénom
+                  </label>
+                  <input
+                    id={`${formId}-name`}
+                    type="text"
+                    autoComplete="name"
+                    placeholder="Aminata Diallo"
+                    value={form.customer_name}
+                    onChange={(e) => update('customer_name', e.target.value)}
+                    disabled={isSubmitting}
+                    className={inputClass('customer_name')}
+                  />
+                  {fieldError('customer_name') && <span className="mt-1 block text-sm text-red-400">{fieldError('customer_name')}</span>}
                 </div>
-              )}
 
-              {fieldError('address') && (
-                <span className="block text-xs font-semibold text-red-400">{fieldError('address')}</span>
-              )}
+                <div>
+                  <label htmlFor={`${formId}-phone`} className={labelClass}>
+                    Téléphone
+                  </label>
+                  <input
+                    id={`${formId}-phone`}
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    placeholder="77 123 45 67"
+                    value={form.phone}
+                    onChange={(e) => update('phone', e.target.value)}
+                    disabled={isSubmitting}
+                    className={inputClass('phone')}
+                  />
+                  {fieldError('phone') && <span className="mt-1 block text-sm text-red-400">{fieldError('phone')}</span>}
+                </div>
 
-              {form.address && form.address.includes('maps.google.com') && (
-                <div className="flex items-center justify-between rounded-xl bg-zinc-950 border border-emerald-500/30 px-3.5 py-2.5 text-xs text-zinc-300 shadow-sm">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Check className="size-4 text-emerald-400 shrink-0" />
-                    <span className="truncate font-medium text-emerald-200">Point GPS Google Maps actif pour la livraison</span>
+                {!isPickup && (
+                  <>
+                    <DeliveryZoneSelect value={selectedAreaId} onChange={handleAreaChange} disabled={isSubmitting} />
+
+                    <div>
+                      <label htmlFor={`${formId}-address`} className={labelClass}>
+                        Adresse ou repère
+                      </label>
+                      <input
+                        id={`${formId}-address`}
+                        type="text"
+                        autoComplete="street-address"
+                        placeholder="Rue, villa, point de repère"
+                        value={form.address}
+                        onChange={(e) => update('address', e.target.value)}
+                        disabled={isSubmitting}
+                        className={inputClass('address')}
+                      />
+                      {fieldError('address') && <span className="mt-1 block text-sm text-red-400">{fieldError('address')}</span>}
+                      <div className="mt-1 flex flex-wrap items-center gap-x-4">
+                        <button
+                          type="button"
+                          onClick={handleGetLocation}
+                          disabled={isLocating || isSubmitting}
+                          className="inline-flex h-10 cursor-pointer items-center gap-1.5 text-sm font-medium text-bmc-gold transition-colors hover:text-white disabled:opacity-50"
+                        >
+                          {isLocating ? (
+                            <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                          ) : locationSuccess ? (
+                            <Check className="size-4" aria-hidden="true" />
+                          ) : (
+                            <LocateFixed className="size-4" aria-hidden="true" />
+                          )}
+                          {isLocating ? 'Recherche…' : locationSuccess ? 'Position ajoutée' : 'Utiliser ma position'}
+                        </button>
+                        {form.address.includes('maps.google.com') && (
+                          <a
+                            href={form.address.match(/https:\/\/maps\.google\.com\S+/)?.[0]?.replace(')', '') || '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-sm text-zinc-300 underline underline-offset-4 transition-colors hover:text-white"
+                          >
+                            Vérifier
+                            <ExternalLink className="size-3.5" aria-hidden="true" />
+                          </a>
+                        )}
+                      </div>
+                      <p className="text-xs text-zinc-400">Mémorisée pour vos prochaines commandes. Modifiable à tout moment.</p>
+                      {locationError && (
+                        <p role="alert" className="mt-1 flex items-start gap-1.5 text-sm text-amber-300">
+                          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+                          {locationError}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {isPickup && (
+                <div className="mt-4 grid gap-3 rounded-xl border border-white/10 bg-zinc-950 p-4 text-sm sm:grid-cols-2">
+                  <p className="flex items-start gap-2.5 text-zinc-300">
+                    <Store className="mt-0.5 size-4 shrink-0 text-bmc-gold" aria-hidden="true" />
+                    <span>
+                      <span className="block font-semibold text-white">Retrait au restaurant</span>
+                      {RESTAURANT_ADDRESS}
+                    </span>
+                  </p>
+                  <p className="flex items-start gap-2.5 text-zinc-300">
+                    <Clock className="mt-0.5 size-4 shrink-0 text-bmc-gold" aria-hidden="true" />
+                    <span>
+                      <span className="block font-semibold text-white">Mardi – dimanche</span>
+                      11h – 02h
+                    </span>
+                  </p>
+                  <div className="flex flex-wrap items-center justify-between gap-2 sm:col-span-2">
+                    <p className="text-zinc-400">Sans frais de livraison. Présentez votre référence de commande.</p>
+                    <a
+                      href={RESTAURANT_MAPS_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-10 items-center gap-1.5 font-medium text-bmc-gold transition-colors hover:text-white"
+                    >
+                      Itinéraire
+                      <ExternalLink className="size-4" aria-hidden="true" />
+                    </a>
                   </div>
-                  <a
-                    href={form.address.match(/https:\/\/maps\.google\.com\S+/)?.[0]?.replace(')', '') || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="shrink-0 text-xs font-bold text-bmc-gold hover:text-amber-300 transition-colors flex items-center gap-1 ml-2"
-                  >
-                    <span>Vérifier</span>
-                    <ExternalLink className="size-3.5" />
-                  </a>
                 </div>
               )}
+            </section>
+          </div>
+
+          {/* ===== Colonne droite : paiement, récapitulatif ===== */}
+          <div className="space-y-5 lg:col-span-2">
+            <div className={card}>
+              <PaymentSelector
+                value={form.payment_method}
+                onChange={(method: PaymentMethod) => update('payment_method', method)}
+                disabled={isSubmitting}
+                isPickup={isPickup}
+              />
             </div>
+
+            <section className={card} aria-labelledby={`${formId}-recap`}>
+              <h2 id={`${formId}-recap`} className="mb-3 font-display text-lg font-bold text-white">
+                Votre commande
+              </h2>
+
+              <ul className="mb-4 space-y-3">
+                {visibleItems.map((item) => (
+                  <li key={`${item.product.code}-${item.note ?? ''}`} className="flex items-center gap-3">
+                    <img
+                      src={getProductImageUrl(item.product) || item.product.image_url}
+                      alt=""
+                      width={44}
+                      height={44}
+                      loading="lazy"
+                      className="size-11 shrink-0 rounded-lg bg-zinc-950 object-cover"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-white">
+                        {item.quantity} × {item.product.name}
+                      </p>
+                      {item.note && <p className="truncate text-xs text-zinc-400">{item.note}</p>}
+                    </div>
+                    <p className="shrink-0 text-sm font-semibold tabular-nums text-zinc-200">
+                      {formatFcfa(item.product.price * item.quantity)}
+                    </p>
+                  </li>
+                ))}
+                {hiddenItems > 0 && (
+                  <li className="text-sm text-zinc-400">
+                    + {hiddenItems} autre{hiddenItems > 1 ? 's' : ''} article{hiddenItems > 1 ? 's' : ''}
+                  </li>
+                )}
+              </ul>
+
+              <div className="border-t border-white/10 pt-4">
+                <OrderTotals subtotal={subtotal} deliveryFee={deliveryFee} isPickup={isPickup} />
+              </div>
+
+              <div className="mt-4">
+                <OrderSubmitButton
+                  isSubmitting={isSubmitting}
+                  amount={subtotal + (deliveryFee ?? 0)}
+                  disabled={items.length === 0}
+                />
+              </div>
+            </section>
           </div>
-
-          {/* Card 2 : Choix du moyen de paiement */}
-          <div className="rounded-2xl bg-zinc-900/90 p-5 shadow-xl border border-white/10 backdrop-blur-xs">
-            <PaymentSelector
-              value={form.payment_method}
-              onChange={(method: PaymentMethod) => update('payment_method', method)}
-              disabled={isSubmitting}
-            />
-          </div>
-
-          {/* Card 3 : Récapitulatif montant total avec frais de livraison */}
-          <OrderTotals subtotal={subtotal} deliveryFee={selectedArea?.fee} />
-
-          {/* Card 4 : Bouton de confirmation */}
-          <motion.div layout className="pt-1">
-            <OrderSubmitButton
-              isSubmitting={isSubmitting}
-              amount={subtotal + (selectedArea?.fee ?? 0)}
-              disabled={items.length === 0}
-            />
-          </motion.div>
         </form>
-      </section>
+      </div>
     </div>
   )
 }
