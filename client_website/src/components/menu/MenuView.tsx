@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Flame, Search, UtensilsCrossed } from 'lucide-react'
+import { Flame, UtensilsCrossed } from 'lucide-react'
 import type { Product } from '../../types'
 import { useMenu } from '../../hooks/useMenu'
 import { CategoryNav } from './CategoryNav'
@@ -11,15 +11,18 @@ import { Skeleton } from '../ui/Loader'
 import { ErrorMessage } from '../ui/ErrorMessage'
 import { EmptyState } from '../ui/EmptyState'
 import { FALLBACK_PRODUCTS, FALLBACK_CATEGORIES } from '../../data/mockMenu'
+import { isAddOnCategory, isAddOnOnly } from '../../data/productOptions'
 
 export interface MenuViewProps {
-  onAddToCart: (product: Product, quantity?: number) => void
+  onAddToCart: (product: Product, quantity?: number, note?: string) => void
 }
+
+/** Une boisson (catégorie « Boissons » ou code bv-…) : elle n'apparaît que dans la section Boissons. */
+const isDrink = (p: Product) => Boolean(p.category_name?.toLowerCase().includes('boisson') || p.code.toLowerCase().startsWith('bv'))
 
 export function MenuView({ onAddToCart }: MenuViewProps) {
   const { categories, items, isLoading, error, refetch } = useMenu()
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | 'all'>('all')
-  const [searchQuery, setSearchQuery] = useState('')
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
 
   // Catégories de navigation : s'assure que "Boissons" existe toujours dans le ruban
@@ -31,7 +34,7 @@ export function MenuView({ onAddToCart }: MenuViewProps) {
     if (!hasDrinks) {
       list.push({ id: 50, name: 'Boissons', slug: 'boissons', icon: 'Coffee' })
     }
-    return list
+    return list.filter((c) => !isAddOnCategory(c))
   }, [categories])
 
   // Catalogue complet : garantit que les 4 canettes BMC et sauces sont présentes
@@ -41,24 +44,19 @@ export function MenuView({ onAddToCart }: MenuViewProps) {
         p.category_name?.toLowerCase().includes('boisson') ||
         p.code.toLowerCase().startsWith('bv'),
     )
-    const hasSauces = items.some(
-      (p) =>
-        p.category_name?.toLowerCase().includes('sauce') ||
-        p.code.toLowerCase().startsWith('sc'),
-    )
     const extras: Product[] = []
     if (!hasDrinks) {
       extras.push(...FALLBACK_PRODUCTS.filter((p) => p.code.startsWith('bv')))
     }
-    if (!hasSauces) {
-      extras.push(...FALLBACK_PRODUCTS.filter((p) => p.code.startsWith('sc')))
-    }
     return extras.length > 0 ? [...items, ...extras] : items
   }, [items])
 
-  // Filtrage combiné par catégorie et recherche texte
+  // Plats affichés dans les sections : ni sauces ni accompagnements (ils n'apparaissent que dans la fiche d'un plat)
+  const menuItems = useMemo(() => allItems.filter((p) => !isAddOnOnly(p)), [allItems])
+
+  // Filtrage par catégorie (la recherche se fait par la loupe de l'en-tête)
   const filteredProducts = useMemo(() => {
-    return allItems.filter((product) => {
+    return menuItems.filter((product) => {
       const isBoissonsNav = selectedCategoryId === 50
       const matchCategory =
         selectedCategoryId === 'all' ||
@@ -66,64 +64,50 @@ export function MenuView({ onAddToCart }: MenuViewProps) {
           ? product.category_name?.toLowerCase().includes('boisson') ||
             product.code.startsWith('bv')
           : product.category === selectedCategoryId)
-      const matchSearch =
-        searchQuery.trim() === '' ||
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchQuery.toLowerCase())
-
-      return matchCategory && matchSearch
+      return matchCategory
     })
-  }, [allItems, selectedCategoryId, searchQuery])
+  }, [menuItems, selectedCategoryId])
 
   // Groupes de produits pour le rendu rythmé alternant Carrousel -> Cartes -> Carrousel -> Cartes
   const popularItems = useMemo(
-    () => allItems.filter((p) => p.popular || p.is_daily_special).slice(0, 6),
-    [allItems],
+    () => menuItems.filter((p) => p.popular || p.is_daily_special).slice(0, 6),
+    [menuItems],
   )
   const tacosPanesItems = useMemo(
     () =>
-      allItems.filter(
+      menuItems.filter(
         (p) =>
           p.category_name?.toLowerCase().includes('pané') ||
           p.category === 1 ||
           p.code.startsWith('tp'),
       ),
-    [allItems],
+    [menuItems],
   )
   const drinksItems = useMemo(
     () =>
-      allItems.filter(
+      menuItems.filter(
         (p) =>
           p.category_name?.toLowerCase().includes('boisson') ||
           p.code.toLowerCase().startsWith('bv'),
       ),
-    [allItems],
+    [menuItems],
   )
   const burgersAndTacosItems = useMemo(
     () =>
-      allItems.filter(
+      menuItems.filter(
         (p) =>
-          p.category_name?.toLowerCase().includes('burger') ||
-          p.category_name?.toLowerCase().includes('simple') ||
-          p.category === 6 ||
-          p.category === 7 ||
-          p.code.startsWith('bg') ||
-          p.code.startsWith('ts') ||
-          p.code.startsWith('sw'),
+          !isDrink(p) &&
+          (p.category_name?.toLowerCase().includes('burger') ||
+            p.category_name?.toLowerCase().includes('simple') ||
+            p.category === 6 ||
+            p.code.startsWith('bg') ||
+            p.code.startsWith('ts') ||
+            p.code.startsWith('sw')),
       ),
-    [allItems],
-  )
-  const saucesItems = useMemo(
-    () =>
-      allItems.filter(
-        (p) =>
-          p.category_name?.toLowerCase().includes('sauce') ||
-          p.code.toLowerCase().startsWith('sc'),
-      ),
-    [allItems],
+    [menuItems],
   )
 
-  const isFullCatalogView = selectedCategoryId === 'all' && searchQuery.trim() === ''
+  const isFullCatalogView = selectedCategoryId === 'all'
 
   return (
     <section aria-labelledby="menu-heading" className="w-full flex flex-col gap-8">
@@ -141,31 +125,19 @@ export function MenuView({ onAddToCart }: MenuViewProps) {
       )}
 
       {/* 2. En-tête de section avec titre blanc éclatant et champ de recherche */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-t border-zinc-800/80 pt-6">
+      <div className="border-t border-zinc-800/80 pt-6">
         <div>
           <h2
             id="menu-heading"
-            className="font-display text-2xl sm:text-3xl font-extrabold text-white tracking-tight text-left"
+            className="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight text-left"
           >
             Toute la Carte BMC
           </h2>
           <p className="text-xs sm:text-sm text-zinc-400 mt-1 text-left">
-            Tacos panés signatures, burgers complets, sauces maison & boissons fraîches.
+            Tacos panés, burgers, sauces et boissons.
           </p>
         </div>
 
-        {/* Champ de recherche rapide sur fond sombre */}
-        <div className="relative w-full sm:w-64">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-zinc-500" />
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Rechercher un plat..."
-            aria-label="Rechercher un plat du menu"
-            className="w-full rounded-full border border-zinc-800 bg-zinc-900/90 py-2.5 pl-9.5 pr-4 text-xs sm:text-sm text-white placeholder:text-zinc-500 focus:border-bmc-gold focus:outline-none focus:ring-2 focus:ring-bmc-gold/20 shadow-xs"
-          />
-        </div>
       </div>
 
       {/* 3. Barre de navigation par rondelles (CategoryNav) */}
@@ -179,7 +151,7 @@ export function MenuView({ onAddToCart }: MenuViewProps) {
       {isLoading && (
         <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
           {Array.from({ length: 8 }).map((_, index) => (
-            <div key={index} className="flex flex-col gap-2.5 rounded-2xl bg-[#121214] p-2.5 sm:p-3 border border-zinc-800 shadow-xs">
+            <div key={index} className="flex flex-col gap-2.5 rounded-2xl bg-zinc-900 p-2.5 sm:p-3 border border-zinc-800 shadow-xs">
               <Skeleton className="aspect-4/3 w-full rounded-xl bg-zinc-800" />
               <Skeleton className="h-4 sm:h-5 w-3/4 rounded-md bg-zinc-800" />
               <div className="flex items-center justify-between pt-1 sm:pt-2">
@@ -205,15 +177,10 @@ export function MenuView({ onAddToCart }: MenuViewProps) {
         <EmptyState
           icon={<UtensilsCrossed className="size-6 text-zinc-400" />}
           title="Aucun plat trouvé"
-          description={
-            searchQuery
-              ? `Aucun plat ne correspond à « ${searchQuery} ». Essayez un autre mot-clé ou réinitialisez la recherche.`
-              : 'Aucun plat disponible dans cette catégorie pour le moment.'
-          }
+          description="Aucun plat disponible dans cette catégorie pour le moment."
           actionLabel="Réinitialiser les filtres"
           onAction={() => {
             setSelectedCategoryId('all')
-            setSearchQuery('')
           }}
         />
       )}
@@ -229,8 +196,8 @@ export function MenuView({ onAddToCart }: MenuViewProps) {
                   <div className="flex size-7 items-center justify-center rounded-lg bg-bmc-gold/20 text-bmc-gold">
                     <Flame className="size-4 fill-current" />
                   </div>
-                  <h3 className="font-display text-xl sm:text-2xl font-black text-white">
-                    Tacos Panés Signatures
+                  <h3 className="font-display text-xl sm:text-2xl font-bold text-white">
+                    Tacos panés
                   </h3>
                 </div>
                 <span className="text-xs font-semibold text-zinc-400">
@@ -252,27 +219,12 @@ export function MenuView({ onAddToCart }: MenuViewProps) {
             </div>
           )}
 
-          {/* SECTION B (CARROUSEL) : Boissons Fraîches & Jus Locaux de la Charte */}
-          {drinksItems.length > 0 && (
-            <div className="rounded-3xl bg-gradient-to-r from-zinc-900/60 via-[#141417] to-zinc-900/60 p-4 sm:p-6 border border-zinc-800/80 shadow-inner">
-              <ProductCarousel
-                id="drinks-carousel"
-                title="Boissons Fraîches & Jus Locaux"
-                subtitle="Canettes Givrées BMC Food : Bissap, Mangue, Bouye & Tamarin"
-                badgeText="FRAIS"
-                products={drinksItems}
-                onAddToCart={(p) => onAddToCart(p, 1)}
-                onSelectProduct={(p) => setSelectedProduct(p)}
-              />
-            </div>
-          )}
-
           {/* SECTION C (CARTES) : Burgers Braisés & Tacos Simples */}
           {burgersAndTacosItems.length > 0 && (
             <div className="flex flex-col gap-4 text-left">
               <div className="flex items-center justify-between border-b border-zinc-800/60 pb-2">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-display text-xl sm:text-2xl font-black text-white">
+                  <h3 className="font-display text-xl sm:text-2xl font-bold text-white">
                     Burgers & Tacos Simples
                   </h3>
                 </div>
@@ -295,17 +247,24 @@ export function MenuView({ onAddToCart }: MenuViewProps) {
             </div>
           )}
 
-          {/* SECTION D (CARROUSEL) : Sauces & Extras Maison */}
-          {saucesItems.length > 0 && (
-            <ProductCarousel
-              id="sauces-carousel"
-              title="Sauces & Accompagnements Maison"
-              subtitle="Fromagère onctueuse, Samouraï & Algérienne"
-              badgeText="MAISON"
-              products={saucesItems}
-              onAddToCart={(p) => onAddToCart(p, 1)}
-              onSelectProduct={(p) => setSelectedProduct(p)}
-            />
+          {/* SECTION BOISSONS : une seule fois, tout en bas de la carte */}
+          {drinksItems.length > 0 && (
+            <div className="flex flex-col gap-4 text-left">
+              <div className="flex items-center justify-between border-b border-zinc-800/60 pb-2">
+                <h3 className="font-display text-xl sm:text-2xl font-bold text-white">Boissons</h3>
+                <span className="text-xs font-semibold text-zinc-400">{drinksItems.length} boissons</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+                {drinksItems.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onAdd={(p) => onAddToCart(p, 1)}
+                    onSelect={(p) => setSelectedProduct(p)}
+                  />
+                ))}
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -314,7 +273,7 @@ export function MenuView({ onAddToCart }: MenuViewProps) {
       {!isLoading && !error && !isFullCatalogView && filteredProducts.length > 0 && (
         <AnimatePresence mode="wait">
           <motion.div
-            key={`${selectedCategoryId}-${searchQuery}`}
+            key={selectedCategoryId}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
@@ -337,7 +296,8 @@ export function MenuView({ onAddToCart }: MenuViewProps) {
       <ProductDetailModal
         product={selectedProduct}
         onClose={() => setSelectedProduct(null)}
-        onAddToCart={(prod, qty) => onAddToCart(prod, qty)}
+        onAddToCart={(prod, qty, note) => onAddToCart(prod, qty, note)}
+        catalog={allItems}
       />
     </section>
   )

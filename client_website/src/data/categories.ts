@@ -28,11 +28,6 @@ export const CATEGORIES: CategoryItem[] = [
   {
     id: 'boissons',
     name: 'Boissons',
-    image: '/images/products/boissons-fraiches.webp',
-  },
-  {
-    id: 'sauces',
-    name: 'Sauces',
-    image: '/images/products/sauces-assortiment.webp',
+    image: '/images/products/categorie-boissons.webp',
   },
 ]

@@ -154,7 +154,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
     name: 'Sauce Fromagère maison',
     category: 4,
     category_name: 'Sauces',
-    description: 'La recette secrète onctueuse BMC Food à base de crème et fromages affinés.',
+    description: 'La sauce fromagère BMC Food.',
     price: 500,
     image_url: '/images/products/sauces-assortiment.webp',
     is_available: true,
@@ -258,6 +258,31 @@ export const FALLBACK_PRODUCTS: Product[] = [
     is_daily_special: false,
     popular: false,
   },
+  // Canettes BMC Food (prix indicatif identique aux boissons 33cl : à confirmer avec l'équipe)
+  ...(
+    [
+      { id: 19, code: 'bv-2', name: 'Bissap glacé', image: 'canette-bissap-bmc.webp', description: 'Canette BMC Food au bissap, servie bien fraîche.' },
+      { id: 20, code: 'bv-3', name: 'Bouye glacé', image: 'canette-bouye-bmc.webp', description: 'Canette BMC Food au bouye, servie bien fraîche.' },
+      { id: 21, code: 'bv-4', name: 'Mangue glacée', image: 'canette-mangue-bmc.webp', description: 'Canette BMC Food à la mangue, servie bien fraîche.' },
+      { id: 22, code: 'bv-5', name: 'Tamarin glacé', image: 'canette-tamarin-bmc.webp', description: 'Canette BMC Food au tamarin, servie bien fraîche.' },
+      { id: 23, code: 'bv-6', name: 'Thé glacé', image: 'canette-the-glace-bmc.webp', description: 'Canette BMC Food au thé glacé, servie bien fraîche.' },
+      { id: 24, code: 'bv-7', name: 'Chocolat glacé', image: 'canette-chocolat-bmc.webp', description: 'Canette BMC Food au chocolat, servie bien fraîche.' },
+    ] as const
+  ).map(
+    (drink): Product => ({
+      id: drink.id,
+      code: drink.code,
+      name: drink.name,
+      category: 7,
+      category_name: 'Boissons',
+      description: drink.description,
+      price: 800,
+      image_url: `/images/products/${drink.image}`,
+      is_available: true,
+      is_daily_special: false,
+      popular: false,
+    }),
+  ),
 ]
 
 export function getFallbackMenuCategories(): MenuCategory[] {

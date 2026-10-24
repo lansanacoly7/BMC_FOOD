@@ -75,6 +75,12 @@ const CODE_TO_IMAGE: Record<string, string> = {
   'sc-1': '/images/products/sauces-assortiment.webp',
   'bb-fraiches': '/images/products/boissons-fraiches.webp',
   'bb-1': '/images/products/boissons-fraiches.webp',
+  'bv-2': '/images/products/canette-bissap-bmc.webp',
+  'bv-3': '/images/products/canette-bouye-bmc.webp',
+  'bv-4': '/images/products/canette-mangue-bmc.webp',
+  'bv-5': '/images/products/canette-tamarin-bmc.webp',
+  'bv-6': '/images/products/canette-the-glace-bmc.webp',
+  'bv-7': '/images/products/canette-chocolat-bmc.webp',
 }
 
 /**
@@ -114,6 +120,15 @@ export function getProductImageUrl(product: Partial<Product>): string {
 
   if (name.includes('sauce') || cat.includes('sauce')) {
     return '/images/products/sauces-assortiment.webp'
+  }
+
+  if (cat.includes('boisson') || name.includes('canette')) {
+    if (name.includes('bissap')) return '/images/products/canette-bissap-bmc.webp'
+    if (name.includes('bouye')) return '/images/products/canette-bouye-bmc.webp'
+    if (name.includes('mangue')) return '/images/products/canette-mangue-bmc.webp'
+    if (name.includes('tamarin')) return '/images/products/canette-tamarin-bmc.webp'
+    if (name.includes('thé') || name.includes('the glac')) return '/images/products/canette-the-glace-bmc.webp'
+    if (name.includes('chocolat')) return '/images/products/canette-chocolat-bmc.webp'
   }
 
   if (name.includes('boisson') || name.includes('soda') || name.includes('eau') || cat.includes('boisson')) {
