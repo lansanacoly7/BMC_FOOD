@@ -1,82 +1,125 @@
 /**
  * BMC FOOD KDS CUISINE - Tokens officiels du design system Cuisine
  * Respect strict de la charte demandée :
- * - Fond : #0F1115
- * - Surfaces : #171A21
- * - Bordures : #262A33
- * - Texte principal : #E6E8EC
- * - Texte secondaire : #8B93A1
- * - Accent unique : #E8A33D
- * - Rouge (strictement réservé aux retards) : #E04848
+ * - Fond : #0E1116
+ * - Surfaces : #1A1F27
+ * - Bordures : #262D38
+ * - Texte principal : #FFFFFF
+ * - Texte secondaire : #9AA4B2
  * - Police : Inter
- * - Zéro dégradé, zéro animation décorative, zéro bordure colorée sur cartes normales
+ * - Zéro dégradé, zéro animation décorative, zéro verre dépoli
  */
 
 :root,
 .kds-cuisine {
-  /* COULEURS */
-  --kds-bg: #0F1115;
-  --kds-surface: #171A21;
-  --kds-surface-hover: #1E222C;
-  --kds-surface-subtle: #12141A;
-  --kds-border: #262A33;
-  --kds-border-strong: #323744;
+  /* COULEURS FONDAMENTALES */
+  --kds-bg: #0E1116;
+  --kds-surface: #1A1F27;
+  --kds-surface-hover: #232934;
+  --kds-surface-subtle: #13171E;
+  --kds-border: #262D38;
+  --kds-border-strong: #3A4454;
 
-  --kds-text-primary: #E6E8EC;
-  --kds-text-secondary: #8B93A1;
-  --kds-text-muted: #5D6472;
+  --kds-text-primary: #FFFFFF;
+  --kds-text-secondary: #9AA4B2;
+  --kds-text-muted: #687385;
 
-  /* ACCENT UNIQUE */
-  --kds-accent: #E8A33D;
-  --kds-accent-hover: #D69330;
-  --kds-accent-contrast: #0F1115;
-  --kds-accent-muted: rgba(232, 163, 61, 0.12);
+  /* ÉTATS (PORTÉS PAR L'EN-TÊTE ENTIER DU TICKET) */
+  --kds-state-new: #2F6FED;
+  --kds-state-warning: #F5B800;
+  --kds-state-late: #E5362B;
+  --kds-state-ready: #1FA855;
 
-  /* RETARD (ROUGE RÉSERVÉ EXCLUSIVEMENT AUX COMMANDES EN RETARD) */
-  --kds-late-red: #E04848;
-  --kds-late-bg: rgba(224, 72, 72, 0.12);
-  --kds-late-border: #E04848;
-  --kds-late-text: #FF7878;
+  /* TYPES DE COMMANDE (BORDURE GAUCHE 6PX) */
+  --kds-type-delivery: #8B5CF6;
+  --kds-type-takeaway: #FB923C;
+  --kds-type-dine-in: #14B8A6;
 
-  /* ESPACEMENTS */
-  --kds-space-xs: 4px;
-  --kds-space-sm: 8px;
-  --kds-space-md: 12px;
-  --kds-space-lg: 16px;
-  --kds-space-xl: 20px;
+  /* BANDE NOTE & REMARQUES */
+  --kds-note-bg: #FEF3C7;
+  --kds-note-text: #1E293B;
+  --kds-remark-yellow: #F5B800;
 
-  /* RAYONS */
-  --kds-radius-sm: 6px;
-  --kds-radius-md: 8px;
-  --kds-radius-lg: 12px;
+  /* ESPACEMENTS & ZONES TACTILES */
+  --kds-touch-line: 56px;
+  --kds-touch-btn: 56px;
+  --kds-type-border: 6px;
 
   /* TYPOGRAPHIE */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Scrollbar verticale discrète et indépendante pour chaque colonne (aucune barre horizontale) */
-.kds-column-scroll {
+/* Clignotement / pulsation lente de l'en-tête en retard (1 fois toutes les 2s) */
+@keyframes kds-late-blink {
+  0%, 100% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 0.85;
+    filter: brightness(1.15);
+  }
+}
+
+.kds-animate-late {
+  animation: kds-late-blink 2s ease-in-out infinite;
+}
+
+/* Pulsation douce du bouton principal quand tous les plats sont barrés */
+@keyframes kds-pulse-action {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(31, 168, 85, 0.4);
+  }
+  50% {
+    transform: scale(1.01);
+    box-shadow: 0 0 12px 2px rgba(31, 168, 85, 0.6);
+  }
+}
+
+.kds-btn-pulse-ready {
+  animation: kds-pulse-action 1.8s ease-in-out infinite;
+}
+
+/* Animation d'entrée rapide d'un nouveau ticket (200ms) */
+@keyframes kds-ticket-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.kds-ticket-enter {
+  animation: kds-ticket-enter 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Scrollbar verticale fine et visible pour la grille de tickets */
+.kds-grid-scroll {
   scrollbar-width: thin;
-  scrollbar-color: #262A33 transparent;
+  scrollbar-color: #3A4454 transparent;
   overflow-y: auto;
   overflow-x: hidden;
 }
 
-.kds-column-scroll::-webkit-scrollbar {
-  width: 5px;
+.kds-grid-scroll::-webkit-scrollbar {
+  width: 6px;
 }
 
-.kds-column-scroll::-webkit-scrollbar-track {
+.kds-grid-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.kds-column-scroll::-webkit-scrollbar-thumb {
-  background: #262A33;
+.kds-grid-scroll::-webkit-scrollbar-thumb {
+  background: #3A4454;
   border-radius: 4px;
 }
 
-.kds-column-scroll::-webkit-scrollbar-thumb:hover {
-  background: #363C4A;
+.kds-grid-scroll::-webkit-scrollbar-thumb:hover {
+  background: #505D72;
 }
 
 /* Empêche formellement tout débordement horizontal */

@@ -1,20 +1,25 @@
 import React, { useMemo, useState } from 'react'
-import {
-  ChevronDown,
-  ChevronUp,
-  History,
-} from 'lucide-react'
-import { DEFAULT_THRESHOLDS, type ChronoThresholds, type ColumnDefinition, type KdsOrder, type KdsOrderStatus, type OrderType } from '../types/kds'
+import type { ChronoThresholds, KdsOrder, KdsOrderStatus, OrderType } from '../types/kds'
+import { DEFAULT_KDS_THRESHOLDS } from '../styles/kdsTokens'
 import { getElapsedSeconds } from '../lib/formatters'
-import { KanbanColumn } from '../components/kds/KanbanColumn'
+import { KdsTopBar } from '../components/kds/KdsTopBar'
+import { StatCounters } from '../components/kds/StatCounters'
+import { TicketGrid } from '../components/kds/TicketGrid'
+import { BottomBar } from '../components/kds/BottomBar'
 import { OrderHistoryDrawer } from '../components/kds/OrderHistoryDrawer'
 
 interface KdsPageProps {
   orders: KdsOrder[]
   nowMs: number
   searchQuery: string
-  typeFilter?: 'all' | OrderType
+  onSearchChange: (query: string) => void
+  typeFilter: 'all' | OrderType
+  onTypeFilterChange: (type: 'all' | OrderType) => void
   newOrdersSet?: Set<string>
+  isAudioMuted?: boolean
+  onToggleAudio?: () => void
+  isSidebarCollapsed?: boolean
+  onToggleSidebar?: () => void
   thresholds?: ChronoThresholds
   onTransition: (orderRef: string, nextStatus: KdsOrderStatus) => void
   onCancel: (orderRef: string) => void
@@ -22,61 +27,30 @@ interface KdsPageProps {
   onPrintTicket: (order: KdsOrder) => void
 }
 
-export const KDS_COLUMNS: ColumnDefinition[] = [
-  {
-    id: 'pending',
-    title: 'À préparer',
-    subtitle: 'En attente de prise en charge',
-    badgeColor: '#262A33',
-    borderColor: '#262A33',
-    actionLabel: 'Lancer la cuisson',
-    actionClass: '',
-    nextStatus: 'preparing',
-    emptyMessage: 'Aucune commande à préparer',
-  },
-  {
-    id: 'preparing',
-    title: 'En cuisson',
-    subtitle: 'Sur le gril',
-    badgeColor: '#262A33',
-    borderColor: '#262A33',
-    actionLabel: 'Marquer prêt',
-    actionClass: '',
-    nextStatus: 'ready',
-    emptyMessage: 'Aucune commande en cuisson',
-  },
-  {
-    id: 'ready',
-    title: 'Prêt',
-    subtitle: 'Au comptoir / départ coursier',
-    badgeColor: '#262A33',
-    borderColor: '#262A33',
-    actionLabel: 'Remis',
-    actionClass: '',
-    nextStatus: 'delivered',
-    emptyMessage: 'Aucune commande prête',
-  },
-]
-
 export const KdsPage: React.FC<KdsPageProps> = ({
   orders,
   nowMs,
   searchQuery,
-  typeFilter = 'all',
+  onSearchChange,
+  typeFilter,
+  onTypeFilterChange,
   newOrdersSet = new Set(),
-  thresholds = DEFAULT_THRESHOLDS,
+  isAudioMuted = false,
+  onToggleAudio = () => {},
+  isSidebarCollapsed = false,
+  onToggleSidebar = () => {},
+  thresholds = DEFAULT_KDS_THRESHOLDS,
   onTransition,
   onCancel,
   onViewDetails,
   onPrintTicket,
 }) => {
-  const [isSummaryExpanded, setIsSummaryExpanded] = useState<boolean>(true)
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false)
 
   // 1. Filtrage par recherche textuelle (#ticket, client, plat)
   const searchedOrders = useMemo(() => {
     if (!searchQuery.trim()) return orders
-    const q = searchQuery.toLowerCase()
+    const q = searchQuery.toLowerCase().trim()
     return orders.filter((o) => {
       const matchRef = o.orderRef.toLowerCase().includes(q)
       const matchName = o.customerName.toLowerCase().includes(q)
@@ -87,244 +61,114 @@ export const KdsPage: React.FC<KdsPageProps> = ({
     })
   }, [orders, searchQuery])
 
-  // 2. Filtrage par type de commande (Tous · Livraison · À emporter · Sur place)
+  // 2. Compteurs par type de commande pour la barre supérieure (sur commandes actives + prêtes)
+  const countsByType = useMemo(() => {
+    const active = searchedOrders.filter(
+      (o) => o.status !== 'delivered' && o.status !== 'cancelled',
+    )
+    return {
+      all: active.length,
+      delivery: active.filter((o) => o.orderType === 'delivery').length,
+      takeaway: active.filter((o) => o.orderType === 'takeaway').length,
+      dine_in: active.filter((o) => o.orderType === 'dine_in').length,
+    }
+  }, [searchedOrders])
+
+  // 3. Filtrage par type sélectionné
   const filteredOrders = useMemo(() => {
     if (typeFilter === 'all') return searchedOrders
     return searchedOrders.filter((o) => o.orderType === typeFilter)
   }, [searchedOrders, typeFilter])
 
-  // 3. Commandes livrées et annulées (Historique, hors colonnes)
-  const historyOrdersCount = useMemo(() => {
+  // 4. Compteurs pour le bandeau géant
+  const activeOrders = useMemo(() => {
     return filteredOrders.filter(
-      (o) => o.status === 'delivered' || o.status === 'cancelled',
-    ).length
+      (o) => o.status === 'pending' || o.status === 'preparing',
+    )
   }, [filteredOrders])
 
-  // 4. Répartition des 3 colonnes de workflow actif avec TRI AUTOMATIQUE :
-  // - "À préparer" : nouvelle commande en haut (10s), puis en retard en haut, puis les plus anciennes
-  // - "En cuisson" & "Prêt" : en retard en haut, puis les plus anciennes
-  const ordersByStatus = useMemo(() => {
-    const map: Record<KdsOrderStatus, KdsOrder[]> = {
-      pending: [],
-      preparing: [],
-      ready: [],
-      delivering: [],
-      delivered: [],
-      cancelled: [],
-    }
+  const pendingCount = useMemo(
+    () => activeOrders.filter((o) => o.status === 'pending').length,
+    [activeOrders],
+  )
 
-    filteredOrders.forEach((o) => {
-      if (map[o.status]) {
-        map[o.status].push(o)
-      }
-    })
+  const preparingCount = useMemo(
+    () => activeOrders.filter((o) => o.status === 'preparing').length,
+    [activeOrders],
+  )
 
-    // Intégrer les commandes en cours de livraison dans la colonne "Prêt"
-    const readyGroup = [...map['ready'], ...map['delivering']]
-    map['ready'] = readyGroup
-
+  const lateCount = useMemo(() => {
     const dangerSec = thresholds.dangerMinutes * 60
-
-    // Tri spécifique de "À préparer" :
-    // 1. Nouvelles commandes en haut (pendant 10 secondes)
-    // 2. Commandes en retard en haut
-    // 3. Les plus anciennes en haut (FIFO)
-    map['pending'].sort((a, b) => {
-      const aIsNew = newOrdersSet.has(a.orderRef) || a.isNew
-      const bIsNew = newOrdersSet.has(b.orderRef) || b.isNew
-      if (aIsNew && !bIsNew) return -1
-      if (!aIsNew && bIsNew) return 1
-
-      const aElapsed = getElapsedSeconds(a.createdAt, nowMs)
-      const bElapsed = getElapsedSeconds(b.createdAt, nowMs)
-      const aIsOverdue = aElapsed >= dangerSec
-      const bIsOverdue = bElapsed >= dangerSec
-
-      if (aIsOverdue && !bIsOverdue) return -1
-      if (!aIsOverdue && bIsOverdue) return 1
-
-      // Les plus anciennes d'abord
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    })
-
-    // Tri de "En cuisson" et "Prêt" :
-    // 1. Commandes en retard en haut
-    // 2. Les plus anciennes d'abord
-    const sortColumnOverdueFirst = (list: KdsOrder[]) => {
-      list.sort((a, b) => {
-        const aElapsed = getElapsedSeconds(a.createdAt, nowMs)
-        const bElapsed = getElapsedSeconds(b.createdAt, nowMs)
-        const aIsOverdue = aElapsed >= dangerSec
-        const bIsOverdue = bElapsed >= dangerSec
-
-        if (aIsOverdue && !bIsOverdue) return -1
-        if (!aIsOverdue && bIsOverdue) return 1
-
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      })
-    }
-
-    sortColumnOverdueFirst(map['preparing'])
-    sortColumnOverdueFirst(map['ready'])
-
-    return map
-  }, [filteredOrders, newOrdersSet, nowMs, thresholds])
-
-  // 5. Métriques pour le bandeau de synthèse fin
-  const pendingCount = ordersByStatus['pending'].length
-  const preparingCount = ordersByStatus['preparing'].length
-  const readyCount = ordersByStatus['ready'].length
+    return activeOrders.filter((o) => {
+      const elapsed = getElapsedSeconds(o.createdAt, nowMs)
+      return elapsed >= dangerSec
+    }).length
+  }, [activeOrders, nowMs, thresholds])
 
   const avgWaitMinutes = useMemo(() => {
-    const active = filteredOrders.filter(
-      (o) => o.status === 'pending' || o.status === 'preparing' || o.status === 'ready' || o.status === 'delivering',
-    )
-    if (active.length === 0) return 0
-    const totalMs = active.reduce((sum, o) => {
+    if (activeOrders.length === 0) return 0
+    const totalMs = activeOrders.reduce((sum, o) => {
       const diff = nowMs - new Date(o.createdAt).getTime()
       return sum + (isNaN(diff) ? 0 : Math.max(0, diff))
     }, 0)
-    return Math.round(totalMs / (active.length * 60000))
-  }, [filteredOrders, nowMs])
+    return Math.round(totalMs / (activeOrders.length * 60000))
+  }, [activeOrders, nowMs])
 
-  // 6. Bandeau "À griller / cuire" compact regroupant par produit (sans scroll horizontal)
-  const productionSummary = useMemo(() => {
-    const activeOrders = filteredOrders.filter(
-      (o) => o.status === 'pending' || o.status === 'preparing',
-    )
-    const itemMap: Record<string, { name: string; quantity: number }> = {}
-
-    activeOrders.forEach((o) => {
-      o.items.forEach((item) => {
-        const key = item.name.toLowerCase().trim()
-        if (!itemMap[key]) {
-          itemMap[key] = { name: item.name, quantity: 0 }
-        }
-        itemMap[key].quantity += item.quantity
-      })
-    })
-
-    const list = Object.values(itemMap).sort((a, b) => b.quantity - a.quantity)
-    const totalDishes = list.reduce((s, i) => s + i.quantity, 0)
-
-    return { list, totalDishes }
-  }, [filteredOrders])
+  // 5. Historique (commandes livrées ou annulées)
+  const historyCount = useMemo(() => {
+    return searchedOrders.filter(
+      (o) => o.status === 'delivered' || o.status === 'cancelled',
+    ).length
+  }, [searchedOrders])
 
   return (
-    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden text-left bg-[#0F1115] font-sans text-[#E6E8EC] select-none kds-no-hscroll">
-      {/* 2. BANDEAU DE SYNTHÈSE FIN : En attente / En cuisson / Prêtes + temps moyen + lien Historique */}
-      <div className="h-7 min-h-7 px-3 border-b border-[#262A33] bg-[#12141A] flex items-center justify-between text-xs text-[#8B93A1] shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
-            <span>En attente :</span>
-            <span className="font-mono font-semibold text-[#E6E8EC]">{pendingCount}</span>
-          </div>
-          <span className="text-[#262A33]">·</span>
-          <div className="flex items-center gap-1.5">
-            <span>En cuisson :</span>
-            <span className="font-mono font-semibold text-[#E6E8EC]">{preparingCount}</span>
-          </div>
-          <span className="text-[#262A33]">·</span>
-          <div className="flex items-center gap-1.5">
-            <span>Prêtes :</span>
-            <span className="font-mono font-semibold text-[#E6E8EC]">{readyCount}</span>
-          </div>
-        </div>
+    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-[#0E1116] text-[#FFFFFF] font-sans select-none kds-no-hscroll">
+      {/* 1. BARRE DU HAUT FIXE (UNE LIGNE) */}
+      <KdsTopBar
+        isSidebarCollapsed={isSidebarCollapsed}
+        onToggleSidebar={onToggleSidebar}
+        searchQuery={searchQuery}
+        onSearchChange={onSearchChange}
+        typeFilter={typeFilter}
+        onTypeFilterChange={onTypeFilterChange}
+        countsByType={countsByType}
+        historyCount={historyCount}
+        onOpenHistory={() => setIsHistoryOpen(true)}
+        isAudioMuted={isAudioMuted}
+        onToggleAudio={onToggleAudio}
+      />
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
-            <span>Attente moy. :</span>
-            <span className="font-mono font-semibold text-[#E6E8EC]">{avgWaitMinutes} min</span>
-          </div>
+      {/* 2. BANDEAU COMPTEURS GÉANTS : À PRÉPARER / EN CUISSON / EN RETARD */}
+      <StatCounters
+        pendingCount={pendingCount}
+        preparingCount={preparingCount}
+        lateCount={lateCount}
+        avgWaitMinutes={avgWaitMinutes}
+      />
 
-          <span className="text-[#262A33]">·</span>
+      {/* 3. ZONE PRINCIPALE = GRILLE DE TICKETS (PAS DE KANBAN) */}
+      <TicketGrid
+        orders={filteredOrders}
+        nowMs={nowMs}
+        thresholds={thresholds}
+        newOrdersSet={newOrdersSet}
+        onTransition={onTransition}
+        onCancel={onCancel}
+        onViewDetails={onViewDetails}
+        onPrintTicket={onPrintTicket}
+      />
 
-          {/* LIEN HISTORIQUE (Livrées & Annulées accessibles via ce lien, pas en colonne) */}
-          <button
-            type="button"
-            onClick={() => setIsHistoryOpen(true)}
-            className="flex items-center gap-1.5 text-xs font-medium text-[#8B93A1] hover:text-[#E8A33D] transition-colors cursor-pointer"
-            title="Consulter les commandes livrées et annulées"
-          >
-            <History className="size-3 text-[#8B93A1] hover:text-[#E8A33D]" />
-            <span>Historique ({historyOrdersCount})</span>
-          </button>
-        </div>
-      </div>
+      {/* 4. BARRE DU BAS FIXE (TOTAL À PRODUIRE + PRÊTES À REMETTRE) */}
+      <BottomBar
+        orders={filteredOrders}
+        onTransition={onTransition}
+      />
 
-      {/* 3. BANDEAU "À GRILLER / CUIRE" COMPACT : groupé par produit, repliable, sans scroll horizontal */}
-      {productionSummary.totalDishes > 0 && (
-        <div className="border-b border-[#262A33] bg-[#171A21] px-3 py-1.5 shrink-0">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[11px] font-bold text-[#8B93A1] uppercase tracking-wider">
-                  À griller / cuire :
-                </span>
-                <span className="font-mono text-xs font-bold text-[#E8A33D]">
-                  {productionSummary.totalDishes} {productionSummary.totalDishes > 1 ? 'plats' : 'plat'}
-                </span>
-              </div>
-
-              {isSummaryExpanded ? (
-                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                  {productionSummary.list.map((item, idx) => (
-                    <span
-                      key={idx}
-                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#0F1115] border border-[#262A33] text-xs text-[#E6E8EC]"
-                    >
-                      <strong className="text-[#E8A33D] font-mono font-semibold">{item.quantity}×</strong>
-                      <span>{item.name}</span>
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <span className="text-xs text-[#8B93A1] truncate block">
-                  {productionSummary.list
-                    .slice(0, 5)
-                    .map((i) => `${i.quantity}× ${i.name}`)
-                    .join(' · ')}
-                  {productionSummary.list.length > 5 && ' …'}
-                </span>
-              )}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
-              className="p-1 text-[#8B93A1] hover:text-[#E6E8EC] rounded hover:bg-[#262A33] shrink-0 transition-colors cursor-pointer mt-0.5"
-              title={isSummaryExpanded ? 'Réduire' : 'Déplier'}
-            >
-              {isSummaryExpanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 4. TROIS COLONNES DE LARGEUR ÉGALE, PLEINE HAUTEUR, EN-TÊTES FIXES, SCROLL VERTICAL INDÉPENDANT */}
-      <div className="flex-1 min-h-0 overflow-hidden p-2.5 w-full">
-        <div className="grid grid-cols-3 gap-2.5 h-full w-full overflow-hidden">
-          {KDS_COLUMNS.map((col) => (
-            <KanbanColumn
-              key={col.id}
-              definition={col}
-              orders={ordersByStatus[col.id] || []}
-              nowMs={nowMs}
-              newOrdersSet={newOrdersSet}
-              onTransition={onTransition}
-              onCancel={onCancel}
-              onViewDetails={onViewDetails}
-              onPrintTicket={onPrintTicket}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* 5. TIROIR HISTORIQUE (Livrées & Annulées) */}
+      {/* 5. TIROIR HISTORIQUE (COMMANDES LIVRÉES ET ANNULÉES) */}
       <OrderHistoryDrawer
         isOpen={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}
-        orders={filteredOrders}
+        orders={searchedOrders}
         onViewDetails={onViewDetails}
         onPrintTicket={onPrintTicket}
         onRestoreOrder={(orderRef, status) => {

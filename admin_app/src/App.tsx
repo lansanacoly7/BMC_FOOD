@@ -50,7 +50,7 @@ export default function App() {
   // 2. Anti-veille écran de cuisine automatique (Screen Wake Lock API)
   useWakeLock()
 
-  // 3. Cycle de vie temps réel et polling des commandes
+  // 3. Cycle de vie temps réel et polling des commandes (5s)
   const {
     orders,
     isLoading,
@@ -95,7 +95,7 @@ export default function App() {
     },
     onRefresh: () => void refresh(),
     onToggleSound: () => {
-      audioAlert.toggleMute()
+      toggleAudio()
     },
   })
 
@@ -177,8 +177,7 @@ export default function App() {
 
   return (
     <div
-      className="h-screen max-h-screen h-[100dvh] flex flex-row antialiased text-[#E6E8EC] select-none overflow-hidden kds-cuisine font-sans"
-      style={{ backgroundColor: '#0F1115' }}
+      className="h-screen max-h-screen h-[100dvh] flex flex-row antialiased text-[#FFFFFF] select-none overflow-hidden kds-cuisine font-sans bg-[#0E1116]"
     >
       {!isSidebarCollapsed && (
         <AdminSidebar
@@ -190,17 +189,20 @@ export default function App() {
       )}
 
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        <AppHeader
-          currentTab={headerTab}
-          isSidebarCollapsed={isSidebarCollapsed}
-          onToggleSidebar={() => setIsSidebarCollapsed((prev) => !prev)}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          typeFilter={typeFilter}
-          onTypeFilterChange={setTypeFilter}
-          isAudioMuted={isAudioMuted}
-          onToggleAudio={toggleAudio}
-        />
+        {/* En-tête générique affiché UNIQUEMENT sur les autres modules (Promotions, Transactions, etc.) */}
+        {headerTab !== 'kds' && (
+          <AppHeader
+            currentTab={headerTab}
+            isSidebarCollapsed={isSidebarCollapsed}
+            onToggleSidebar={() => setIsSidebarCollapsed((prev) => !prev)}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            typeFilter={typeFilter}
+            onTypeFilterChange={setTypeFilter}
+            isAudioMuted={isAudioMuted}
+            onToggleAudio={toggleAudio}
+          />
+        )}
 
         <ConnectionBanner
           connectionState={connectionState}
@@ -223,8 +225,14 @@ export default function App() {
               orders={orders}
               nowMs={nowMs}
               searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
               typeFilter={typeFilter}
+              onTypeFilterChange={setTypeFilter}
               newOrdersSet={newOrdersSet}
+              isAudioMuted={isAudioMuted}
+              onToggleAudio={toggleAudio}
+              isSidebarCollapsed={isSidebarCollapsed}
+              onToggleSidebar={() => setIsSidebarCollapsed((prev) => !prev)}
               onTransition={handleTransition}
               onCancel={handleCancelOrder}
               onViewDetails={(order) => setSelectedOrder(order)}
