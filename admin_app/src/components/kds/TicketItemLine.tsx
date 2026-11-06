@@ -17,10 +17,10 @@ export const TicketItemLine: React.FC<TicketItemLineProps> = ({
   return (
     <div
       onClick={() => onToggleDone(index)}
-      className={`px-3 py-2 cursor-pointer select-none border-b border-[#262D38]/50 transition-colors ${
+      className={`px-3 py-2 cursor-pointer select-none border-b border-[#262A33]/50 transition-colors ${
         isDone
-          ? 'bg-[#13171E]/50 text-[#687385]'
-          : 'hover:bg-[#232934] text-[#FFFFFF]'
+          ? 'bg-[#13151A]/40 text-[#5E6676]'
+          : 'hover:bg-[#1F232C] text-[#F2F4F7]'
       }`}
       role="button"
       aria-pressed={isDone}
@@ -31,15 +31,15 @@ export const TicketItemLine: React.FC<TicketItemLineProps> = ({
           onToggleDone(index)
         }
       }}
-      title="Cliquer pour barrer / valider ce plat"
+      title="Cliquer pour rayer / valider ce plat"
     >
-      {/* LIGNE PRINCIPALE DU PLAT : 17px semi-gras, une ligne si possible, max 2 */}
+      {/* LIGNE PRINCIPALE DU PLAT : 17px semi-gras */}
       <div
         className={`flex items-baseline gap-1.5 text-[17px] font-semibold leading-snug tracking-tight ${
-          isDone ? 'line-through text-[#687385]' : 'text-[#FFFFFF]'
+          isDone ? 'line-through text-[#5E6676]' : 'text-[#F2F4F7]'
         }`}
       >
-        <span className="font-mono font-bold text-[#E6E8EC] shrink-0">
+        <span className="font-mono font-bold text-[#8A93A3] shrink-0">
           {item.quantity}×
         </span>
         <span className="line-clamp-2 break-words leading-tight">
@@ -51,21 +51,22 @@ export const TicketItemLine: React.FC<TicketItemLineProps> = ({
       {item.options && item.options.length > 0 && (
         <div
           className={`text-[13px] pl-5 mt-0.5 leading-tight line-clamp-2 break-words ${
-            isDone ? 'line-through text-[#505D72]' : 'text-[#9AA4B2]'
+            isDone ? 'line-through text-[#454B58]' : 'text-[#8A93A3]'
           }`}
         >
           {item.options.join(' · ')}
         </div>
       )}
 
-      {/* REMARQUE CUISINE : 14px ambre gras */}
+      {/* REMARQUE CUISINE : Texte blanc, en gras, avec petite icône accent devant, sans fond coloré */}
       {item.notes && (
         <div
-          className={`text-[14px] font-bold pl-5 mt-0.5 leading-tight line-clamp-2 break-words ${
-            isDone ? 'line-through text-[#806B1F]' : 'text-[#F59E0B]'
+          className={`text-[14px] font-bold pl-5 mt-0.5 leading-tight line-clamp-2 break-words flex items-start gap-1 ${
+            isDone ? 'line-through text-[#5E6676]' : 'text-[#F2F4F7]'
           }`}
         >
-          * {item.notes}
+          <span className="text-[#F59E0B] font-black shrink-0 select-none">◆</span>
+          <span>{item.notes}</span>
         </div>
       )}
     </div>

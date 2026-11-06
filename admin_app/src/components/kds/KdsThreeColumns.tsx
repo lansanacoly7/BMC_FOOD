@@ -46,15 +46,13 @@ export const KdsThreeColumns: React.FC<KdsThreeColumnsProps> = ({
 
   return (
     <main
-      className="flex-1 min-h-0 p-3 grid grid-cols-1 md:grid-cols-3 gap-3 overflow-hidden bg-[#0E1116]"
+      className="flex-1 min-h-0 p-3 grid grid-cols-1 md:grid-cols-3 gap-3 overflow-hidden bg-[#0F1115]"
       aria-label="Tableau de cuisine 3 colonnes"
     >
-      {/* 1. COLONNE À PRÉPARER (BLEU #3B82F6) */}
+      {/* 1. COLONNE À PRÉPARER (EN-TÊTE NEUTRE) */}
       <KdsColumn
         title="1. À PRÉPARER"
         count={pendingOrders.length}
-        headerBg="#3B82F6"
-        headerTextColor="#FFFFFF"
         orders={pendingOrders}
         nowMs={nowMs}
         thresholds={thresholds}
@@ -65,12 +63,10 @@ export const KdsThreeColumns: React.FC<KdsThreeColumnsProps> = ({
         onPrintTicket={onPrintTicket}
       />
 
-      {/* 2. COLONNE EN CUISSON (AMBRE #F59E0B) */}
+      {/* 2. COLONNE EN CUISSON (EN-TÊTE NEUTRE) */}
       <KdsColumn
         title="2. EN CUISSON"
         count={preparingOrders.length}
-        headerBg="#F59E0B"
-        headerTextColor="#0E1116"
         orders={preparingOrders}
         nowMs={nowMs}
         thresholds={thresholds}
@@ -81,12 +77,10 @@ export const KdsThreeColumns: React.FC<KdsThreeColumnsProps> = ({
         onPrintTicket={onPrintTicket}
       />
 
-      {/* 3. COLONNE PRÊT (VERT #22C55E) */}
+      {/* 3. COLONNE PRÊT (EN-TÊTE NEUTRE) */}
       <KdsColumn
         title="3. PRÊT"
         count={readyOrders.length}
-        headerBg="#22C55E"
-        headerTextColor="#FFFFFF"
         orders={readyOrders}
         nowMs={nowMs}
         thresholds={thresholds}

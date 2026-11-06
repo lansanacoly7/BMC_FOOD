@@ -109,7 +109,7 @@ export const KdsPage: React.FC<KdsPageProps> = ({
   }, [searchedOrders])
 
   return (
-    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-[#0E1116] text-[#FFFFFF] font-sans select-none kds-no-hscroll">
+    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-[#0F1115] text-[#F2F4F7] font-sans select-none kds-no-hscroll">
       {/* 1. BARRE DU HAUT SIMPLIFIÉE (UNE LIGNE) */}
       <KdsTopBar
         orders={filteredOrders}
