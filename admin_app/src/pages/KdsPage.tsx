@@ -3,9 +3,7 @@ import type { ChronoThresholds, KdsOrder, KdsOrderStatus, OrderType } from '../t
 import { DEFAULT_KDS_THRESHOLDS } from '../styles/kdsTokens'
 import { getElapsedSeconds } from '../lib/formatters'
 import { KdsTopBar } from '../components/kds/KdsTopBar'
-import { StatCounters } from '../components/kds/StatCounters'
-import { TicketGrid } from '../components/kds/TicketGrid'
-import { BottomBar } from '../components/kds/BottomBar'
+import { KdsThreeColumns } from '../components/kds/KdsThreeColumns'
 import { OrderHistoryDrawer } from '../components/kds/OrderHistoryDrawer'
 
 interface KdsPageProps {
@@ -34,7 +32,6 @@ export const KdsPage: React.FC<KdsPageProps> = ({
   onSearchChange,
   typeFilter,
   onTypeFilterChange,
-  newOrdersSet = new Set(),
   isAudioMuted = false,
   onToggleAudio = () => {},
   isSidebarCollapsed = false,
@@ -47,7 +44,7 @@ export const KdsPage: React.FC<KdsPageProps> = ({
 }) => {
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false)
 
-  // 1. Filtrage par recherche textuelle (#ticket, client, plat)
+  // 1. Filtrage par recherche textuelle (#ticket, client, plat, etc.)
   const searchedOrders = useMemo(() => {
     if (!searchQuery.trim()) return orders
     const q = searchQuery.toLowerCase().trim()
@@ -61,7 +58,7 @@ export const KdsPage: React.FC<KdsPageProps> = ({
     })
   }, [orders, searchQuery])
 
-  // 2. Compteurs par type de commande pour la barre supérieure (sur commandes actives + prêtes)
+  // 2. Compteurs par type de commande pour la barre supérieure (sur commandes non clôturées)
   const countsByType = useMemo(() => {
     const active = searchedOrders.filter(
       (o) => o.status !== 'delivered' && o.status !== 'cancelled',
@@ -80,22 +77,12 @@ export const KdsPage: React.FC<KdsPageProps> = ({
     return searchedOrders.filter((o) => o.orderType === typeFilter)
   }, [searchedOrders, typeFilter])
 
-  // 4. Compteurs pour le bandeau géant
+  // 4. Commandes actives (pending + preparing) pour calculs d'attente et retards
   const activeOrders = useMemo(() => {
     return filteredOrders.filter(
       (o) => o.status === 'pending' || o.status === 'preparing',
     )
   }, [filteredOrders])
-
-  const pendingCount = useMemo(
-    () => activeOrders.filter((o) => o.status === 'pending').length,
-    [activeOrders],
-  )
-
-  const preparingCount = useMemo(
-    () => activeOrders.filter((o) => o.status === 'preparing').length,
-    [activeOrders],
-  )
 
   const lateCount = useMemo(() => {
     const dangerSec = thresholds.dangerMinutes * 60
@@ -123,8 +110,9 @@ export const KdsPage: React.FC<KdsPageProps> = ({
 
   return (
     <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-[#0E1116] text-[#FFFFFF] font-sans select-none kds-no-hscroll">
-      {/* 1. BARRE DU HAUT FIXE (UNE LIGNE) */}
+      {/* 1. BARRE DU HAUT SIMPLIFIÉE (UNE LIGNE) */}
       <KdsTopBar
+        orders={filteredOrders}
         isSidebarCollapsed={isSidebarCollapsed}
         onToggleSidebar={onToggleSidebar}
         searchQuery={searchQuery}
@@ -132,39 +120,26 @@ export const KdsPage: React.FC<KdsPageProps> = ({
         typeFilter={typeFilter}
         onTypeFilterChange={onTypeFilterChange}
         countsByType={countsByType}
+        lateCount={lateCount}
+        avgWaitMinutes={avgWaitMinutes}
         historyCount={historyCount}
         onOpenHistory={() => setIsHistoryOpen(true)}
         isAudioMuted={isAudioMuted}
         onToggleAudio={onToggleAudio}
       />
 
-      {/* 2. BANDEAU COMPTEURS GÉANTS : À PRÉPARER / EN CUISSON / EN RETARD */}
-      <StatCounters
-        pendingCount={pendingCount}
-        preparingCount={preparingCount}
-        lateCount={lateCount}
-        avgWaitMinutes={avgWaitMinutes}
-      />
-
-      {/* 3. ZONE PRINCIPALE = GRILLE DE TICKETS (PAS DE KANBAN) */}
-      <TicketGrid
+      {/* 2. ZONE PRINCIPALE : 3 COLONNES DE LARGEUR ÉGALE, PLEINE HAUTEUR (PAS DE BARRE BASSE) */}
+      <KdsThreeColumns
         orders={filteredOrders}
         nowMs={nowMs}
         thresholds={thresholds}
-        newOrdersSet={newOrdersSet}
         onTransition={onTransition}
         onCancel={onCancel}
         onViewDetails={onViewDetails}
         onPrintTicket={onPrintTicket}
       />
 
-      {/* 4. BARRE DU BAS FIXE (TOTAL À PRODUIRE + PRÊTES À REMETTRE) */}
-      <BottomBar
-        orders={filteredOrders}
-        onTransition={onTransition}
-      />
-
-      {/* 5. TIROIR HISTORIQUE (COMMANDES LIVRÉES ET ANNULÉES) */}
+      {/* 3. TIROIR HISTORIQUE (COMMANDES LIVRÉES ET ANNULÉES) */}
       <OrderHistoryDrawer
         isOpen={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}

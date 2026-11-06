@@ -9,7 +9,7 @@ import {
   Eye,
   XCircle,
   RotateCcw,
-  Sparkles,
+  MessageSquare,
 } from 'lucide-react'
 import { formatDuration, formatFcfa, getElapsedSeconds, getUrgencyLevel } from '../../lib/formatters'
 import { DEFAULT_KDS_THRESHOLDS, type ChronoThresholds } from '../../styles/kdsTokens'
@@ -20,7 +20,6 @@ interface OrderTicketProps {
   order: KdsOrder
   nowMs: number
   thresholds?: ChronoThresholds
-  isMarkedNew?: boolean
   onTransition: (orderRef: string, nextStatus: KdsOrderStatus) => void
   onCancel: (orderRef: string) => void
   onViewDetails: (order: KdsOrder) => void
@@ -29,16 +28,19 @@ interface OrderTicketProps {
 
 const TYPE_CONFIG: Record<
   OrderType,
-  { label: string; icon: React.FC<{ className?: string }>; color: string }
+  { label: string; icon: React.FC<{ className?: string }> }
 > = {
-  delivery: { label: 'Livraison', icon: Bike, color: '#8B5CF6' },
-  takeaway: { label: 'À emporter', icon: ShoppingBag, color: '#FB923C' },
-  dine_in: { label: 'Sur place', icon: Utensils, color: '#14B8A6' },
+  delivery: { label: 'Livraison', icon: Bike },
+  takeaway: { label: 'À emporter', icon: ShoppingBag },
+  dine_in: { label: 'Sur place', icon: Utensils },
 }
 
 function extractNeighborhood(address?: string): string {
   if (!address) return ''
-  const cleaned = address.replace(/^Position GPS\s*:\s*/i, '').replace(/^Retrait sur place\s*[–-]\s*/i, '').trim()
+  const cleaned = address
+    .replace(/^Position GPS\s*:\s*/i, '')
+    .replace(/^Retrait sur place\s*[–-]\s*/i, '')
+    .trim()
   if (cleaned.startsWith('http')) return 'GPS'
   const firstPart = cleaned.split(/[,–\-(]/)[0]?.trim()
   return firstPart || ''
@@ -48,7 +50,6 @@ export const OrderTicket: React.FC<OrderTicketProps> = ({
   order,
   nowMs,
   thresholds = DEFAULT_KDS_THRESHOLDS,
-  isMarkedNew = false,
   onTransition,
   onCancel,
   onViewDetails,
@@ -66,215 +67,198 @@ export const OrderTicket: React.FC<OrderTicketProps> = ({
     })
   }
 
-  const isAllItemsDone = order.items.length > 0 && doneItems.size === order.items.length
-
   const elapsedSec = getElapsedSeconds(order.createdAt, nowMs)
-  // Seuils configurables : 10 min (warning) et 15 min (danger/retard)
   const urgency = getUrgencyLevel(elapsedSec, thresholds)
   const durationText = formatDuration(elapsedSec)
+
+  const isOverdue = urgency === 'danger'
+  const isWarning = urgency === 'warning'
 
   const typeConfig = TYPE_CONFIG[order.orderType] || TYPE_CONFIG.delivery
   const TypeIcon = typeConfig.icon
 
-  const isOverdue = urgency === 'danger'
-  const isWarning = urgency === 'warning'
-  const isPreparing = order.status === 'preparing'
+  const displayRef = order.orderRef.replace(/^#?BMC-?/, '')
+  const neighborhood = order.orderType === 'delivery' ? extractNeighborhood(order.address) : ''
+  const isDelivery = order.orderType === 'delivery'
 
-  // COULEUR ET STYLE DE L'EN-TÊTE ENTIER (PORTE L'ÉTAT DU TICKET)
-  let headerBg = '#2F6FED'      // Nouveau : Bleu #2F6FED
-  let headerTextColor = '#FFFFFF'
-  let headerBlinkClass = ''
+  // Étape suivante et couleur du bouton
+  let actionText = 'LANCER LA CUISSON'
+  let actionColor = 'bg-[#F59E0B] hover:bg-[#D97706] text-[#000000]'
+  let nextStatus: KdsOrderStatus = 'preparing'
 
-  if (isOverdue) {
-    headerBg = '#E5362B'        // Retard : Rouge #E5362B
-    headerTextColor = '#FFFFFF'
-    headerBlinkClass = 'kds-animate-late'
-  } else if (isWarning) {
-    headerBg = '#F5B800'        // Attention : Jaune #F5B800
-    headerTextColor = '#0E1116' // Texte noir sur jaune
+  if (order.status === 'preparing') {
+    actionText = 'MARQUER PRÊT'
+    actionColor = 'bg-[#22C55E] hover:bg-[#16A34A] text-[#FFFFFF]'
+    nextStatus = 'ready'
+  } else if (order.status === 'ready' || order.status === 'delivering') {
+    actionText = isDelivery ? 'REMIS AU LIVREUR' : 'REMIS AU CLIENT'
+    actionColor = 'bg-[#374151] hover:bg-[#4B5563] text-[#FFFFFF]'
+    nextStatus = 'delivered'
   }
 
-  // ACTION DU BOUTON PRINCIPAL & BUMP D'EN-TÊTE
-  // À préparer → "LANCER LA CUISSON" (bleu)
-  // En cuisson → "MARQUER PRÊTE" (vert)
-  const nextStatus: KdsOrderStatus = isPreparing ? 'ready' : 'preparing'
-  const actionButtonText = isPreparing ? 'MARQUER PRÊTE' : 'LANCER LA CUISSON'
-  const actionButtonBg = isPreparing ? 'bg-[#1FA855] hover:bg-[#188B46]' : 'bg-[#2F6FED] hover:bg-[#2558BC]'
-
-  const handleBump = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation()
+  const handleNextAction = () => {
     onTransition(order.orderRef, nextStatus)
   }
 
-  const displayRef = order.orderRef.replace(/^#?BMC-?/, '')
-  const neighborhood = order.orderType === 'delivery' ? extractNeighborhood(order.address) : ''
-
   return (
     <article
-      className="rounded-lg bg-[#1A1F27] border border-[#262D38] text-left select-none overflow-hidden flex flex-col justify-between shadow-md transition-shadow relative"
-      style={{
-        borderLeftWidth: '6px',
-        borderLeftColor: typeConfig.color,
-      }}
+      className={`rounded-[10px] bg-[#1A1F27] text-left select-none flex flex-col justify-between shadow-md transition-shadow relative ${
+        isOverdue ? 'border-2 border-[#EF4444]' : 'border border-[#262D38]'
+      }`}
     >
       <div className="flex-1 flex flex-col">
-        {/* 1. EN-TÊTE ENTIER COLORÉ SELON L'ÉTAT (CLICKABLE = BUMP BUMP-BAR) */}
-        <div
-          onClick={handleBump}
-          className={`h-12 px-2.5 flex items-center justify-between cursor-pointer transition-colors relative select-none gap-1.5 ${headerBlinkClass}`}
-          style={{ backgroundColor: headerBg, color: headerTextColor }}
-          title="Cliquer pour faire avancer la commande d'une étape (Bump)"
-        >
-          {/* GAUCHE : #numéro 32px extra-gras (adaptatif tablette) + Pastille type */}
-          <div className="flex items-center gap-1.5 min-w-0 shrink">
-            <span className="font-mono text-[22px] lg:text-[24px] xl:text-[32px] font-black tracking-tight leading-none shrink-0 drop-shadow-sm">
+        {/* LIGNE 1 : EN-TÊTE FLEX STRICT SANS CHEVAUCHEMENT */}
+        <div className="px-3 py-2.5 flex items-center justify-between border-b border-[#262D38]">
+          {/* GAUCHE : [#numéro (22px gras)] [pastille du type en gris] */}
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="font-mono text-[22px] font-bold text-[#FFFFFF] tracking-tight shrink-0 leading-none">
               #{displayRef}
             </span>
 
-            {/* Pastille type de commande dans l'en-tête */}
-            <span
-              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] xl:text-[11px] font-black uppercase tracking-wider shrink-0 shadow-sm"
-              style={{
-                backgroundColor: 'rgba(0, 0, 0, 0.25)',
-                color: headerTextColor,
-              }}
-              title={typeConfig.label}
-            >
-              <TypeIcon className="size-3 shrink-0" />
-              <span className="hidden xl:inline">{typeConfig.label}</span>
+            {/* Pastille neutre en gris (icône + texte, sans couleur vive) */}
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#262D38] text-[#9AA4B2] text-xs font-semibold shrink-0">
+              <TypeIcon className="size-3 text-[#9AA4B2]" />
+              <span>{typeConfig.label}</span>
             </span>
-
-            {/* Badge NOUVEAU (uniquement pour les commandes récentes) */}
-            {!isOverdue && !isWarning && (isMarkedNew || order.isNew) && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/35 text-[9px] font-extrabold uppercase tracking-wide shrink-0">
-                <Sparkles className="size-2.5 shrink-0" />
-                <span className="hidden xl:inline">Nouveau</span>
-              </span>
-            )}
           </div>
 
-          {/* DROITE : Chrono mm:ss en grand (police tabulaire) + Menu ⋯ */}
-          <div className="flex items-center gap-1 xl:gap-1.5 shrink-0 ml-auto">
+          {/* DROITE : [chrono coloré uniquement] [menu ⋯] */}
+          <div className="flex items-center gap-2 shrink-0 ml-auto">
             {isOverdue ? (
               <div
-                className="flex items-center gap-1 font-black uppercase tracking-wide bg-black/30 px-1.5 py-0.5 rounded text-xs shrink-0"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#2D1214] border border-[#EF4444]/40 text-[#EF4444] font-mono text-base font-bold tabular-nums"
                 role="alert"
                 aria-label={`En retard de ${durationText}`}
               >
-                <AlertTriangle className="size-3 xl:size-3.5 stroke-[3] shrink-0" />
-                <span className="text-[9px] xl:text-[10px] tracking-wider font-black">RETARD</span>
-                <span className="font-mono text-sm xl:text-lg tabular-nums font-black">{durationText}</span>
+                <AlertTriangle className="size-3.5 stroke-[2.5]" />
+                <span>{durationText}</span>
               </div>
             ) : (
-              <span className="font-mono text-sm xl:text-lg font-black tabular-nums tracking-tight">
+              <span
+                className={`font-mono text-base font-bold tabular-nums ${
+                  isWarning ? 'text-[#F59E0B]' : 'text-[#9AA4B2]'
+                }`}
+              >
                 {durationText}
               </span>
             )}
 
             {/* Menu ⋯ discret */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                setShowMenu((prev) => !prev)
-              }}
-              className="p-1 rounded hover:bg-black/20 cursor-pointer transition-colors"
-              title="Options secondaires"
-            >
-              <MoreVertical className="size-4" />
-            </button>
-
-            {/* Menu popup */}
-            {showMenu && (
-              <div
-                className="absolute right-2 top-full mt-1 w-48 rounded-lg border border-[#262D38] bg-[#1A1F27] shadow-2xl z-40 py-1 text-xs text-[#FFFFFF]"
-                onClick={(e) => e.stopPropagation()}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowMenu((prev) => !prev)}
+                className="p-1 rounded hover:bg-[#262D38] text-[#9AA4B2] hover:text-[#FFFFFF] cursor-pointer transition-colors"
+                title="Options secondaires"
               >
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowMenu(false)
-                    onViewDetails(order)
-                  }}
-                  className="w-full px-3 py-2 text-left hover:bg-[#262D38] flex items-center gap-2 cursor-pointer"
-                >
-                  <Eye className="size-3.5 text-[#9AA4B2]" />
-                  <span>Voir ticket complet</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowMenu(false)
-                    onPrintTicket(order)
-                  }}
-                  className="w-full px-3 py-2 text-left hover:bg-[#262D38] flex items-center gap-2 cursor-pointer"
-                >
-                  <Printer className="size-3.5 text-[#9AA4B2]" />
-                  <span>Imprimer le ticket</span>
-                </button>
+                <MoreVertical className="size-4" />
+              </button>
 
-                {isPreparing && (
+              {showMenu && (
+                <div
+                  className="absolute right-0 top-full mt-1 w-48 rounded-lg border border-[#262D38] bg-[#1A1F27] shadow-2xl z-40 py-1 text-xs text-[#FFFFFF]"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <button
                     type="button"
                     onClick={() => {
                       setShowMenu(false)
-                      onTransition(order.orderRef, 'pending')
+                      onViewDetails(order)
                     }}
-                    className="w-full px-3 py-2 text-left hover:bg-[#262D38] flex items-center gap-2 cursor-pointer text-[#F5B800]"
+                    className="w-full px-3 py-2 text-left hover:bg-[#262D38] flex items-center gap-2 cursor-pointer"
                   >
-                    <RotateCcw className="size-3.5" />
-                    <span>Renvoyer à préparer</span>
+                    <Eye className="size-3.5 text-[#9AA4B2]" />
+                    <span>Voir ticket complet</span>
                   </button>
-                )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMenu(false)
+                      onPrintTicket(order)
+                    }}
+                    className="w-full px-3 py-2 text-left hover:bg-[#262D38] flex items-center gap-2 cursor-pointer"
+                  >
+                    <Printer className="size-3.5 text-[#9AA4B2]" />
+                    <span>Imprimer le ticket</span>
+                  </button>
 
-                <div className="my-1 border-t border-[#262D38]" />
+                  {order.status === 'preparing' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowMenu(false)
+                        onTransition(order.orderRef, 'pending')
+                      }}
+                      className="w-full px-3 py-2 text-left hover:bg-[#262D38] flex items-center gap-2 cursor-pointer text-[#F59E0B]"
+                    >
+                      <RotateCcw className="size-3.5" />
+                      <span>Revenir à préparer</span>
+                    </button>
+                  )}
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowMenu(false)
-                    onCancel(order.orderRef)
-                  }}
-                  className="w-full px-3 py-2 text-left hover:bg-[#E5362B]/10 text-[#E5362B] flex items-center gap-2 cursor-pointer font-bold"
-                >
-                  <XCircle className="size-3.5" />
-                  <span>Annuler la commande</span>
-                </button>
-              </div>
-            )}
+                  {order.status === 'ready' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowMenu(false)
+                        onTransition(order.orderRef, 'preparing')
+                      }}
+                      className="w-full px-3 py-2 text-left hover:bg-[#262D38] flex items-center gap-2 cursor-pointer text-[#F59E0B]"
+                    >
+                      <RotateCcw className="size-3.5" />
+                      <span>Revenir en cuisson</span>
+                    </button>
+                  )}
+
+                  <div className="my-1 border-t border-[#262D38]" />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMenu(false)
+                      onCancel(order.orderRef)
+                    }}
+                    className="w-full px-3 py-2 text-left hover:bg-[#EF4444]/10 text-[#EF4444] flex items-center gap-2 cursor-pointer font-bold"
+                  >
+                    <XCircle className="size-3.5" />
+                    <span>Annuler la commande</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* 2. NOTE DE COMMANDE : BANDE JAUNE PÂLE SOUS L'EN-TÊTE (SI EXISTANTE) */}
-        {order.notes && (
-          <div className="px-3 py-1.5 bg-[#FEF3C7] text-[#1E293B] border-b border-[#F5B800]/40 flex items-start gap-1.5 text-[14px] font-bold leading-tight">
-            <span className="shrink-0 uppercase text-[11px] font-black bg-[#F5B800] text-[#0E1116] px-1 py-0.2 rounded">
-              NOTE
-            </span>
-            <span className="truncate">« {order.notes} »</span>
-          </div>
-        )}
-
-        {/* 3. LIGNE CLIENT : NOM + QUARTIER (SI LIVRAISON) AVEC TOTAL EN F CFA À DROITE */}
-        <div className="px-3 py-2 border-b border-[#262D38] bg-[#13171E] flex items-center justify-between text-xs text-[#9AA4B2]">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="font-bold text-[#FFFFFF] text-sm truncate">
+        {/* LIGNE 2 : CLIENT (+ QUARTIER) À GAUCHE, TOTAL EN F CFA À DROITE (14PX) */}
+        <div className="px-3 py-2 border-b border-[#262D38]/60 flex items-center justify-between text-sm text-[#9AA4B2]">
+          <div className="flex items-center gap-1.5 min-w-0 truncate">
+            <span className="font-semibold text-[#FFFFFF] truncate">
               {order.customerName}
             </span>
             {neighborhood && (
-              <span className="text-[#9AA4B2] font-medium truncate">
+              <span className="text-[#8B93A1] truncate">
                 · {neighborhood}
               </span>
             )}
           </div>
 
-          <span className="font-mono text-sm font-bold text-[#FFFFFF] shrink-0">
+          <span className="font-mono font-bold text-[#FFFFFF] shrink-0 ml-2">
             {formatFcfa(order.totalAmount)}
           </span>
         </div>
 
-        {/* 4. PLATS : ZONE TACTILE DE 56PX BARRABLE AU CLIC */}
-        <div className="divide-y divide-[#262D38]/50">
+        {/* NOTE DE COMMANDE : BANDE AMBRE PÂLE (#3A2E12), TEXTE AMBRE (#F5C451), 2 LIGNES MAX */}
+        {order.notes && (
+          <div className="px-3 py-2 bg-[#3A2E12] text-[#F5C451] border-b border-[#524119] flex items-start gap-2 text-xs leading-snug">
+            <MessageSquare className="size-3.5 shrink-0 mt-0.5 text-[#F5C451]" />
+            <span className="line-clamp-2 break-words font-medium">
+              {order.notes}
+            </span>
+          </div>
+        )}
+
+        {/* PLATS DU TICKET (BARRABLES AU CLIC) */}
+        <div className="divide-y divide-[#262D38]/40">
           {order.items.map((item, idx) => (
             <TicketItemLine
               key={idx}
@@ -287,17 +271,15 @@ export const OrderTicket: React.FC<OrderTicketProps> = ({
         </div>
       </div>
 
-      {/* 5. PIED : UN SEUL GROS BOUTON PLEINE LARGEUR (56PX DE HAUT, MAJUSCULES) */}
-      <div className="p-2 border-t border-[#262D38] bg-[#13171E]">
+      {/* PIED : BOUTON PLEINE LARGEUR (48PX DE HAUT, COULEUR ÉTAPE SUIVANTE) */}
+      <div className="p-2.5 border-t border-[#262D38]">
         <button
           type="button"
-          onClick={handleBump}
-          className={`w-full h-14 min-h-[56px] rounded-md text-sm font-black uppercase tracking-wider text-[#FFFFFF] transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] shadow-md ${actionButtonBg} ${
-            isAllItemsDone ? 'kds-btn-pulse-ready ring-2 ring-[#1FA855]' : ''
-          }`}
+          onClick={handleNextAction}
+          className={`w-full h-12 rounded-md text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] shadow ${actionColor}`}
         >
-          <span>{actionButtonText}</span>
-          <span className="font-mono text-xs opacity-75">→</span>
+          <span>{actionText}</span>
+          <span className="font-mono text-xs">→</span>
         </button>
       </div>
     </article>
