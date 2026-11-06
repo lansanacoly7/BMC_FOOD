@@ -68,6 +68,16 @@ export async function transitionOrderStatus(
 
   try {
     const apiStatus = mapKdsStatusToApiStatus(newStatus)
+    if (newStatus === 'preparing') {
+      try {
+        await apiClient<OrderResponse>(`/orders/${encodeURIComponent(cleanRef)}/status/`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'confirmed' }),
+        })
+      } catch {
+        // Ignorer si la commande a déjà été confirmée
+      }
+    }
     const response = await apiClient<OrderResponse>(`/orders/${encodeURIComponent(cleanRef)}/status/`, {
       method: 'PATCH',
       body: JSON.stringify({ status: apiStatus }),

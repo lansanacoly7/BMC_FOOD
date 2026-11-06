@@ -55,6 +55,7 @@ def save_promotions(data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
+@extend_schema(exclude=True)
 class PromotionsView(APIView):
     """Gestion des promotions partagées entre l'administration et le site client."""
 
@@ -63,7 +64,7 @@ class PromotionsView(APIView):
             return [AllowAny()]
         return [IsAdminUser()]
 
-    @extend_schema(summary="Obtenir les promotions actives", tags=["Promotions"])
+    @extend_schema(summary="Obtenir les promotions actives", tags=["Promotions"], operation_id="promotions_list")
     def get(self, request):
         promos = load_promotions()
         return Response({
@@ -72,7 +73,7 @@ class PromotionsView(APIView):
             'promotions': promos
         })
 
-    @extend_schema(summary="Enregistrer ou mettre à jour les promotions", tags=["Promotions"])
+    @extend_schema(summary="Enregistrer ou mettre à jour les promotions", tags=["Promotions"], operation_id="promotions_update")
     def post(self, request):
         data = request.data
         if isinstance(data, dict) and 'promotions' in data:
@@ -89,11 +90,12 @@ class PromotionsView(APIView):
         })
 
 
+@extend_schema(exclude=True)
 class MenuItemCreateView(APIView):
     """Création d'un nouveau plat dans le catalogue BMC Food."""
     permission_classes = [IsAdminUser]
 
-    @extend_schema(summary="Créer un nouveau plat", tags=["Catalogue"])
+    @extend_schema(summary="Créer un nouveau plat", tags=["Catalogue"], operation_id="menu_item_create_custom")
     def post(self, request):
         data = request.data
         name = (data.get('name') or '').strip()
@@ -154,11 +156,12 @@ class MenuItemCreateView(APIView):
         }, status=status.HTTP_201_CREATED)
 
 
-class StaffManagementView(APIView):
+@extend_schema(exclude=True)
+class StaffListView(APIView):
     """Gestion des comptes employés de l'administration (Cuisine, Caisse, Manager)."""
     permission_classes = [IsAdminUser]
 
-    @extend_schema(summary="Lister les employés", tags=["Personnel"])
+    @extend_schema(summary="Lister les employés", tags=["Personnel"], operation_id="staff_list")
     def get(self, request):
         users = User.objects.filter(is_staff=True).order_by('-date_joined')
         data = [
@@ -175,7 +178,7 @@ class StaffManagementView(APIView):
         ]
         return Response({'success': True, 'count': len(data), 'staff': data})
 
-    @extend_schema(summary="Créer un compte employé", tags=["Personnel"])
+    @extend_schema(summary="Créer un compte employé", tags=["Personnel"], operation_id="staff_create")
     def post(self, request):
         username = (request.data.get('username') or '').strip()
         password = request.data.get('password') or ''
@@ -209,7 +212,13 @@ class StaffManagementView(APIView):
             }
         }, status=status.HTTP_201_CREATED)
 
-    @extend_schema(summary="Supprimer un compte employé", tags=["Personnel"])
+
+@extend_schema(exclude=True)
+class StaffDetailView(APIView):
+    """Suppression d'un compte employé."""
+    permission_classes = [IsAdminUser]
+
+    @extend_schema(summary="Supprimer un compte employé", tags=["Personnel"], operation_id="staff_delete")
     def delete(self, request, pk=None):
         if not pk:
             return Response({'success': False, 'error': "ID requis."}, status=status.HTTP_400_BAD_REQUEST)
@@ -224,3 +233,7 @@ class StaffManagementView(APIView):
         username = user.username
         user.delete()
         return Response({'success': True, 'message': f"Le compte employé « {username} » a été supprimé."})
+
+
+# Alias rétrocompatible
+StaffManagementView = StaffListView

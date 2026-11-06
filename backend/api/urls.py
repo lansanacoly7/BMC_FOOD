@@ -6,7 +6,8 @@ from .auth_views import StaffTokenView
 from .promotions_staff_views import (
     MenuItemCreateView,
     PromotionsView,
-    StaffManagementView,
+    StaffListView,
+    StaffDetailView,
 )
 from .views import (
     HealthCheckView,
@@ -63,8 +64,8 @@ urlpatterns = [
     path('menu/items/', MenuItemCreateView.as_view(), name='menu-item-create'),
 
     # Gestion des comptes employés (Staff)
-    path('staff/', StaffManagementView.as_view(), name='staff-list-create'),
-    path('staff/<int:pk>/', StaffManagementView.as_view(), name='staff-delete'),
+    path('staff/', StaffListView.as_view(), name='staff-list-create'),
+    path('staff/<int:pk>/', StaffDetailView.as_view(), name='staff-delete'),
 
     # Documentation OpenAPI (accès réglé par SPECTACULAR_SETTINGS['SERVE_PERMISSIONS'])
     path('schema/', SpectacularAPIView.as_view(), name='schema'),
