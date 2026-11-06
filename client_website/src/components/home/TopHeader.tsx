@@ -107,13 +107,16 @@ export function TopHeader({
             className="flex cursor-pointer items-center gap-3 rounded-lg py-1 text-left transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-bmc-gold"
             aria-label="BMC Food, accueil"
           >
+            {/* Logo principal rogné (blanc et or, sans ombre) : c'est ici que se pose le logo de l'animation d'entrée.
+                32 px minimum à l'écran (charte page 3), y compris en mode compact. */}
             <img
-              src="/images/brand/logo.png"
+              src="/images/brand/logo-principal.webp"
               alt="BMC Food"
-              width={140}
-              height={56}
+              width={640}
+              height={483}
+              data-intro-target
               className={`w-auto object-contain transition-[height] duration-300 ease-out motion-reduce:transition-none ${
-                compact ? 'h-9' : 'h-12 sm:h-14'
+                compact ? 'h-8' : 'h-10 sm:h-11'
               }`}
             />
             <span

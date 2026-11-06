@@ -184,7 +184,7 @@ function FeaturedCard({
   return (
     <li className="w-[80%] shrink-0 snap-start sm:w-[300px] lg:w-[330px]">
       <article
-        className={`group relative isolate flex aspect-4/5 flex-col justify-between overflow-hidden rounded-2xl bg-[#0c0c0d] p-4 text-[#ffffff] transition-transform duration-300 hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${
+        className={`group relative isolate flex aspect-4/5 cursor-pointer flex-col justify-between overflow-hidden rounded-2xl bg-[#0c0c0d] p-4 text-[#ffffff] transition-transform duration-300 hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${
           isSpecial ? 'ring-2 ring-inset ring-bmc-gold' : ''
         }`}
       >
@@ -217,7 +217,13 @@ function FeaturedCard({
 
         <div>
           <h3 className="font-display text-xl font-bold leading-tight">
-            <button type="button" onClick={() => onSelect?.(product)} className="cursor-pointer text-left underline-offset-4 hover:underline">
+            {/* Lien étiré : sa zone de clic couvre toute la carte (photo comprise), au clavier comme à la souris. */}
+            <button
+              type="button"
+              onClick={() => onSelect?.(product)}
+              aria-label={`Voir ${product.name}`}
+              className="cursor-pointer rounded-2xl text-left underline-offset-4 after:absolute after:inset-0 after:rounded-2xl after:content-[''] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-bmc-gold group-hover:underline"
+            >
               {product.name}
             </button>
           </h3>
@@ -231,7 +237,7 @@ function FeaturedCard({
               type="button"
               onClick={handleAdd}
               aria-label={`Ajouter ${product.name} au panier`}
-              className={`grid size-12 shrink-0 cursor-pointer place-items-center rounded-full text-black transition-colors ${
+              className={`relative z-10 grid size-12 shrink-0 cursor-pointer place-items-center rounded-full text-black transition-colors ${
                 justAdded ? 'bg-bmc-success text-white' : 'bg-bmc-gold hover:bg-amber-400'
               }`}
             >

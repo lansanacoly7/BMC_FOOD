@@ -141,3 +141,47 @@
   }
 }
 
+
+/* =====================================================================
+   ANIMATION D'ENTRÉE ET BRAISES (El Hadji Diop)
+   ===================================================================== */
+
+/* Pendant l'animation d'entrée, le logo de l'en-tête attend : le logo de l'intro vient s'y poser. */
+[data-intro='playing'] [data-intro-target] {
+  opacity: 0;
+}
+
+/* Braise qui monte en dérivant, s'allume puis s'éteint. Uniquement transform et opacité (fluide sur mobile). */
+@keyframes bmc-ember-rise {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0;
+  }
+  12% {
+    opacity: var(--ember-opacity, 0.8);
+  }
+  70% {
+    opacity: calc(var(--ember-opacity, 0.8) * 0.6);
+  }
+  100% {
+    transform: translate3d(var(--ember-drift, 0), calc(-1 * var(--ember-rise, 640px)), 0) scale(0.3);
+    opacity: 0;
+  }
+}
+
+.bmc-ember {
+  position: absolute;
+  bottom: -8px;
+  border-radius: 9999px;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation-name: bmc-ember-rise;
+  animation-timing-function: cubic-bezier(0.33, 0, 0.67, 1);
+  animation-iteration-count: infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bmc-ember {
+    display: none;
+  }
+}

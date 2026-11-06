@@ -1,231 +1,182 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { Pause, Play, Volume2, VolumeX } from 'lucide-react'
 import {
-  Play,
-  Pause,
-  Volume2,
-  VolumeX,
-  ArrowRight,
-} from 'lucide-react'
-import { motion, AnimatePresence } from 'motion/react'
-
-interface CulinaryVideoShowcaseProps {
-  onExploreMenu: () => void
-}
+  AnimatePresence,
+  motion,
+  useInView,
+  useMotionTemplate,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+} from 'motion/react'
 
 interface CulinaryScene {
   id: string
-  title: string
-  badge: string
+  /** Libellé court sous la barre de progression. */
+  label: string
+  /** Légende affichée pendant la scène. */
+  caption: string
   src: string
-  poster: string
 }
 
-/**
- * 5 Scènes Vidéo Cinématiques BMC Food (générées avec Veo / Gemini) :
- * 1. Découpe croustillante au couteau (Tacos pané rectangulaire)
- * 2. Cheese-pull & cœur fondant à deux mains
- * 3. Nappage coulant de sauce fromagère
- * 4. Cheeseburger gourmet saisi sur ardoise
- * 5. Spot publicitaire d'ambiance BMC Food
- */
-const CULINARY_SCENES: CulinaryScene[] = [
-  {
-    id: 'knife_slice',
-    title: 'Découpe Croustillante',
-    badge: 'Tacos pané',
-    src: '/videos/culinary/scene_1_knife_slice.mp4',
-    poster: '/images/hero/tacos_pane_knife_cut.jpg',
-  },
-  {
-    id: 'cheese_pull',
-    title: 'Cheese-Pull & Cœur Fondant',
-    badge: 'Gourmandise Maximale',
-    src: '/videos/culinary/scene_2_cheese_pull.mp4',
-    poster: '/images/hero/tacos_pane_knife_cut.jpg',
-  },
-  {
-    id: 'cheese_pour',
-    title: 'Nappage Sauce Fromagère',
-    badge: 'Sauce fromagère',
-    src: '/videos/culinary/scene_3_cheese_pour.mp4',
-    poster: '/images/hero/tacos_pane_knife_cut.jpg',
-  },
-  {
-    id: 'cheeseburger',
-    title: 'Cheeseburger Saisi',
-    badge: 'Burger Gourmet Dakar',
-    src: '/videos/culinary/scene_4_cheeseburger.mp4',
-    poster: '/images/hero/tacos_pane_knife_cut.jpg',
-  },
-  {
-    id: 'commercial',
-    title: "L'Expérience BMC Food",
-    badge: 'Le Vrai Goût du Plaisir',
-    src: '/videos/culinary/scene_5_commercial.mp4',
-    poster: '/images/hero/tacos_pane_knife_cut.jpg',
-  },
+const POSTER = '/images/hero/tacos_pane_knife_cut.jpg'
+
+/** Les 5 scènes de la cuisine BMC, enchaînées chacune jusqu'à sa fin. */
+const SCENES: CulinaryScene[] = [
+  { id: 'knife_slice', label: 'La découpe', caption: 'La découpe, bien croustillante', src: '/videos/culinary/scene_1_knife_slice.mp4' },
+  { id: 'cheese_pull', label: 'Le fromage', caption: 'Le cœur fondant qui file', src: '/videos/culinary/scene_2_cheese_pull.mp4' },
+  { id: 'cheese_pour', label: 'La sauce', caption: 'Le nappage de sauce fromagère maison', src: '/videos/culinary/scene_3_cheese_pour.mp4' },
+  { id: 'cheeseburger', label: 'Le burger', caption: 'Le cheeseburger saisi minute', src: '/videos/culinary/scene_4_cheeseburger.mp4' },
+  { id: 'commercial', label: 'BMC Food', caption: 'Le goût du vrai plaisir', src: '/videos/culinary/scene_5_commercial.mp4' },
 ]
 
 /**
- * Capsule vidéo : les scènes s'enchaînent toutes seules, chacune jusqu'à sa fin
- * (pas de minuteur), avec un fondu entre deux scènes. Points de navigation pour sauter à une scène.
+ * « Le tacos pané, en images » en plein écran.
+ * À l'approche, le cadre arrondi s'ouvre jusqu'aux bords de l'écran au rythme du défilement, et l'image se recule légèrement.
+ * Les scènes s'enchaînent en fondu enchaîné ; des barres de progression (cliquables) montrent où l'on en est.
+ * La vidéo ne joue que lorsqu'elle est à l'écran. Avec « réduire les animations », elle démarre en pause et le cadre est fixe.
  */
-export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcaseProps) {
-  const [activeSceneIndex, setActiveSceneIndex] = useState(0)
-  const [isPlaying, setIsPlaying] = useState(true)
+export function CulinaryVideoShowcase() {
+  const reduceMotion = useReducedMotion() ?? false
+  const sectionRef = useRef<HTMLElement>(null)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const [index, setIndex] = useState(0)
+  const [isPaused, setIsPaused] = useState(reduceMotion)
   const [isMuted, setIsMuted] = useState(true)
-  const videoRefs = useRef<(HTMLVideoElement | null)[]>([])
+  const [progress, setProgress] = useState(0)
+  const isOnScreen = useInView(sectionRef, { amount: 0.3 })
+  const scene = SCENES[index]
 
-  const currentScene = CULINARY_SCENES[activeSceneIndex]
+  // Ouverture du cadre au défilement : de la carte arrondie au plein écran.
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start end', 'start start'] })
+  const inset = useTransform(scrollYProgress, [0, 1], reduceMotion ? [0, 0] : [6, 0])
+  const radius = useTransform(scrollYProgress, [0, 1], reduceMotion ? [0, 0] : [32, 0])
+  const clipPath = useMotionTemplate`inset(${inset}% ${inset}% ${inset}% ${inset}% round ${radius}px)`
+  const videoScale = useTransform(scrollYProgress, [0, 1], reduceMotion ? [1, 1] : [1.18, 1])
 
-  // Passe à la scène suivante (et reboucle sur la première après la dernière)
-  const goToNext = useCallback(() => {
-    setActiveSceneIndex((prev) => (prev + 1) % CULINARY_SCENES.length)
-  }, [])
-
-  // Lancement automatique de la vidéo active
+  // Lecture seulement à l'écran et si le client n'a pas mis en pause.
   useEffect(() => {
-    const currentVideo = videoRefs.current[activeSceneIndex]
-    if (currentVideo) {
-      currentVideo.currentTime = 0
-      if (isPlaying) {
-        currentVideo.play().catch(() => {
-          // Lecture automatique muette de secours acceptée par tous les navigateurs
-        })
-      }
-    }
-  }, [activeSceneIndex, isPlaying])
+    const video = videoRef.current
+    if (!video) return
+    if (isOnScreen && !isPaused) video.play().catch(() => {})
+    else video.pause()
+  }, [isOnScreen, isPaused, index])
 
-  const togglePlay = () => {
-    const currentVideo = videoRefs.current[activeSceneIndex]
-    if (!currentVideo) return
-
-    if (isPlaying) {
-      currentVideo.pause()
-      setIsPlaying(false)
-    } else {
-      currentVideo.play().catch(() => {})
-      setIsPlaying(true)
-    }
+  const goTo = (next: number) => {
+    setIndex(next)
+    setProgress(0)
   }
 
   const toggleMute = () => {
-    const nextMuted = !isMuted
-    setIsMuted(nextMuted)
-    videoRefs.current.forEach((video) => {
-      if (video) video.muted = nextMuted
-    })
+    const next = !isMuted
+    setIsMuted(next)
+    if (videoRef.current) videoRef.current.muted = next
   }
 
   return (
     <section
+      ref={sectionRef}
       aria-labelledby="culinary-showcase-title"
-      className="relative overflow-hidden pt-8 sm:pt-12 pb-2 sm:pb-4"
+      className="relative mt-16 bg-bmc-black sm:mt-24"
     >
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* EN-TÊTE DE LA SECTION */}
-        <div className="max-w-3xl mx-auto space-y-3 mb-6 sm:mb-8 text-center">
-          <h2
-            id="culinary-showcase-title"
-            className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-white leading-tight"
-          >
-            Le tacos pané, en images
-          </h2>
-          <p className="text-sm sm:text-base text-zinc-300 max-w-2xl mx-auto leading-relaxed">
-            La découpe, le fromage qui coule, les sauces : préparé à la commande.
-          </p>
-        </div>
+      <motion.div
+        style={{ clipPath }}
+        className="relative h-[88svh] max-h-[60rem] min-h-[34rem] w-full overflow-hidden bg-black sm:h-svh"
+      >
+        {/* VIDÉO (fondu enchaîné d'une scène à l'autre) */}
+        <motion.div style={{ scale: videoScale }} className="absolute inset-0">
+          <AnimatePresence initial={false}>
+            <motion.video
+              key={scene.id}
+              ref={(el: HTMLVideoElement | null) => {
+                // La vidéo qui sort garde sa place le temps du fondu : on ne pointe que vers la nouvelle.
+                if (el) videoRef.current = el
+              }}
+              src={scene.src}
+              poster={POSTER}
+              muted={isMuted}
+              playsInline
+              preload="auto"
+              onEnded={() => goTo((index + 1) % SCENES.length)}
+              onTimeUpdate={(event) => {
+                const video = event.currentTarget
+                setProgress(video.duration ? video.currentTime / video.duration : 0)
+              }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: reduceMotion ? 0.2 : 0.9, ease: 'easeInOut' }}
+              aria-hidden="true"
+              className="absolute inset-0 size-full object-cover"
+            />
+          </AnimatePresence>
+        </motion.div>
 
-        {/* CADRE VIDÉO CINÉMATIQUE MULTI-SCÈNES (Carrousel automatique) */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 20 }}
-          whileInView={{ opacity: 1, scale: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="relative mx-auto max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-black group"
-        >
-          {/* PETITS DOTS DE NAVIGATION DISCRETS SUR LA GAUCHE (Style Best-Sellers) */}
-          <div className="absolute top-3.5 left-3.5 sm:top-4 sm:left-4 z-30 flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md px-2.5 py-1.5 border border-white/10">
-            {CULINARY_SCENES.map((scene, idx) => {
-              const isActive = idx === activeSceneIndex
+        {/* Voiles : fondu vers le noir de la page en bas, lisibilité des barres de progression en haut */}
+        <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-1/3 bg-linear-to-t from-bmc-black via-black/30 to-transparent" />
+        <div aria-hidden="true" className="absolute inset-x-0 top-0 h-40 bg-linear-to-b from-black/70 to-transparent" />
+
+        <div className="relative mx-auto flex h-full max-w-7xl flex-col justify-between px-4 pb-24 pt-24 sm:px-6 sm:pb-24 sm:pt-28 lg:px-8 lg:pb-20">
+          {/* PROGRESSION DES SCÈNES */}
+          <ol className="grid grid-cols-5 gap-2 sm:gap-3" aria-label="Scènes de la vidéo">
+            {SCENES.map((item, i) => {
+              const fill = i < index ? 1 : i === index ? progress : 0
               return (
-                <button
-                  key={scene.id}
-                  type="button"
-                  onClick={() => setActiveSceneIndex(idx)}
-                  className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                    isActive
-                      ? 'w-5 sm:w-6 bg-bmc-gold'
-                      : 'w-1.5 bg-white/30 hover:bg-white/60'
-                  }`}
-                  aria-label={`Aller à la scène ${idx + 1}: ${scene.title}`}
-                />
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    onClick={() => goTo(i)}
+                    aria-label={`Scène ${i + 1} : ${item.caption}`}
+                    aria-current={i === index ? 'step' : undefined}
+                    className="group block w-full cursor-pointer py-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold"
+                  >
+                    <span className="block h-[3px] overflow-hidden rounded-full bg-white/25 transition-colors group-hover:bg-white/40">
+                      <span
+                        className="block h-full origin-left rounded-full bg-bmc-gold"
+                        style={{ transform: `scaleX(${fill})` }}
+                      />
+                    </span>
+                    <span
+                      className={`mt-2.5 hidden text-xs font-semibold uppercase tracking-[0.16em] transition-colors sm:block ${
+                        i === index ? 'text-white' : 'text-white/50 group-hover:text-white/80'
+                      }`}
+                    >
+                      {item.label}
+                    </span>
+                  </button>
+                </li>
               )
             })}
-          </div>
+          </ol>
 
-          {/* CONTENEUR DE LA VIDÉO ACTIVE */}
-          <div className="relative aspect-video w-full overflow-hidden bg-black">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentScene.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.4 }}
-                className="absolute inset-0 size-full"
-              >
-                <video
-                  ref={(el) => {
-                    videoRefs.current[activeSceneIndex] = el
-                  }}
-                  autoPlay
-                  muted={isMuted}
-                  playsInline
-                  onEnded={goToNext}
-                  preload={activeSceneIndex === 0 ? 'auto' : 'metadata'}
-                  poster={currentScene.poster}
-                  className="size-full object-cover object-center filter contrast-105"
-                >
-                  <source src={currentScene.src} type="video/mp4" />
-                </video>
-              </motion.div>
-            </AnimatePresence>
+          {/* Titre de la section, pour les lecteurs d'écran : l'image parle d'elle-même */}
+          <h2 id="culinary-showcase-title" className="sr-only">
+            Le tacos pané, en images : préparé à la commande dans la cuisine BMC
+          </h2>
 
-            {/* Boutons de contrôle discrets en haut à droite (Play/Pause et Son/Mute) */}
-            <div className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 flex items-center gap-1.5 z-20">
+          {/* COMMANDES */}
+          <div className="flex justify-end">
+            <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={togglePlay}
-                aria-label={isPlaying ? 'Mettre en pause' : 'Lancer la vidéo'}
-                className="flex size-7 sm:size-8 items-center justify-center rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 transition-all hover:bg-black/90 hover:border-bmc-gold hover:text-bmc-gold cursor-pointer"
+                onClick={() => setIsPaused((paused) => !paused)}
+                aria-label={isPaused ? 'Lancer la vidéo' : 'Mettre la vidéo en pause'}
+                className="grid size-12 cursor-pointer place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/30 backdrop-blur-md transition-colors hover:text-bmc-gold hover:ring-bmc-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold"
               >
-                {isPlaying ? <Pause className="size-3" /> : <Play className="size-3 fill-current ml-0.5" />}
+                {isPaused ? <Play className="ml-0.5 size-5 fill-current" aria-hidden="true" /> : <Pause className="size-5" aria-hidden="true" />}
               </button>
               <button
                 type="button"
                 onClick={toggleMute}
                 aria-label={isMuted ? 'Activer le son' : 'Couper le son'}
-                className="flex size-7 sm:size-8 items-center justify-center rounded-full bg-black/70 backdrop-blur-md text-white border border-white/20 transition-all hover:bg-black/90 hover:border-bmc-gold hover:text-bmc-gold cursor-pointer"
+                className="grid size-12 cursor-pointer place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/30 backdrop-blur-md transition-colors hover:text-bmc-gold hover:ring-bmc-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold"
               >
-                {isMuted ? <VolumeX className="size-3" /> : <Volume2 className="size-3 text-bmc-gold" />}
+                {isMuted ? <VolumeX className="size-5" aria-hidden="true" /> : <Volume2 className="size-5 text-bmc-gold" aria-hidden="true" />}
               </button>
             </div>
           </div>
-        </motion.div>
-
-        {/* BOUTON D'ACTION (Compact sur mobile, Somptueux et grand sur desktop) */}
-        <div className="mt-5 sm:mt-7 text-center space-y-2">
-          <button
-            type="button"
-            onClick={onExploreMenu}
-            className="group inline-flex h-12 items-center gap-2 rounded-lg bg-bmc-gold px-6 sm:px-8 text-sm sm:text-base font-semibold text-black transition-colors cursor-pointer hover:bg-amber-400"
-          >
-            <span>Voir la carte</span>
-            <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-          </button>
         </div>
-      </div>
+      </motion.div>
     </section>
   )
 }

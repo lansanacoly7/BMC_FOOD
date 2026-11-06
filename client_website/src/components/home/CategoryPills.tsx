@@ -22,6 +22,27 @@ interface CategoryPillsProps {
 export function CategoryPills({ activeId, onSelect }: CategoryPillsProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [isHovered, setIsHovered] = useState(false)
+  // Flèches utiles seulement si la rangée déborde, et chacune seulement s'il reste quelque chose de son côté.
+  const [edges, setEdges] = useState({ canLeft: false, canRight: false })
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const update = () => {
+      const canLeft = el.scrollLeft > 4
+      const canRight = el.scrollLeft < el.scrollWidth - el.clientWidth - 4
+      setEdges((prev) => (prev.canLeft === canLeft && prev.canRight === canRight ? prev : { canLeft, canRight }))
+    }
+    // L'observateur se déclenche une première fois dès l'observation, puis à chaque changement de taille.
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    el.addEventListener('scroll', update, { passive: true })
+    return () => {
+      observer.disconnect()
+      el.removeEventListener('scroll', update)
+    }
+  }, [])
+  const hasOverflow = edges.canLeft || edges.canRight
 
   // Défilement automatique continu et doux sur desktop (défilement sans stop de gauche à droite)
   useEffect(() => {
@@ -63,24 +84,27 @@ export function CategoryPills({ activeId, onSelect }: CategoryPillsProps) {
   return (
     <section aria-label="Catégories du menu" className="relative w-full">
       <div
-        className="relative flex items-center justify-between gap-1 sm:gap-3"
+        className="relative"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        {/* Flèche de navigation Gauche (Desktop) */}
-        <button
-          type="button"
-          onClick={() => handleScroll('left')}
-          aria-label="Faire défiler les catégories vers la gauche"
-          className="hidden sm:flex size-10 shrink-0 items-center justify-center rounded-full bg-zinc-900/90 border border-white/15 text-bmc-gold hover:bg-zinc-800 hover:border-bmc-gold hover:scale-110 shadow-lg cursor-pointer transition-all z-10"
-        >
-          <ChevronLeft className="size-5 stroke-[2.5]" />
-        </button>
+        {/* Flèche gauche : seulement si la rangée déborde et qu'on n'est pas déjà au début */}
+        {hasOverflow && (
+          <button
+            type="button"
+            onClick={() => handleScroll('left')}
+            disabled={!edges.canLeft}
+            aria-label="Faire défiler les catégories vers la gauche"
+            className="absolute left-0 top-1/2 z-10 hidden size-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-zinc-900/90 text-bmc-gold shadow-lg transition-[opacity,background-color,border-color] hover:border-bmc-gold hover:bg-zinc-800 disabled:pointer-events-none disabled:opacity-0 sm:flex"
+          >
+            <ChevronLeft className="size-5 stroke-[2.5]" aria-hidden="true" />
+          </button>
+        )}
 
         {/* Rail de défilement horizontal des catégories */}
         <div
           ref={scrollRef}
-          className="-mx-4 flex gap-3.5 overflow-x-auto px-6 py-4 overscroll-x-contain [scrollbar-width:none] scroll-smooth sm:mx-0 sm:px-2 sm:gap-6"
+          className="-mx-4 flex gap-3.5 overflow-x-auto px-6 py-4 overscroll-x-contain [scrollbar-width:none] scroll-smooth sm:mx-auto sm:w-fit sm:max-w-full sm:gap-6 sm:px-14"
         >
           {CATEGORIES.map((cat) => {
             const isActive = cat.id === activeId
@@ -124,15 +148,18 @@ export function CategoryPills({ activeId, onSelect }: CategoryPillsProps) {
           })}
         </div>
 
-        {/* Flèche de navigation Droite (Desktop) */}
-        <button
-          type="button"
-          onClick={() => handleScroll('right')}
-          aria-label="Faire défiler les catégories vers la droite"
-          className="hidden sm:flex size-10 shrink-0 items-center justify-center rounded-full bg-zinc-900/90 border border-white/15 text-bmc-gold hover:bg-zinc-800 hover:border-bmc-gold hover:scale-110 shadow-lg cursor-pointer transition-all z-10"
-        >
-          <ChevronRight className="size-5 stroke-[2.5]" />
-        </button>
+        {/* Flèche droite : seulement si la rangée déborde et qu'il reste des catégories à droite */}
+        {hasOverflow && (
+          <button
+            type="button"
+            onClick={() => handleScroll('right')}
+            disabled={!edges.canRight}
+            aria-label="Faire défiler les catégories vers la droite"
+            className="absolute right-0 top-1/2 z-10 hidden size-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-zinc-900/90 text-bmc-gold shadow-lg transition-[opacity,background-color,border-color] hover:border-bmc-gold hover:bg-zinc-800 disabled:pointer-events-none disabled:opacity-0 sm:flex"
+          >
+            <ChevronRight className="size-5 stroke-[2.5]" aria-hidden="true" />
+          </button>
+        )}
       </div>
     </section>
   )

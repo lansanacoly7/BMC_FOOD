@@ -11,18 +11,21 @@ import { Skeleton } from '../ui/Loader'
 import { ErrorMessage } from '../ui/ErrorMessage'
 import { EmptyState } from '../ui/EmptyState'
 import { FALLBACK_PRODUCTS, FALLBACK_CATEGORIES } from '../../data/mockMenu'
-import { isAddOnCategory, isAddOnOnly } from '../../data/productOptions'
+import { isAddOnCategory, isAddOnOnly, normalize } from '../../data/productOptions'
 
 export interface MenuViewProps {
   onAddToCart: (product: Product, quantity?: number, note?: string) => void
+  /** Ouvre la carte sur la famille dont le nom contient ce mot-clé (sans accents), par exemple depuis le pied de page. */
+  focusKeyword?: string
 }
 
 /** Une boisson (catégorie « Boissons » ou code bv-…) : elle n'apparaît que dans la section Boissons. */
 const isDrink = (p: Product) => Boolean(p.category_name?.toLowerCase().includes('boisson') || p.code.toLowerCase().startsWith('bv'))
 
-export function MenuView({ onAddToCart }: MenuViewProps) {
+export function MenuView({ onAddToCart, focusKeyword }: MenuViewProps) {
   const { categories, items, isLoading, error, refetch } = useMenu()
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | 'all'>('all')
+  // null : le client n'a pas encore choisi de rondelle, on suit la famille demandée (ou « tout »).
+  const [pickedCategoryId, setPickedCategoryId] = useState<number | 'all' | null>(null)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
 
   // Catégories de navigation : s'assure que "Boissons" existe toujours dans le ruban
@@ -36,6 +39,14 @@ export function MenuView({ onAddToCart }: MenuViewProps) {
     }
     return list.filter((c) => !isAddOnCategory(c))
   }, [categories])
+
+  // Famille demandée, retrouvée dans les catégories réelles (serveur ou secours) : elle s'applique dès leur chargement.
+  const focusedCategoryId = useMemo<number | 'all'>(() => {
+    if (!focusKeyword) return 'all'
+    const match = navCategories.find((c) => normalize(`${c.name} ${c.slug ?? ''}`).includes(focusKeyword))
+    return match ? match.id : 'all'
+  }, [navCategories, focusKeyword])
+  const selectedCategoryId = pickedCategoryId ?? focusedCategoryId
 
   // Catalogue complet : garantit que les 4 canettes BMC et sauces sont présentes
   const allItems = useMemo(() => {
@@ -144,7 +155,7 @@ export function MenuView({ onAddToCart }: MenuViewProps) {
       <CategoryNav
         categories={navCategories}
         activeCategoryId={selectedCategoryId}
-        onSelectCategory={setSelectedCategoryId}
+        onSelectCategory={setPickedCategoryId}
       />
 
       {/* 4. État de chargement : Skeletons sombres à 2 colonnes */}
@@ -180,7 +191,7 @@ export function MenuView({ onAddToCart }: MenuViewProps) {
           description="Aucun plat disponible dans cette catégorie pour le moment."
           actionLabel="Réinitialiser les filtres"
           onAction={() => {
-            setSelectedCategoryId('all')
+            setPickedCategoryId('all')
           }}
         />
       )}
