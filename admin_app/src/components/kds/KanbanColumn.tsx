@@ -13,6 +13,7 @@ interface KanbanColumnProps {
   definition: ColumnDefinition
   orders: KdsOrder[]
   nowMs: number
+  newOrdersSet?: Set<string>
   onTransition: (orderRef: string, nextStatus: KdsOrderStatus) => void
   onCancel: (orderRef: string) => void
   onViewDetails: (order: KdsOrder) => void
@@ -23,6 +24,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   definition,
   orders,
   nowMs,
+  newOrdersSet = new Set(),
   onTransition,
   onCancel,
   onViewDetails,
@@ -62,7 +64,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
       className="flex flex-col rounded-lg border border-[#262A33] bg-[#0F1115] flex-1 min-w-0 w-full h-full overflow-hidden select-none"
       aria-label={`${definition.title} (${orders.length} commandes)`}
     >
-      {/* En-tête de colonne sobre et neutre */}
+      {/* En-tête de colonne fixe sobre et neutre */}
       <header className="px-3 py-2 border-b border-[#262A33] bg-[#171A21] flex items-center justify-between gap-2 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <ColumnIcon className="size-4 shrink-0 text-[#8B93A1]" />
@@ -103,6 +105,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
               key={order.id}
               order={order}
               nowMs={nowMs}
+              isMarkedNew={newOrdersSet.has(order.orderRef)}
               onTransition={onTransition}
               onCancel={onCancel}
               onViewDetails={onViewDetails}

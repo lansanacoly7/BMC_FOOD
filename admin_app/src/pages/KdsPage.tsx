@@ -2,15 +2,20 @@ import React, { useMemo, useState } from 'react'
 import {
   ChevronDown,
   ChevronUp,
+  History,
 } from 'lucide-react'
-import type { ColumnDefinition, KdsOrder, KdsOrderStatus, OrderType } from '../types/kds'
+import { DEFAULT_THRESHOLDS, type ChronoThresholds, type ColumnDefinition, type KdsOrder, type KdsOrderStatus, type OrderType } from '../types/kds'
+import { getElapsedSeconds } from '../lib/formatters'
 import { KanbanColumn } from '../components/kds/KanbanColumn'
+import { OrderHistoryDrawer } from '../components/kds/OrderHistoryDrawer'
 
 interface KdsPageProps {
   orders: KdsOrder[]
   nowMs: number
   searchQuery: string
   typeFilter?: 'all' | OrderType
+  newOrdersSet?: Set<string>
+  thresholds?: ChronoThresholds
   onTransition: (orderRef: string, nextStatus: KdsOrderStatus) => void
   onCancel: (orderRef: string) => void
   onViewDetails: (order: KdsOrder) => void
@@ -24,7 +29,7 @@ export const KDS_COLUMNS: ColumnDefinition[] = [
     subtitle: 'En attente de prise en charge',
     badgeColor: '#262A33',
     borderColor: '#262A33',
-    actionLabel: 'Lancer la préparation',
+    actionLabel: 'Lancer la cuisson',
     actionClass: '',
     nextStatus: 'preparing',
     emptyMessage: 'Aucune commande à préparer',
@@ -46,7 +51,7 @@ export const KDS_COLUMNS: ColumnDefinition[] = [
     subtitle: 'Au comptoir / départ coursier',
     badgeColor: '#262A33',
     borderColor: '#262A33',
-    actionLabel: 'Remettre / Servir',
+    actionLabel: 'Remis',
     actionClass: '',
     nextStatus: 'delivered',
     emptyMessage: 'Aucune commande prête',
@@ -58,12 +63,15 @@ export const KdsPage: React.FC<KdsPageProps> = ({
   nowMs,
   searchQuery,
   typeFilter = 'all',
+  newOrdersSet = new Set(),
+  thresholds = DEFAULT_THRESHOLDS,
   onTransition,
   onCancel,
   onViewDetails,
   onPrintTicket,
 }) => {
   const [isSummaryExpanded, setIsSummaryExpanded] = useState<boolean>(true)
+  const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false)
 
   // 1. Filtrage par recherche textuelle (#ticket, client, plat)
   const searchedOrders = useMemo(() => {
@@ -85,7 +93,16 @@ export const KdsPage: React.FC<KdsPageProps> = ({
     return searchedOrders.filter((o) => o.orderType === typeFilter)
   }, [searchedOrders, typeFilter])
 
-  // 3. Répartition des commandes par colonne (tri FIFO : plus ancienne en premier)
+  // 3. Commandes livrées et annulées (Historique, hors colonnes)
+  const historyOrdersCount = useMemo(() => {
+    return filteredOrders.filter(
+      (o) => o.status === 'delivered' || o.status === 'cancelled',
+    ).length
+  }, [filteredOrders])
+
+  // 4. Répartition des 3 colonnes de workflow actif avec TRI AUTOMATIQUE :
+  // - "À préparer" : nouvelle commande en haut (10s), puis en retard en haut, puis les plus anciennes
+  // - "En cuisson" & "Prêt" : en retard en haut, puis les plus anciennes
   const ordersByStatus = useMemo(() => {
     const map: Record<KdsOrderStatus, KdsOrder[]> = {
       pending: [],
@@ -106,17 +123,54 @@ export const KdsPage: React.FC<KdsPageProps> = ({
     const readyGroup = [...map['ready'], ...map['delivering']]
     map['ready'] = readyGroup
 
-    // Tri FIFO : la plus ancienne en premier pour le flux cuisine
-    Object.keys(map).forEach((k) => {
-      map[k as KdsOrderStatus].sort(
-        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-      )
+    const dangerSec = thresholds.dangerMinutes * 60
+
+    // Tri spécifique de "À préparer" :
+    // 1. Nouvelles commandes en haut (pendant 10 secondes)
+    // 2. Commandes en retard en haut
+    // 3. Les plus anciennes en haut (FIFO)
+    map['pending'].sort((a, b) => {
+      const aIsNew = newOrdersSet.has(a.orderRef) || a.isNew
+      const bIsNew = newOrdersSet.has(b.orderRef) || b.isNew
+      if (aIsNew && !bIsNew) return -1
+      if (!aIsNew && bIsNew) return 1
+
+      const aElapsed = getElapsedSeconds(a.createdAt, nowMs)
+      const bElapsed = getElapsedSeconds(b.createdAt, nowMs)
+      const aIsOverdue = aElapsed >= dangerSec
+      const bIsOverdue = bElapsed >= dangerSec
+
+      if (aIsOverdue && !bIsOverdue) return -1
+      if (!aIsOverdue && bIsOverdue) return 1
+
+      // Les plus anciennes d'abord
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     })
 
-    return map
-  }, [filteredOrders])
+    // Tri de "En cuisson" et "Prêt" :
+    // 1. Commandes en retard en haut
+    // 2. Les plus anciennes d'abord
+    const sortColumnOverdueFirst = (list: KdsOrder[]) => {
+      list.sort((a, b) => {
+        const aElapsed = getElapsedSeconds(a.createdAt, nowMs)
+        const bElapsed = getElapsedSeconds(b.createdAt, nowMs)
+        const aIsOverdue = aElapsed >= dangerSec
+        const bIsOverdue = bElapsed >= dangerSec
 
-  // 4. Métriques pour le bandeau de synthèse fin (Point 2)
+        if (aIsOverdue && !bIsOverdue) return -1
+        if (!aIsOverdue && bIsOverdue) return 1
+
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      })
+    }
+
+    sortColumnOverdueFirst(map['preparing'])
+    sortColumnOverdueFirst(map['ready'])
+
+    return map
+  }, [filteredOrders, newOrdersSet, nowMs, thresholds])
+
+  // 5. Métriques pour le bandeau de synthèse fin
   const pendingCount = ordersByStatus['pending'].length
   const preparingCount = ordersByStatus['preparing'].length
   const readyCount = ordersByStatus['ready'].length
@@ -133,7 +187,7 @@ export const KdsPage: React.FC<KdsPageProps> = ({
     return Math.round(totalMs / (active.length * 60000))
   }, [filteredOrders, nowMs])
 
-  // 5. Bandeau "À griller / cuire" compact regroupant par produit (Point 3)
+  // 6. Bandeau "À griller / cuire" compact regroupant par produit (sans scroll horizontal)
   const productionSummary = useMemo(() => {
     const activeOrders = filteredOrders.filter(
       (o) => o.status === 'pending' || o.status === 'preparing',
@@ -158,7 +212,7 @@ export const KdsPage: React.FC<KdsPageProps> = ({
 
   return (
     <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden text-left bg-[#0F1115] font-sans text-[#E6E8EC] select-none kds-no-hscroll">
-      {/* 2. BANDEAU DE SYNTHÈSE FIN : En attente / En cuisson / Prêtes + temps d'attente moyen */}
+      {/* 2. BANDEAU DE SYNTHÈSE FIN : En attente / En cuisson / Prêtes + temps moyen + lien Historique */}
       <div className="h-7 min-h-7 px-3 border-b border-[#262A33] bg-[#12141A] flex items-center justify-between text-xs text-[#8B93A1] shrink-0">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
@@ -177,9 +231,24 @@ export const KdsPage: React.FC<KdsPageProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          <span>Attente moy. :</span>
-          <span className="font-mono font-semibold text-[#E6E8EC]">{avgWaitMinutes} min</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <span>Attente moy. :</span>
+            <span className="font-mono font-semibold text-[#E6E8EC]">{avgWaitMinutes} min</span>
+          </div>
+
+          <span className="text-[#262A33]">·</span>
+
+          {/* LIEN HISTORIQUE (Livrées & Annulées accessibles via ce lien, pas en colonne) */}
+          <button
+            type="button"
+            onClick={() => setIsHistoryOpen(true)}
+            className="flex items-center gap-1.5 text-xs font-medium text-[#8B93A1] hover:text-[#E8A33D] transition-colors cursor-pointer"
+            title="Consulter les commandes livrées et annulées"
+          >
+            <History className="size-3 text-[#8B93A1] hover:text-[#E8A33D]" />
+            <span>Historique ({historyOrdersCount})</span>
+          </button>
         </div>
       </div>
 
@@ -198,7 +267,6 @@ export const KdsPage: React.FC<KdsPageProps> = ({
               </div>
 
               {isSummaryExpanded ? (
-                /* flex-wrap : aucune barre de défilement horizontale */
                 <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                   {productionSummary.list.map((item, idx) => (
                     <span
@@ -242,6 +310,7 @@ export const KdsPage: React.FC<KdsPageProps> = ({
               definition={col}
               orders={ordersByStatus[col.id] || []}
               nowMs={nowMs}
+              newOrdersSet={newOrdersSet}
               onTransition={onTransition}
               onCancel={onCancel}
               onViewDetails={onViewDetails}
@@ -250,6 +319,18 @@ export const KdsPage: React.FC<KdsPageProps> = ({
           ))}
         </div>
       </div>
+
+      {/* 5. TIROIR HISTORIQUE (Livrées & Annulées) */}
+      <OrderHistoryDrawer
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        orders={filteredOrders}
+        onViewDetails={onViewDetails}
+        onPrintTicket={onPrintTicket}
+        onRestoreOrder={(orderRef, status) => {
+          onTransition(orderRef, status)
+        }}
+      />
     </div>
   )
 }

@@ -43,88 +43,72 @@ export const Toast: React.FC<ToastProps> = ({ undoAction, onUndo, onDismiss }) =
       case 'pending':
         return 'À préparer'
       case 'preparing':
-        return 'En cuisine'
+        return 'En cuisson'
       case 'ready':
         return 'Prêt'
       case 'delivering':
         return 'En livraison'
       case 'delivered':
-        return 'Livré'
+        return 'Remis'
+      case 'cancelled':
+        return 'Annulée'
       default:
         return s
     }
   }
 
+  const displayRef = undoAction.orderRef.replace(/^#?BMC-?/, '#')
+
   return (
     <aside
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col overflow-hidden rounded-xl shadow-2xl border w-full max-w-md animate-in fade-in slide-in-from-bottom-5 duration-200 select-none"
-      style={{
-        backgroundColor: '#14171C',
-        borderColor: '#F5B301',
-        boxShadow: '0 12px 32px rgba(0, 0, 0, 0.8), 0 0 15px rgba(245, 179, 1, 0.2)',
-      }}
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex flex-col overflow-hidden rounded-lg shadow-2xl border border-[#262A33] bg-[#171A21] w-full max-w-sm select-none"
       role="status"
       aria-live="polite"
     >
-      <div className="flex items-center justify-between p-3.5 gap-3">
-        <div className="flex items-center gap-3">
-          <div
-            className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border"
-            style={{
-              backgroundColor: 'rgba(245, 179, 1, 0.12)',
-              borderColor: 'rgba(245, 179, 1, 0.35)',
-              color: '#F5B301',
-            }}
-          >
-            <CheckCircle2 size={18} strokeWidth={2.5} />
+      <div className="flex items-center justify-between p-3 gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="size-7 rounded bg-[#E8A33D]/15 border border-[#E8A33D]/30 flex items-center justify-center shrink-0 text-[#E8A33D]">
+            <CheckCircle2 className="size-4 stroke-[2.5]" />
           </div>
-          <div>
-            <div className="text-sm font-black" style={{ color: '#F2F4F7' }}>
-              {undoAction.orderRef} mis à jour
+          <div className="min-w-0">
+            <div className="text-xs font-bold text-[#E6E8EC] truncate">
+              {displayRef} → {getStatusLabel(undoAction.targetStatus)}
             </div>
-            <div className="text-xs font-medium" style={{ color: '#9AA3AF' }}>
-              Passé à «&nbsp;{getStatusLabel(undoAction.targetStatus)}&nbsp;»
+            <div className="text-[11px] text-[#8B93A1]">
+              Annulation possible (5s)
             </div>
           </div>
         </div>
 
-        {/* Bouton d'annulation 5s */}
-        <div className="flex items-center gap-2">
+        {/* Bouton d'annulation 5s (contraste élevé AA) */}
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
             type="button"
             onClick={() => onUndo(undoAction.orderRef)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all transform active:scale-95 shadow-sm"
-            style={{
-              backgroundColor: '#F5B301',
-              color: '#0B0D10',
-            }}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded bg-[#E8A33D] hover:bg-[#D69330] text-[#0F1115] text-xs font-bold uppercase tracking-tight transition-all active:scale-95 cursor-pointer shadow-sm"
           >
-            <RotateCcw size={14} strokeWidth={3} />
+            <RotateCcw className="size-3 stroke-[2.5]" />
             <span>Annuler</span>
           </button>
 
           <button
             type="button"
             onClick={onDismiss}
-            className="p-1.5 text-slate-400 hover:text-white rounded-md"
+            className="p-1 text-[#8B93A1] hover:text-[#E6E8EC] rounded hover:bg-[#262A33] transition-colors cursor-pointer"
             title="Fermer"
           >
-            <X size={15} />
+            <X className="size-3.5" />
           </button>
         </div>
       </div>
 
       {/* Barre de défilement 5s */}
-      <div className="w-full h-1" style={{ backgroundColor: '#232830' }}>
+      <div className="w-full h-1 bg-[#12141A]">
         <div
-          className="h-full transition-all ease-linear"
-          style={{
-            width: `${progress}%`,
-            backgroundColor: '#F5B301',
-          }}
+          className="h-full bg-[#E8A33D] transition-all ease-linear"
+          style={{ width: `${progress}%` }}
         />
       </div>
     </aside>
-
   )
 }

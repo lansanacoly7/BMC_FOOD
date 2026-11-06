@@ -1,16 +1,17 @@
 import React, { useState } from 'react'
 import {
+  Bike,
+  ShoppingBag,
+  Utensils,
+  Clock,
+  AlertTriangle,
+  Sparkles,
+  ArrowRight,
+  MoreVertical,
+  Check,
   Printer,
   Eye,
-  Check,
-  ArrowRight,
-  Clock,
-  Bike,
-  Utensils,
-  ShoppingBag,
-  MoreVertical,
   XCircle,
-  Phone,
   MessageSquare,
 } from 'lucide-react'
 import { formatDuration, formatFcfa, getElapsedSeconds, getUrgencyLevel } from '../../lib/formatters'
@@ -20,6 +21,7 @@ interface OrderCardProps {
   order: KdsOrder
   nowMs: number
   thresholds?: ChronoThresholds
+  isMarkedNew?: boolean
   onTransition: (orderRef: string, nextStatus: KdsOrderStatus) => void
   onCancel: (orderRef: string) => void
   onViewDetails: (order: KdsOrder) => void
@@ -50,6 +52,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   order,
   nowMs,
   thresholds = DEFAULT_THRESHOLDS,
+  isMarkedNew = false,
   onTransition,
   onCancel,
   onViewDetails,
@@ -97,122 +100,121 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   const displayRef = order.orderRef.replace(/^#?BMC-?/, '')
   const neighborhood = order.orderType === 'delivery' ? extractNeighborhood(order.address) : ''
 
-  // Style du chronomètre : gris normal, ambre près du seuil (>= 15 min), rouge si dépassé (>= 25 min)
-  const chronoClass = isOverdue
-    ? 'text-[#E04848] bg-[#E04848]/10 border-[#E04848]/40 font-bold'
-    : isNearThreshold
-    ? 'text-[#E8A33D] bg-[#E8A33D]/10 border-[#E8A33D]/30 font-semibold'
-    : 'text-[#8B93A1] bg-[#12141A] border-[#262A33]'
-
   return (
     <article
       className={`rounded-lg border text-left select-none overflow-hidden flex flex-col justify-between transition-colors bg-[#171A21] ${
-        isOverdue ? 'border-[#E04848]' : 'border-[#262A33]'
+        isOverdue
+          ? 'border-[#E04848]'
+          : 'border-[#262A33]'
       }`}
-      aria-label={`Commande #${displayRef}`}
     >
-      <div>
-        {/* LIGNE 1 : #numéro en gras, pastille du type, chronomètre à droite (15/25 min) + Menu ⋯ */}
-        <div className="px-2.5 pt-2 pb-1 flex items-center justify-between gap-1.5 border-b border-[#262A33]/60 bg-[#12141A]">
-          <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            <span className="font-mono text-xs font-black text-[#E6E8EC] tracking-tight shrink-0">
-              #{displayRef}
-            </span>
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-medium bg-[#171A21] text-[#8B93A1] border border-[#262A33] shrink-0">
-              <TypeIcon className="size-2.5 text-[#8B93A1]" />
-              <span>{typeConfig.label}</span>
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1 shrink-0">
-            <span
-              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-mono border ${chronoClass}`}
-              title={`Créée à ${new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
-            >
-              <Clock className="size-2.5" />
-              {durationText}
-            </span>
-
-            {/* Menu ⋯ pour les actions secondaires */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowMenu(!showMenu)}
-                className="p-1 rounded text-[#8B93A1] hover:text-[#E6E8EC] hover:bg-[#262A33] transition-colors cursor-pointer"
-                title="Actions secondaires"
-              >
-                <MoreVertical className="size-3.5" />
-              </button>
-
-              {showMenu && (
-                <div
-                  className="absolute right-0 top-full mt-1 w-44 rounded-lg shadow-xl border border-[#262A33] bg-[#171A21] py-1 z-30 select-none text-xs"
-                  onMouseLeave={() => setShowMenu(false)}
-                >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowMenu(false)
-                      onViewDetails(order)
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[#E6E8EC] hover:bg-[#262A33] cursor-pointer"
-                  >
-                    <Eye className="size-3.5 text-[#8B93A1]" />
-                    <span>Détails complets</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowMenu(false)
-                      onPrintTicket(order)
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[#E6E8EC] hover:bg-[#262A33] cursor-pointer"
-                  >
-                    <Printer className="size-3.5 text-[#8B93A1]" />
-                    <span>Imprimer ticket</span>
-                  </button>
-                  {order.phone && (
-                    <a
-                      href={`tel:${order.phone}`}
-                      className="w-full flex items-center gap-2 px-3 py-1.5 text-[#E6E8EC] hover:bg-[#262A33]"
-                    >
-                      <Phone className="size-3.5 text-[#8B93A1]" />
-                      <span>Appeler client</span>
-                    </a>
-                  )}
-                  <div className="my-1 border-t border-[#262A33]" />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowMenu(false)
-                      if (window.confirm(`Annuler la commande #${displayRef} ?`)) {
-                        onCancel(order.orderRef)
-                      }
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[#E04848] hover:bg-[#E04848]/10 font-medium cursor-pointer"
-                  >
-                    <XCircle className="size-3.5" />
-                    <span>Annuler commande</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* NOTE DU CLIENT : une seule ligne avec une petite icône, en haut de la carte */}
+      <div className="flex-1 flex flex-col">
+        {/* NOTE DU CLIENT : une seule ligne avec petite icône en haut de la carte */}
         {order.notes && (
-          <div className="px-2.5 pt-1.5 flex items-center gap-1.5 text-[11px] text-[#E6E8EC] truncate">
+          <div className="px-2.5 py-1 bg-[#12141A] border-b border-[#262A33] flex items-center gap-1.5 text-[11px] text-[#E8A33D] overflow-hidden">
             <MessageSquare className="size-3 text-[#E8A33D] shrink-0" />
-            <span className="italic truncate text-[#E6E8EC]/90">« {order.notes} »</span>
+            <span className="truncate italic">« {order.notes} »</span>
           </div>
         )}
 
+        {/* LIGNE 1 : #numéro en gras, pastille du type, chronomètre (ou RETARD) et menu ⋯ */}
+        <div className="px-2.5 pt-2 pb-1.5 flex items-center justify-between gap-1 border-b border-[#1E222A]">
+          <div className="flex items-center gap-1.5 min-w-0">
+            {/* #numéro en gras */}
+            <span className="font-mono text-sm font-black text-[#E6E8EC] tracking-tight shrink-0">
+              #{displayRef}
+            </span>
+
+            {/* Pastille du type (Livraison/Emporter/Sur place) */}
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#0F1115] text-[#8B93A1] border border-[#262A33] shrink-0">
+              <TypeIcon className="size-2.5 text-[#8B93A1]" />
+              <span>{typeConfig.label}</span>
+            </span>
+
+            {/* Marquage NOUVEAU pendant 10 secondes */}
+            {(isMarkedNew || order.isNew) && (
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wide bg-[#E8A33D]/20 text-[#E8A33D] border border-[#E8A33D]/40 shrink-0">
+                <Sparkles className="size-2.5 text-[#E8A33D]" />
+                <span>Nouveau</span>
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1 shrink-0 relative">
+            {/* Chronomètre avec texte + icône pour conformité WCAG AA (pas uniquement la couleur) */}
+            {isOverdue ? (
+              <div
+                className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#E04848]/20 border border-[#E04848]/50 text-[#FF6B6B] shrink-0"
+                role="alert"
+                aria-label={`Commande en retard de ${durationText}`}
+              >
+                <AlertTriangle className="size-3 text-[#FF6B6B] shrink-0 stroke-[2.5]" />
+                <span className="uppercase text-[9px] tracking-wide font-extrabold">Retard</span>
+                <span className="font-mono">{durationText}</span>
+              </div>
+            ) : isNearThreshold ? (
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-semibold bg-[#E8A33D]/15 border border-[#E8A33D]/30 text-[#E8A33D] shrink-0">
+                <Clock className="size-3 text-[#E8A33D] shrink-0" />
+                <span className="font-mono">{durationText}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-[#12141A] border border-[#262A33] text-[#8B93A1] shrink-0">
+                <Clock className="size-3 text-[#5D6472] shrink-0" />
+                <span className="text-[#E6E8EC] font-mono">{durationText}</span>
+              </div>
+            )}
+
+            {/* Menu ⋯ actions secondaires */}
+            <button
+              type="button"
+              onClick={() => setShowMenu((prev) => !prev)}
+              className="p-1 rounded text-[#8B93A1] hover:text-[#E6E8EC] hover:bg-[#262A33] cursor-pointer transition-colors"
+              title="Actions secondaires"
+              aria-expanded={showMenu}
+            >
+              <MoreVertical className="size-3.5" />
+            </button>
+
+            {showMenu && (
+              <div
+                className="absolute right-0 top-full mt-1 w-44 rounded-lg border border-[#262A33] bg-[#171A21] shadow-xl z-30 py-1 text-xs"
+                onClick={() => setShowMenu(false)}
+              >
+                <button
+                  type="button"
+                  onClick={() => onViewDetails(order)}
+                  className="w-full px-3 py-1.5 text-left text-[#E6E8EC] hover:bg-[#262A33] flex items-center gap-2 cursor-pointer"
+                >
+                  <Eye className="size-3 text-[#8B93A1]" />
+                  <span>Voir le ticket complet</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onPrintTicket(order)}
+                  className="w-full px-3 py-1.5 text-left text-[#E6E8EC] hover:bg-[#262A33] flex items-center gap-2 cursor-pointer"
+                >
+                  <Printer className="size-3 text-[#8B93A1]" />
+                  <span>Imprimer le ticket</span>
+                </button>
+                <div className="my-1 border-t border-[#262A33]" />
+                <button
+                  type="button"
+                  onClick={() => onCancel(order.orderRef)}
+                  className="w-full px-3 py-1.5 text-left text-[#E04848] hover:bg-[#E04848]/10 flex items-center gap-2 cursor-pointer"
+                >
+                  <XCircle className="size-3 text-[#E04848]" />
+                  <span>Annuler la commande</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* LIGNE 2 : nom du client (+ quartier si livraison) */}
-        <div className="px-2.5 pt-1 text-xs text-[#8B93A1] truncate leading-tight">
-          <span className="text-[#E6E8EC] font-semibold">{order.customerName}</span>
+        <div className="px-2.5 pt-1.5 pb-1 flex items-baseline gap-1 text-xs text-[#8B93A1] border-b border-[#1E222A]">
+          <span className="font-semibold text-[#E6E8EC] truncate">{order.customerName}</span>
           {neighborhood && (
-            <span className="text-[#8B93A1]"> · {neighborhood}</span>
+            <span className="text-[#8B93A1] truncate">· {neighborhood}</span>
           )}
         </div>
 
@@ -260,7 +262,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         ) : (
           <div className="min-h-[44px] h-11 px-2.5 rounded text-xs font-semibold text-[#8B93A1] bg-[#171A21] border border-[#262A33] flex items-center justify-center gap-1 shrink-0">
             <Check className="size-3 text-[#8B93A1]" />
-            <span>Terminée</span>
+            <span>Remise</span>
           </div>
         )}
       </div>

@@ -55,12 +55,15 @@ export default function App() {
     orders,
     isLoading,
     connectionState,
+    newOrdersSet,
+    isAudioMuted,
+    toggleAudio,
     refresh,
     transitionOrder,
     undoTransition,
     activeUndoAction,
     acknowledgeNewOrders,
-  } = useOrders()
+  } = useOrders(nowMs)
 
   // 4. Déverrouillage audio sur la première interaction utilisateur
   useEffect(() => {
@@ -195,6 +198,8 @@ export default function App() {
           onSearchChange={setSearchQuery}
           typeFilter={typeFilter}
           onTypeFilterChange={setTypeFilter}
+          isAudioMuted={isAudioMuted}
+          onToggleAudio={toggleAudio}
         />
 
         <ConnectionBanner
@@ -219,6 +224,7 @@ export default function App() {
               nowMs={nowMs}
               searchQuery={searchQuery}
               typeFilter={typeFilter}
+              newOrdersSet={newOrdersSet}
               onTransition={handleTransition}
               onCancel={handleCancelOrder}
               onViewDetails={(order) => setSelectedOrder(order)}

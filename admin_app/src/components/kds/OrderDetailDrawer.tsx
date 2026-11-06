@@ -240,10 +240,8 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  if (window.confirm(`Annuler définitivement la commande ${order.orderRef} ?`)) {
-                    onCancel?.(order.orderRef)
-                    onClose()
-                  }
+                  onCancel?.(order.orderRef)
+                  onClose()
                 }}
                 className="w-full py-1.5 rounded text-xs font-medium text-[#E04848] hover:bg-[#E04848]/10 cursor-pointer transition-colors"
               >

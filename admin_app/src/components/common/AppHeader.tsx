@@ -8,6 +8,8 @@ import {
   Bike,
   ShoppingBag,
   Utensils,
+  Volume2,
+  VolumeX,
 } from 'lucide-react'
 import type { OrderType } from '../../types/kds'
 
@@ -21,6 +23,8 @@ interface AppHeaderProps {
   onSearchChange?: (query: string) => void
   typeFilter?: 'all' | OrderType
   onTypeFilterChange?: (type: 'all' | OrderType) => void
+  isAudioMuted?: boolean
+  onToggleAudio?: () => void
 }
 
 const TITLES: Record<AdminTab, string> = {
@@ -39,6 +43,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onSearchChange,
   typeFilter = 'all',
   onTypeFilterChange,
+  isAudioMuted = false,
+  onToggleAudio,
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false)
 
@@ -150,8 +156,24 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
       )}
 
-      {/* 4. DROITE : Bouton Plein écran */}
-      <div className="flex items-center gap-1 shrink-0">
+      {/* 4. DROITE : Bouton Son optionnel + Plein écran */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        {onToggleAudio && (
+          <button
+            type="button"
+            onClick={onToggleAudio}
+            className="p-1.5 rounded text-[#8B93A1] hover:text-[#E6E8EC] hover:bg-[#262A33] transition-colors cursor-pointer flex items-center gap-1 text-xs font-medium"
+            title={isAudioMuted ? 'Activer le son' : 'Couper le son'}
+          >
+            {isAudioMuted ? (
+              <VolumeX className="size-3.5 text-[#8B93A1]" />
+            ) : (
+              <Volume2 className="size-3.5 text-[#E8A33D]" />
+            )}
+            <span className="hidden md:inline">{isAudioMuted ? 'Son coupé' : 'Son'}</span>
+          </button>
+        )}
+
         <button
           type="button"
           onClick={toggleFullscreen}

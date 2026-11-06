@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { acknowledgeOrders, fetchActiveOrders, transitionOrderStatus } from '../api/orders'
 import { audioAlert } from '../lib/audioAlert'
 import type { KdsOrder, KdsOrderStatus } from '../types/kds'
@@ -20,6 +20,9 @@ export interface UseOrdersResult {
   error: Error | null
   lastSyncTime: Date | null
   connectionState: ApiConnectionState
+  newOrdersSet: Set<string>
+  isAudioMuted: boolean
+  toggleAudio: () => void
   refresh: () => Promise<void>
   transitionOrder: (orderRef: string, newStatus: KdsOrderStatus) => Promise<void>
   undoTransition: (orderRef: string) => void
@@ -27,31 +30,34 @@ export interface UseOrdersResult {
   acknowledgeNewOrders: () => void
 }
 
-const POLLING_INTERVAL_MS = 5000 // Polling 5s par défaut
+const POLLING_INTERVAL_MS = 5000 // Polling 5 secondes (dans l'intervalle 5 à 10s)
 const UNDO_DURATION_MS = 5000    // Fenêtre d'annulation 5s
+const NEW_ORDER_DURATION_MS = 10000 // Marquage "Nouveau" pendant 10 secondes
 
 /**
  * Hook temps réel KDS
  * Gère le cycle de vie des commandes, le rafraîchissement périodique (5s),
- * les alertes sonores de nouvelle commande, les mutations optimistes
- * avec fenêtre d'annulation (Undo) de 5 secondes et rollback en cas d'erreur.
- *
- * NOTE WEBSOCKET :
- * Pour passer du polling HTTP au WebSocket temps réel, instancier :
- * const ws = new WebSocket(`${WS_BASE_URL}/ws/kds/orders/`)
- * et écouter 'message' pour appliquer setOrders().
+ * le marquage "Nouveau" pendant 10 secondes, les alertes sonores optionnelles,
+ * et les mutations optimistes avec fenêtre d'annulation (Undo) de 5 secondes.
  */
-export function useOrders(): UseOrdersResult {
+export function useOrders(nowMs: number = Date.now()): UseOrdersResult {
   const [orders, setOrders] = useState<KdsOrder[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [error, setError] = useState<Error | null>(null)
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
   const [connectionState, setConnectionState] = useState<ApiConnectionState>('syncing')
   const [activeUndoAction, setActiveUndoAction] = useState<UndoableAction | null>(null)
+  const [isAudioMuted, setIsAudioMuted] = useState<boolean>(() => audioAlert.muted)
 
   // Suivi des IDs des commandes déjà vues pour détecter et sonner sur les NOUVELLES
   const knownOrderRefs = useRef<Set<string>>(new Set())
+  const newOrderTimestamps = useRef<Map<string, number>>(new Map())
   const isInitialLoad = useRef<boolean>(true)
+
+  const toggleAudio = useCallback(() => {
+    const next = audioAlert.toggleMute()
+    setIsAudioMuted(next)
+  }, [])
 
   // Détection en ligne / hors-ligne navigateur
   useEffect(() => {
@@ -82,13 +88,34 @@ export function useOrders(): UseOrdersResult {
     try {
       const fetched = await fetchActiveOrders()
       setOrders(() => {
-        // Détection de nouvelles commandes entrantes pour l'alerte sonore
+        const currentTime = Date.now()
+
+        // Détection de nouvelles commandes entrantes
         const incomingNew = fetched.filter(
           (o) => !knownOrderRefs.current.has(o.orderRef) && (o.status === 'pending' || o.isNew),
         )
 
+        // Enregistrer l'heure d'apparition pour la durée "Nouveau" de 10s
+        incomingNew.forEach((o) => {
+          if (!newOrderTimestamps.current.has(o.orderRef)) {
+            newOrderTimestamps.current.set(o.orderRef, currentTime)
+          }
+        })
+
+        // Lors du chargement initial, marquer aussi les commandes récentes de moins de 10s ou avec isNew
+        if (isInitialLoad.current) {
+          fetched.forEach((o) => {
+            const createdMs = new Date(o.createdAt).getTime()
+            if (o.isNew || (!isNaN(createdMs) && currentTime - createdMs < NEW_ORDER_DURATION_MS)) {
+              if (!newOrderTimestamps.current.has(o.orderRef)) {
+                newOrderTimestamps.current.set(o.orderRef, currentTime)
+              }
+            }
+          })
+        }
+
+        // Sonnette optionnelle de commande entrante
         if (!isInitialLoad.current && incomingNew.length > 0) {
-          // Sonnette de commande entrante
           audioAlert.playNewOrder()
         }
 
@@ -119,7 +146,7 @@ export function useOrders(): UseOrdersResult {
     }
   }, [activeUndoAction])
 
-  // Démarrage initial et boucle de polling
+  // Démarrage initial et boucle de polling toutes les 5 secondes
   useEffect(() => {
     void loadOrders(false)
 
@@ -131,20 +158,30 @@ export function useOrders(): UseOrdersResult {
   }, [loadOrders])
 
   /**
-   * Acquitte les nouvelles commandes (retire le badge NOUVEAU et coupe le son)
+   * Ensemble des références de commandes marquées "Nouveau" (pendant 10 secondes)
+   */
+  const newOrdersSet = useMemo(() => {
+    const activeNew = new Set<string>()
+    newOrderTimestamps.current.forEach((timestamp, ref) => {
+      if (nowMs - timestamp < NEW_ORDER_DURATION_MS) {
+        activeNew.add(ref)
+      }
+    })
+    return activeNew
+  }, [nowMs])
+
+  /**
+   * Acquitte les nouvelles commandes
    */
   const acknowledgeNewOrders = useCallback(() => {
     const newRefs = orders.filter((o) => o.isNew).map((o) => o.orderRef)
     if (newRefs.length > 0) {
       void acknowledgeOrders(newRefs)
-      setOrders((prev) =>
-        prev.map((o) => (o.isNew ? { ...o, isNew: false } : o)),
-      )
     }
   }, [orders])
 
   /**
-   * Annulation (Undo) de la dernière transition dans les 5 secondes
+   * Annulation (Undo) de la dernière transition dans les 5 secondes (sans modale)
    */
   const undoTransition = useCallback(
     (orderRef: string) => {
@@ -164,7 +201,7 @@ export function useOrders(): UseOrdersResult {
   )
 
   /**
-   * Transition de statut avec mise à jour optimiste + fenêtre Undo de 5 secondes
+   * Transition de statut en 1 clic avec mise à jour optimiste + fenêtre Undo de 5 secondes
    */
   const transitionOrder = useCallback(
     async (orderRef: string, newStatus: KdsOrderStatus) => {
@@ -173,7 +210,7 @@ export function useOrders(): UseOrdersResult {
 
       const previousStatus = order.status
 
-      // 1. Mise à jour optimiste instantanée de l'UI
+      // 1. Mise à jour optimiste instantanée de l'UI (1 seul clic)
       setOrders((prev) =>
         prev.map((o) => (o.orderRef === orderRef ? { ...o, status: newStatus, isNew: false } : o)),
       )
@@ -222,6 +259,9 @@ export function useOrders(): UseOrdersResult {
     error,
     lastSyncTime,
     connectionState,
+    newOrdersSet,
+    isAudioMuted,
+    toggleAudio,
     refresh,
     transitionOrder,
     undoTransition,
