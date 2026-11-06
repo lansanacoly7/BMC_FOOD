@@ -105,13 +105,16 @@ export const OrderCard: React.FC<OrderCardProps> = ({
       aria-label={`Commande ${order.orderRef}`}
     >
       {/* 1. EN-TÊTE DE LA CARTE : Référence, Type, Chrono */}
-      <div className="px-3 py-2 border-b border-[#262A33] bg-[#12141A] flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="font-mono text-sm font-bold text-[#E6E8EC] tracking-tight shrink-0">
-            {order.orderRef}
+      <div className="px-2.5 py-2 border-b border-[#262A33] bg-[#12141A] flex items-center justify-between gap-1.5">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <span className="font-mono text-xs font-bold text-[#E6E8EC] tracking-tight shrink-0">
+            {order.orderRef.replace(/^#?BMC-?/, '#')}
           </span>
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-[#171A21] text-[#8B93A1] border border-[#262A33]">
-            <TypeIcon className="size-3 text-[#8B93A1]" />
+          <span
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#171A21] text-[#8B93A1] border border-[#262A33] shrink-0"
+            title={typeConfig.label}
+          >
+            <TypeIcon className="size-2.5 text-[#8B93A1]" />
             <span>{typeConfig.label}</span>
           </span>
         </div>

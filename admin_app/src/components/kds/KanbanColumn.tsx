@@ -94,9 +94,8 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
       {/* Défilement vertical STRICTEMENT indépendant pour chaque colonne (aucune barre horizontale) */}
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-2 space-y-2 kds-column-scroll">
         {orders.length === 0 ? (
-          <div className="h-32 flex flex-col items-center justify-center text-center p-4 rounded border border-dashed border-[#262A33] bg-[#171A21]/50 text-[#8B93A1] space-y-1">
-            <ColumnIcon className="size-5 stroke-[1.5] text-[#5D6472]" />
-            <p className="text-xs font-medium text-[#8B93A1]">{definition.emptyMessage}</p>
+          <div className="py-8 text-center text-xs text-[#8B93A1] select-none">
+            {definition.emptyMessage}
           </div>
         ) : (
           orders.map((order) => (

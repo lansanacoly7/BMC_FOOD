@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { clearAuthToken, getAuthToken, getAuthUser } from './api/client'
+import { clearAuthToken, getAuthToken, getAuthUser, DEV_DEFAULT_TOKEN } from './api/client'
 import { AppHeader, type AdminTab } from './components/common/AppHeader'
 import { AdminSidebar } from './components/common/AdminSidebar'
 import { ConnectionBanner } from './components/common/ConnectionBanner'
@@ -16,11 +16,13 @@ import { LoginPage } from './pages/LoginPage'
 import { PromotionsPage } from './pages/PromotionsPage'
 import { StaffPage } from './pages/StaffPage'
 import { TransactionsPage } from './pages/TransactionsPage'
-import type { KdsOrder, KdsOrderStatus } from './types/kds'
+import type { KdsOrder, KdsOrderStatus, OrderType } from './types/kds'
 
 export default function App() {
   // 0. État d'authentification administrateur
-  const [authToken, setAuthTokenState] = useState<string | null>(() => getAuthToken())
+  const [authToken, setAuthTokenState] = useState<string | null>(
+    () => getAuthToken() || (import.meta.env.DEV ? DEV_DEFAULT_TOKEN : null),
+  )
   const [currentUser, setCurrentUserState] = useState<string | null>(() => getAuthUser() || 'admin')
 
   const handleLoginSuccess = (user: string) => {
@@ -37,8 +39,8 @@ export default function App() {
   const [headerTab, setHeaderTab] = useState<AdminTab>('kds')
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false)
   const [searchQuery, setSearchQuery] = useState<string>('')
+  const [typeFilter, setTypeFilter] = useState<'all' | OrderType>('all')
   const [selectedOrder, setSelectedOrder] = useState<KdsOrder | null>(null)
-  const [isAudioMuted, setIsAudioMuted] = useState<boolean>(() => audioAlert.muted)
 
   const searchInputRef = useRef<HTMLInputElement>(null)
 
@@ -90,8 +92,7 @@ export default function App() {
     },
     onRefresh: () => void refresh(),
     onToggleSound: () => {
-      const next = audioAlert.toggleMute()
-      setIsAudioMuted(next)
+      audioAlert.toggleMute()
     },
   })
 
@@ -102,11 +103,6 @@ export default function App() {
 
   const handleCancelOrder = async (orderRef: string) => {
     await transitionOrder(orderRef, 'cancelled')
-  }
-
-  const handleToggleMute = () => {
-    const next = audioAlert.toggleMute()
-    setIsAudioMuted(next)
   }
 
   const handlePrintTicket = (order: KdsOrder) => {
@@ -197,8 +193,8 @@ export default function App() {
           onToggleSidebar={() => setIsSidebarCollapsed((prev) => !prev)}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          isMuted={isAudioMuted}
-          onToggleMute={handleToggleMute}
+          typeFilter={typeFilter}
+          onTypeFilterChange={setTypeFilter}
         />
 
         <ConnectionBanner
@@ -222,6 +218,7 @@ export default function App() {
               orders={orders}
               nowMs={nowMs}
               searchQuery={searchQuery}
+              typeFilter={typeFilter}
               onTransition={handleTransition}
               onCancel={handleCancelOrder}
               onViewDetails={(order) => setSelectedOrder(order)}

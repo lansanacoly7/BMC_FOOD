@@ -13,7 +13,7 @@ const NAV_ITEMS: { id: AdminTab; label: string }[] = [
   { id: 'promotions', label: 'Promotions' },
   { id: 'transactions', label: 'Transactions' },
   { id: 'special', label: 'Plat du jour' },
-  { id: 'staff', label: 'Employés' },
+  { id: 'staff', label: 'Personnel' },
 ]
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({
@@ -26,16 +26,16 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
   return (
     <aside
-      className="w-56 min-w-[224px] h-full flex flex-col justify-between border-r border-[#1F242B] bg-[#0F1216] select-none"
-      aria-label="Navigation"
+      className="w-44 min-w-[176px] h-full flex flex-col justify-between border-r border-[#262A33] bg-[#0F1115] select-none text-[#E6E8EC] font-sans"
+      aria-label="Navigation latérale"
     >
       <div>
-        <div className="h-16 px-5 flex items-center gap-2.5 border-b border-[#1F242B]">
-          <img src="/images/brand/logo.png" alt="BMC Food" className="h-7 w-auto object-contain" />
-          <span className="text-sm font-bold text-white">BMC Food</span>
+        <div className="h-10 px-3.5 flex items-center gap-2 border-b border-[#262A33]">
+          <img src="/images/brand/logo.png" alt="BMC Food" className="h-5 w-auto object-contain" />
+          <span className="text-xs font-bold tracking-tight text-[#E6E8EC]">BMC Food</span>
         </div>
 
-        <nav className="p-3 flex flex-col gap-0.5">
+        <nav className="p-2 flex flex-col gap-1">
           {NAV_ITEMS.map((item) => {
             const isActive = currentTab === item.id
             return (
@@ -43,10 +43,10 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                 key={item.id}
                 type="button"
                 onClick={() => onTabChange(item.id)}
-                className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors cursor-pointer ${
+                className={`w-full text-left px-3 py-2 text-xs transition-colors cursor-pointer rounded-r ${
                   isActive
-                    ? 'bg-[#1A1E24] text-white font-semibold border-l-2 border-[#F5B301]'
-                    : 'text-[#8A93A0] hover:text-white hover:bg-[#15191E]'
+                    ? 'bg-[#171A21] text-[#E6E8EC] font-semibold border-l-2 border-[#E8A33D]'
+                    : 'text-[#8B93A1] hover:text-[#E6E8EC] hover:bg-[#171A21]/50'
                 }`}
               >
                 {item.label}
@@ -56,36 +56,36 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
         </nav>
       </div>
 
-      <div className="p-3 border-t border-[#1F242B]">
+      <div className="p-2.5 border-t border-[#262A33]">
         {isConfirmingLogout ? (
-          <div className="space-y-2">
-            <p className="text-xs text-[#C4CAD3] px-1">Se déconnecter ?</p>
-            <div className="flex gap-2">
+          <div className="space-y-1.5">
+            <p className="text-[11px] text-[#8B93A1] px-1">Déconnexion ?</p>
+            <div className="flex gap-1.5">
               <button
                 type="button"
                 onClick={() => setIsConfirmingLogout(false)}
-                className="flex-1 py-2 rounded-lg bg-[#1A1E24] text-xs text-[#C4CAD3] hover:text-white cursor-pointer"
+                className="flex-1 py-1 rounded bg-[#171A21] text-[11px] text-[#8B93A1] hover:text-[#E6E8EC] cursor-pointer"
               >
-                Annuler
+                Non
               </button>
               <button
                 type="button"
                 onClick={() => onLogout?.()}
-                className="flex-1 py-2 rounded-lg bg-[#B42318] text-xs font-semibold text-white hover:bg-[#C8321F] cursor-pointer"
+                className="flex-1 py-1 rounded bg-[#E04848] text-[11px] font-semibold text-white hover:bg-[#C8321F] cursor-pointer"
               >
-                Confirmer
+                Oui
               </button>
             </div>
           </div>
         ) : (
           <div className="flex items-center justify-between px-1">
-            <span className="text-xs text-[#8A93A0] truncate">{currentUser || 'Admin'}</span>
+            <span className="text-[11px] text-[#8B93A1] truncate max-w-[90px]">{currentUser || 'Admin'}</span>
             <button
               type="button"
               onClick={() => setIsConfirmingLogout(true)}
-              className="text-xs text-[#8A93A0] hover:text-white cursor-pointer"
+              className="text-[11px] text-[#8B93A1] hover:text-[#E6E8EC] cursor-pointer"
             >
-              Déconnexion
+              Quitter
             </button>
           </div>
         )}

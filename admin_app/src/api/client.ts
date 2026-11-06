@@ -12,7 +12,7 @@ export const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 
 const TOKEN_KEY = 'bmc_admin_token'
 const USER_KEY = 'bmc_admin_username'
-export const DEV_DEFAULT_TOKEN = '5950ee892e2812d22579dfb9527874765235f85e'
+export const DEV_DEFAULT_TOKEN = '5b52fcdaf0cd1621c18dc47f0a60b6386b906803'
 
 export function getAuthToken(): string | null {
   try {
