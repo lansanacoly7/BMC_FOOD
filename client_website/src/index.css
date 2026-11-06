@@ -46,9 +46,39 @@
   --font-script: 'Caveat', 'Kaushan Script', cursive;
 }
 
+/* Carte à teinte chaude : léger reflet or, bordure légèrement dorée. */
+.warm-card {
+  background-image: linear-gradient(155deg, color-mix(in oklab, var(--color-bmc-gold) 10%, transparent) 0%, transparent 62%);
+  border-color: color-mix(in oklab, var(--color-bmc-gold) 24%, transparent);
+}
+
+/*
+ * Carte du site (OpenStreetMap) en version sombre qui garde ses couleurs : on inverse la luminosité puis
+ * on remet les teintes à l'endroit (routes chaudes, eau bleutée, repère rouge), avec une saturation renforcée.
+ */
+.map-themed {
+  filter: invert(1) hue-rotate(180deg) saturate(1.7) contrast(0.92) brightness(0.88);
+}
+
+/* Cadre de la carte : reflet doré léger en haut à gauche, bords qui se fondent progressivement dans la carte. */
+.map-frame {
+  position: relative;
+  isolation: isolate;
+}
+.map-frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(160deg, color-mix(in oklab, var(--color-bmc-gold) 14%, transparent), transparent 55%),
+    radial-gradient(ellipse at center, transparent 52%, color-mix(in oklab, var(--color-zinc-900) 55%, transparent) 82%, color-mix(in oklab, var(--color-zinc-900) 92%, transparent) 100%);
+}
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
+    color-scheme: dark;
+    scroll-padding-top: 5rem;
   }
 
   body {
@@ -67,24 +97,45 @@
     }
   }
 
-  /* Masque la barre de défilement sur mobile pour un rendu épuré */
-  @media (max-width: 1024px) {
-    html,
-    body {
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-    }
-    html::-webkit-scrollbar,
-    body::-webkit-scrollbar {
-      display: none;
-      width: 0;
-      height: 0;
+  /* Aucune barre de défilement dans l'application (page, fenêtres, listes, carrousels) : le défilement reste actif. */
+  * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  *::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* Pas de délai de double-tap sur les éléments interactifs */
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  label,
+  [role='button'] {
+    touch-action: manipulation;
+  }
+
+  /* iOS zoome la page si un champ fait moins de 16 px : on l'évite sur mobile */
+  @media (max-width: 640px) {
+    input:not([type='checkbox']):not([type='radio']),
+    select,
+    textarea {
+      font-size: 16px;
     }
   }
 
-  /* Sur écrans tactiles, neutralise les styles inadaptés */
+  /* Pas de menu contextuel sur les boutons (appui long), mais liens et numéros restent copiables */
   @media (hover: none) and (pointer: coarse) {
-    * {
+    button {
       -webkit-touch-callout: none;
     }
   }

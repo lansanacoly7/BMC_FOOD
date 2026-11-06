@@ -3,6 +3,11 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, Spec
 from rest_framework.permissions import AllowAny
 
 from .auth_views import StaffTokenView
+from .promotions_staff_views import (
+    MenuItemCreateView,
+    PromotionsView,
+    StaffManagementView,
+)
 from .views import (
     HealthCheckView,
     MenuView,
@@ -50,6 +55,16 @@ urlpatterns = [
 
     # Authentification administration
     path('auth/token/', StaffTokenView.as_view(), name='auth-token'),
+
+    # Promotions & Personnalisation
+    path('promotions/', PromotionsView.as_view(), name='promotions'),
+
+    # Ajout de plats au catalogue
+    path('menu/items/', MenuItemCreateView.as_view(), name='menu-item-create'),
+
+    # Gestion des comptes employés (Staff)
+    path('staff/', StaffManagementView.as_view(), name='staff-list-create'),
+    path('staff/<int:pk>/', StaffManagementView.as_view(), name='staff-delete'),
 
     # Documentation OpenAPI (accès réglé par SPECTACULAR_SETTINGS['SERVE_PERMISSIONS'])
     path('schema/', SpectacularAPIView.as_view(), name='schema'),

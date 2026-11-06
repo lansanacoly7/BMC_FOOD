@@ -1,6 +1,6 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 import type { CartItem, Product } from '../types'
-import { CartContext, type CartContextValue, MAX_ITEM_QUANTITY } from './cart'
+import { CartContext, type CartContextValue, MAX_ITEM_QUANTITY, getLineId } from './cart'
 
 /** Clé de sauvegarde du panier dans le navigateur ; changer le suffixe invalide les anciens paniers. */
 const STORAGE_KEY = 'bmc-food:panier:v1'
@@ -10,8 +10,9 @@ const clampQuantity = (quantity: number) => Math.min(MAX_ITEM_QUANTITY, Math.max
 /** Vérifie qu'une ligne relue du navigateur a bien la forme attendue (données éventuellement modifiées ou anciennes). */
 function isCartItem(value: unknown): value is CartItem {
   if (typeof value !== 'object' || value === null) return false
-  const { product, quantity } = value as Partial<CartItem>
+  const { product, quantity, note } = value as Partial<CartItem>
   return (
+    (note === undefined || typeof note === 'string') &&
     typeof quantity === 'number' &&
     Number.isFinite(quantity) &&
     typeof product === 'object' &&
@@ -62,24 +63,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('storage', handleStorage)
   }, [])
 
-  const addToCart = useCallback((product: Product, quantity = 1) => {
+  const addToCart = useCallback((product: Product, quantity = 1, note?: string) => {
+    const cleanNote = note?.trim() || undefined
+    const lineId = getLineId({ product, note: cleanNote })
     setItems((current) => {
-      const existing = current.find((item) => item.product.code === product.code)
-      if (!existing) return [...current, { product, quantity: clampQuantity(quantity) }]
+      const existing = current.find((item) => getLineId(item) === lineId)
+      if (!existing) return [...current, { product, quantity: clampQuantity(quantity), note: cleanNote }]
       // On garde la fiche produit la plus récente (prix et photo à jour).
       return current.map((item) =>
-        item.product.code === product.code ? { product, quantity: clampQuantity(item.quantity + quantity) } : item,
+        getLineId(item) === lineId ? { product, note: cleanNote, quantity: clampQuantity(item.quantity + quantity) } : item,
       )
     })
   }, [])
 
-  const removeFromCart = useCallback((code: string) => {
-    setItems((current) => current.filter((item) => item.product.code !== code))
+  const removeFromCart = useCallback((lineId: string) => {
+    setItems((current) => current.filter((item) => getLineId(item) !== lineId))
   }, [])
 
-  const updateQuantity = useCallback((code: string, quantity: number) => {
+  const updateQuantity = useCallback((lineId: string, quantity: number) => {
     setItems((current) =>
-      current.map((item) => (item.product.code === code ? { ...item, quantity: clampQuantity(quantity) } : item)),
+      current.map((item) => (getLineId(item) === lineId ? { ...item, quantity: clampQuantity(quantity) } : item)),
     )
   }, [])
 

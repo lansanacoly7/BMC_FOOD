@@ -26,10 +26,10 @@ export function Header({ itemCount, onOpenCart, onLogoClick }: HeaderProps) {
             height={40}
           />
           <div className="hidden sm:flex flex-col">
-            <span className="font-display text-sm font-extrabold tracking-tight text-zinc-950">
+            <span className="font-display text-sm font-bold tracking-tight text-zinc-950">
               BMC FOOD
             </span>
-            <span className="text-[11px] font-medium text-zinc-500">
+            <span className="text-xs font-medium text-zinc-500">
               Le goût du vrai plaisir
             </span>
           </div>
@@ -38,8 +38,8 @@ export function Header({ itemCount, onOpenCart, onLogoClick }: HeaderProps) {
         {/* Statut restaurant Dakar & Bouton panier */}
         <div className="flex items-center gap-3">
           <div className="hidden xs:flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
-            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
-            <span>Ouvert · Dakar 11h – 02h</span>
+            <span className="size-2 rounded-full bg-bmc-success" aria-hidden="true" />
+            <span>Mar – dim · 11h – 02h</span>
           </div>
 
           <motion.button
@@ -59,7 +59,7 @@ export function Header({ itemCount, onOpenCart, onLogoClick }: HeaderProps) {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.5, opacity: 0 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                className="flex size-5 items-center justify-center rounded-full bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 font-display text-[11px] font-black text-black shadow-md shadow-bmc-gold/40"
+                className="flex size-5 items-center justify-center rounded-full bg-bmc-gold font-display text-xs font-bold text-black"
               >
                 {itemCount}
               </motion.span>

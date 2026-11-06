@@ -85,7 +85,7 @@ export function WaveHomeBackdrop() {
       {/* En-tête indigo : réglages et solde. */}
       <div className="h-64 bg-wave-indigo px-4 pt-[max(3.25rem,calc(env(safe-area-inset-top)+2.25rem))] text-white">
         <Settings className="size-7" strokeWidth={2.5} />
-        <p className="mt-3 flex items-center justify-center gap-2 font-display text-[2.6rem] leading-none font-extrabold tracking-tight">
+        <p className="mt-3 flex items-center justify-center gap-2 font-display text-[2.6rem] leading-none font-bold tracking-tight">
           ●●●<span className="text-2xl">F</span>
           <EyeOff className="ml-1 size-6" strokeWidth={2.5} />
         </p>

@@ -5,7 +5,6 @@ import {
   Volume2,
   VolumeX,
   ArrowRight,
-  Sparkles,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 
@@ -33,7 +32,7 @@ const CULINARY_SCENES: CulinaryScene[] = [
   {
     id: 'knife_slice',
     title: 'Découpe Croustillante',
-    badge: 'Tacos Pané Signature',
+    badge: 'Tacos pané',
     src: '/videos/culinary/scene_1_knife_slice.mp4',
     poster: '/images/hero/tacos_pane_knife_cut.jpg',
   },
@@ -47,7 +46,7 @@ const CULINARY_SCENES: CulinaryScene[] = [
   {
     id: 'cheese_pour',
     title: 'Nappage Sauce Fromagère',
-    badge: 'Recette Secrète Onctueuse',
+    badge: 'Sauce fromagère',
     src: '/videos/culinary/scene_3_cheese_pour.mp4',
     poster: '/images/hero/tacos_pane_knife_cut.jpg',
   },
@@ -67,38 +66,22 @@ const CULINARY_SCENES: CulinaryScene[] = [
   },
 ]
 
-const SCENE_DURATION_MS = 4500
-
 /**
- * Capsule Vidéo Culinaire Multi-Scènes Automatique BMC Food :
- * - Carrousel vidéo fluide avec fondu enchaîné (cross-fade)
- * - Indicateurs de progression interactifs (style Stories)
- * - Défilement automatique toutes les 4,5s avec pause au survol
- * - Zéro chargement lourd : lecture optimisée native MP4
+ * Capsule vidéo : les scènes s'enchaînent toutes seules, chacune jusqu'à sa fin
+ * (pas de minuteur), avec un fondu entre deux scènes. Points de navigation pour sauter à une scène.
  */
 export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcaseProps) {
   const [activeSceneIndex, setActiveSceneIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(true)
   const [isMuted, setIsMuted] = useState(true)
-  const [isHovered, setIsHovered] = useState(false)
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([])
 
   const currentScene = CULINARY_SCENES[activeSceneIndex]
 
+  // Passe à la scène suivante (et reboucle sur la première après la dernière)
   const goToNext = useCallback(() => {
     setActiveSceneIndex((prev) => (prev + 1) % CULINARY_SCENES.length)
   }, [])
-
-  // Défilement automatique des scènes
-  useEffect(() => {
-    if (!isPlaying || isHovered) return
-
-    const timer = setInterval(() => {
-      goToNext()
-    }, SCENE_DURATION_MS)
-
-    return () => clearInterval(timer)
-  }, [isPlaying, isHovered, goToNext, activeSceneIndex])
 
   // Lancement automatique de la vidéo active
   useEffect(() => {
@@ -137,51 +120,20 @@ export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcasePr
   return (
     <section
       aria-labelledby="culinary-showcase-title"
-      className="relative overflow-hidden bg-zinc-950 pt-8 sm:pt-12 pb-2 sm:pb-4"
+      className="relative overflow-hidden pt-8 sm:pt-12 pb-2 sm:pb-4"
     >
-      {/* Halo d'ambiance or Dark Luxury en arrière-plan */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-1/3 -translate-x-1/2 -translate-y-1/2 size-[500px] rounded-full bg-amber-500/10 blur-[120px]"
-      />
-
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* EN-TÊTE DE LA SECTION */}
-        <div className="text-center max-w-3xl mx-auto space-y-3 mb-6 sm:mb-8">
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-3.5 py-1 text-xs font-black uppercase tracking-widest text-bmc-gold backdrop-blur-sm"
-          >
-            <Sparkles className="size-3.5 text-bmc-gold animate-pulse" />
-            <span>Savoir-Faire Artisanal BMC</span>
-          </motion.div>
-
-          <motion.h2
+        <div className="max-w-3xl mx-auto space-y-3 mb-6 sm:mb-8 text-center">
+          <h2
             id="culinary-showcase-title"
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-            className="font-display text-2xl sm:text-3xl lg:text-4xl font-black uppercase tracking-tight text-white leading-tight"
+            className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-white leading-tight"
           >
-            L'Art du{' '}
-            <span className="bg-gradient-to-r from-amber-300 via-bmc-gold to-amber-500 bg-clip-text text-transparent">
-              Tacos Pané
-            </span>{' '}
-            à Dakar
-          </motion.h2>
-
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.15 }}
-            className="text-xs sm:text-sm text-zinc-300 max-w-2xl mx-auto leading-relaxed"
-          >
-            Découvrez nos 5 scènes cinématiques : découpe croustillante au couteau, cheese-pull fondant et sauces onctueuses préparées à la commande.
-          </motion.p>
+            Le tacos pané, en images
+          </h2>
+          <p className="text-sm sm:text-base text-zinc-300 max-w-2xl mx-auto leading-relaxed">
+            La découpe, le fromage qui coule, les sauces : préparé à la commande.
+          </p>
         </div>
 
         {/* CADRE VIDÉO CINÉMATIQUE MULTI-SCÈNES (Carrousel automatique) */}
@@ -190,9 +142,7 @@ export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcasePr
           whileInView={{ opacity: 1, scale: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-          className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl border border-amber-500/30 bg-black shadow-[0_0_50px_rgba(252,184,0,0.14)] group"
+          className="relative mx-auto max-w-4xl overflow-hidden rounded-2xl border border-white/10 bg-black group"
         >
           {/* PETITS DOTS DE NAVIGATION DISCRETS SUR LA GAUCHE (Style Best-Sellers) */}
           <div className="absolute top-3.5 left-3.5 sm:top-4 sm:left-4 z-30 flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md px-2.5 py-1.5 border border-white/10">
@@ -205,7 +155,7 @@ export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcasePr
                   onClick={() => setActiveSceneIndex(idx)}
                   className={`h-1.5 rounded-full transition-all cursor-pointer ${
                     isActive
-                      ? 'w-5 sm:w-6 bg-gradient-to-r from-bmc-gold to-amber-400 shadow-sm shadow-bmc-gold/50'
+                      ? 'w-5 sm:w-6 bg-bmc-gold'
                       : 'w-1.5 bg-white/30 hover:bg-white/60'
                   }`}
                   aria-label={`Aller à la scène ${idx + 1}: ${scene.title}`}
@@ -230,9 +180,9 @@ export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcasePr
                     videoRefs.current[activeSceneIndex] = el
                   }}
                   autoPlay
-                  loop
                   muted={isMuted}
                   playsInline
+                  onEnded={goToNext}
                   preload={activeSceneIndex === 0 ? 'auto' : 'metadata'}
                   poster={currentScene.poster}
                   className="size-full object-cover object-center filter contrast-105"
@@ -266,20 +216,14 @@ export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcasePr
 
         {/* BOUTON D'ACTION (Compact sur mobile, Somptueux et grand sur desktop) */}
         <div className="mt-5 sm:mt-7 text-center space-y-2">
-          <motion.button
+          <button
             type="button"
             onClick={onExploreMenu}
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.98 }}
-            className="group inline-flex items-center gap-2 sm:gap-3 rounded-full bg-gradient-to-r from-amber-400 via-bmc-gold to-amber-500 px-5 sm:px-8 py-2 sm:py-3.5 text-xs sm:text-sm font-black uppercase tracking-wider text-black shadow-md shadow-bmc-gold/20 sm:shadow-[0_10px_30px_rgba(252,184,0,0.35)] transition-all cursor-pointer hover:shadow-lg sm:hover:shadow-[0_15px_40px_rgba(252,184,0,0.5)] hover:brightness-105"
+            className="group inline-flex h-12 items-center gap-2 rounded-lg bg-bmc-gold px-6 sm:px-8 text-sm sm:text-base font-semibold text-black transition-colors cursor-pointer hover:bg-amber-400"
           >
-            <span className="sm:hidden">Voir la Carte</span>
-            <span className="hidden sm:inline">Découvrir la Carte & Commander</span>
-            <ArrowRight className="size-3.5 sm:size-4 transition-transform group-hover:translate-x-1" />
-          </motion.button>
+            <span>Voir la carte</span>
+            <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+          </button>
         </div>
       </div>
     </section>

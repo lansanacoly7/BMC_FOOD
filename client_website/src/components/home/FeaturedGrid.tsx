@@ -1,9 +1,6 @@
-import { Check, Plus, Sparkles, Star, Tag } from 'lucide-react'
-import { motion, AnimatePresence } from 'motion/react'
-import { useState } from 'react'
-import { formatFcfa } from '../../lib/format'
+import { isAddOnOnly } from '../../data/productOptions'
 import type { Product } from '../../types'
-import { SpecialOfferBanner } from './SpecialOfferBanner'
+import { ProductCard } from '../menu/ProductCard'
 
 const CATALOG_PRODUCTS: Product[] = [
   // LIGNE 1 : Les 4 Tacos Panés signatures (Maimouna Sall)
@@ -176,15 +173,14 @@ interface FeaturedGridProps {
   activeCategory: string
   searchQuery?: string
   onSeeAll?: () => void
-  hasSpecialOffers?: boolean
+  onSelectProduct?: (product: Product) => void
 }
 
 /**
- * Section « Les plus commandés » & Grille du menu (Univers Dark Luxury).
+ * Section « Les plus commandés » & grille du menu.
  * Spécifications validées par Maimouna Sall :
  * - Mobile : 2 colonnes x 2 lignes (les 4 Tacos Panés) -> Bannière Promo Pleine Largeur (w-full) -> Reste des cartes
  * - Desktop : 4 colonnes x 2 lignes (8 cartes : Tacos Panés + Burgers & Tenders) -> Bannière Promo Pleine Largeur (w-full) -> Reste des cartes
- * - Conditionnement dynamique via hasSpecialOffers
  */
 export function FeaturedGrid({
   products = CATALOG_PRODUCTS,
@@ -193,9 +189,9 @@ export function FeaturedGrid({
   activeCategory,
   searchQuery = '',
   onSeeAll,
-  hasSpecialOffers = true,
+  onSelectProduct,
 }: FeaturedGridProps) {
-  const productList = products.length > 0 ? products : CATALOG_PRODUCTS
+  const productList = (products.length > 0 ? products : CATALOG_PRODUCTS).filter((product) => !isAddOnOnly(product))
 
   const isDefaultView = activeCategory === 'all' && !searchQuery.trim()
 
@@ -232,172 +228,60 @@ export function FeaturedGrid({
     return matchCategory && matchSearch
   })
 
-  // Découpage Mobile : 4 items (2 lignes x 2 colonnes) pour les Tacos Panés
-  const mobileTop = filtered.slice(0, 4)
+  // Les plus commandés : plats marqués « populaire », sinon les premiers de la carte
+  const popularProducts = filtered.filter((product) => product.popular)
+  const featured = (popularProducts.length >= 4 ? popularProducts : filtered).slice(0, 8)
 
-  // Découpage Desktop : 8 items (2 lignes x 4 colonnes) pour Tacos Panés + Burgers & Tenders
-  const desktopTop = filtered.slice(0, 8)
-
-  // Les 8 produits phares éligibles à l'Offre Spéciale (-20% sur 2 lignes Desktop)
-  const specialOfferCodes = [
-    // Ligne 1 : Burgers & Tacos Pané signatures
-    'bg-complet',
-    'bg-crispy',
-    'tp-cordon-bleu',
-    'td-poulet',
-    // Ligne 2 : Spécialités complémentaires
-    'tp-mixte',
-    'bg-cheese',
-    'ck-wings',
-    'fr-maison',
-  ]
-  const specialOfferProducts = specialOfferCodes
-    .map((code) => productList.find((p) => p.code === code) || CATALOG_PRODUCTS.find((p) => p.code === code))
-    .filter((p): p is Product => p !== undefined)
-    .map((product) => ({
-      ...product,
-      originalPrice: product.price,
-      discountedPrice: Math.round((product.price * 0.8) / 100) * 100,
-    }))
-
-  const mobileSpecialOffers = specialOfferProducts.slice(0, 4)
-  const desktopSpecialOffers = specialOfferProducts.slice(0, 8)
+  const wrapper = 'mx-auto max-w-7xl px-4 sm:px-6 lg:px-8'
 
   return (
-    <section aria-label="Les plus commandés" className="space-y-6">
-      {/* En-tête : Titre à gauche, Tout voir à droite (aligné avec la largeur de grille) */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between pt-1">
-          <h2 className="font-display text-xl font-extrabold text-white sm:text-2xl">
-            Les plus commandés
-          </h2>
-          {activeCategory !== 'all' && (
-            <button
-              type="button"
-              onClick={onSeeAll}
-              className="text-xs font-bold text-bmc-gold hover:text-amber-300 transition-colors cursor-pointer"
-            >
-              Tout voir →
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* État de chargement : Skeletons responsive sombres */}
+    <section aria-label="Les plus commandés" className="space-y-10 sm:space-y-12">
       {isLoading ? (
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, index) => (
-              <div key={index} className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-zinc-900/80 p-3">
-                <div className="aspect-4/3 w-full animate-pulse rounded-xl bg-zinc-800" />
-                <div className="h-4 w-3/4 animate-pulse rounded-md bg-zinc-800 mt-2" />
-                <div className="h-3 w-full animate-pulse rounded-md bg-zinc-800/60" />
-                <div className="mt-3 flex items-center justify-between pt-2 border-t border-white/10">
-                  <div className="h-5 w-16 animate-pulse rounded-md bg-zinc-800" />
-                  <div className="size-9 animate-pulse rounded-xl bg-zinc-800" />
+        <div className={wrapper}>
+          <Rail>
+            {Array.from({ length: 4 }).map((_, index) => (
+              <RailItem key={index}>
+                <div className="overflow-hidden rounded-2xl border border-white/10 bg-zinc-900">
+                  <div className="aspect-4/3 w-full animate-pulse bg-zinc-800" />
+                  <div className="space-y-2 p-3.5">
+                    <div className="h-4 w-3/4 animate-pulse rounded-md bg-zinc-800" />
+                    <div className="h-3 w-full animate-pulse rounded-md bg-zinc-800" />
+                    <div className="flex items-center justify-between pt-2">
+                      <div className="h-5 w-16 animate-pulse rounded-md bg-zinc-800" />
+                      <div className="size-11 animate-pulse rounded-full bg-zinc-800" />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </RailItem>
             ))}
-          </div>
+          </Rail>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="rounded-2xl border border-dashed border-white/20 p-8 text-center bg-zinc-900/60 text-zinc-300">
+        <div className={wrapper}>
+          <div className="rounded-xl border border-dashed border-white/20 bg-zinc-900 p-8 text-center">
             <p className="text-sm font-semibold text-zinc-200">Aucun plat trouvé pour votre recherche.</p>
-            <p className="mt-1 text-xs text-zinc-400">Essayez un autre mot-clé ou réinitialisez le filtre.</p>
+            <p className="mt-1 text-sm text-zinc-400">Essayez un autre mot-clé ou réinitialisez le filtre.</p>
           </div>
         </div>
       ) : isDefaultView ? (
-        /* VUE CATALOGUE PAR DÉFAUT : Grille Vedette + Bannière Pleine Largeur + Offres Spéciales */
-        <div className="space-y-8">
-          {/* --- PARTIE 1 : VEDETTES DU CATALOGUE --- */}
-          {/* Mobile : 4 Tacos Panés (2 colonnes x 2 lignes) */}
-          <div className="lg:hidden mx-auto max-w-7xl px-4 sm:px-6">
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-              {mobileTop.map((product, idx) => (
-                <ClassicProductCard key={product.code} product={product} onAdd={onAddToCart} index={idx} />
+        <>
+          <div className={wrapper}>
+            <SectionHeader title="Les plus commandés" actionLabel="Toute la carte" onAction={onSeeAll} />
+            <Rail>
+              {featured.map((product) => (
+                <RailItem key={product.code}>
+                  <ProductCard product={product} onAdd={onAddToCart} onSelect={onSelectProduct} />
+                </RailItem>
               ))}
-            </div>
+            </Rail>
           </div>
-
-          {/* Desktop : 8 cartes (4 colonnes x 2 lignes : Tacos Panés + Burgers & Tenders) */}
-          <div className="hidden lg:block mx-auto max-w-7xl px-8">
-            <div className="grid grid-cols-4 gap-4">
-              {desktopTop.map((product, idx) => (
-                <ClassicProductCard key={product.code} product={product} onAdd={onAddToCart} index={idx} />
-              ))}
-            </div>
-          </div>
-
-          {/* --- PARTIE 2 : BANNIÈRE PROMOTIONNELLE OFFICIELLE (Conditionnée) --- */}
-          {hasSpecialOffers && <SpecialOfferBanner />}
-
-          {/* --- PARTIE 3 : NOS OFFRES SPÉCIALES (-20%) (Conditionnée) --- */}
-          {hasSpecialOffers && (
-            <div id="special-offers-grid" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-1.5 pt-2">
-                <div>
-                  <div className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-bmc-gold">
-                    <Sparkles className="size-3.5 text-amber-400" />
-                    <span>Sélection Éligible · 20% Déduits</span>
-                  </div>
-                  <h3 className="font-display text-lg sm:text-2xl font-black text-white mt-0.5">
-                    Nos Formules & Offres Spéciales
-                  </h3>
-                </div>
-                <p className="text-xs sm:text-sm text-zinc-400 max-w-md">
-                  Tarifs remisés de -20% applicables immédiatement sur vos spécialités BMC Food préférées.
-                </p>
-              </div>
-
-              {/* Version Mobile : 4 cartes (2 colonnes x 2 lignes) */}
-              <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:hidden">
-                {mobileSpecialOffers.map((item, idx) => (
-                  <SpecialOfferProductCard
-                    key={item.code}
-                    product={item}
-                    originalPrice={item.originalPrice}
-                    discountedPrice={item.discountedPrice}
-                    index={idx}
-                    onAdd={() =>
-                      onAddToCart({
-                        ...item,
-                        price: item.discountedPrice,
-                        name: `${item.name} (-20%)`,
-                      })
-                    }
-                  />
-                ))}
-              </div>
-
-              {/* Version Desktop : 8 cartes sur 2 lignes complètes (4 colonnes x 2 lignes) */}
-              <div className="hidden lg:grid grid-cols-4 gap-4">
-                {desktopSpecialOffers.map((item, idx) => (
-                  <SpecialOfferProductCard
-                    key={item.code}
-                    product={item}
-                    originalPrice={item.originalPrice}
-                    discountedPrice={item.discountedPrice}
-                    index={idx}
-                    onAdd={() =>
-                      onAddToCart({
-                        ...item,
-                        price: item.discountedPrice,
-                        name: `${item.name} (-20%)`,
-                      })
-                    }
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        </>
       ) : (
-        /* VUE FILTRÉE PAR CATÉGORIE OU RECHERCHE : Grille continue sans bannière */
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className={wrapper}>
+          <SectionHeader title={searchQuery.trim() ? 'Résultats' : 'La carte'} actionLabel="Toute la carte" onAction={onSeeAll} />
           <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
-            {filtered.map((product, idx) => (
-              <ClassicProductCard key={product.code} product={product} onAdd={onAddToCart} index={idx} />
+            {filtered.map((product) => (
+              <ProductCard key={product.code} product={product} onAdd={onAddToCart} onSelect={onSelectProduct} />
             ))}
           </div>
         </div>
@@ -406,225 +290,36 @@ export function FeaturedGrid({
   )
 }
 
-/**
- * Carte Produit Classique (Format Dark Luxury v1.1 avec animation d'entrée au scroll échelonnée).
- */
-function ClassicProductCard({
-  product,
-  onAdd,
-  index = 0,
-}: {
-  product: Product
-  onAdd: (p: Product) => void
-  index?: number
-}) {
-  const [added, setAdded] = useState(false)
-
-  const handleAdd = () => {
-    onAdd(product)
-    setAdded(true)
-    setTimeout(() => setAdded(false), 1400)
-  }
-
-  // Décalage léger cadencé selon la position dans la rangée (stagger horizontal naturel)
-  const staggerDelay = (index % 4) * 0.06
-
+/** Titre de section avec lien d'action à droite. */
+function SectionHeader({ title, actionLabel, onAction }: { title: string; actionLabel?: string; onAction?: () => void }) {
   return (
-    <motion.article
-      layout
-      initial={{ opacity: 0, y: 22 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-20px' }}
-      transition={{
-        duration: 0.45,
-        delay: staggerDelay,
-        ease: 'easeOut',
-      }}
-      whileHover={{
-        y: -5,
-        transition: { duration: 0.22, ease: 'easeOut' },
-      }}
-      className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/85 p-3 shadow-lg backdrop-blur-xs transition-colors hover:border-bmc-gold/50 hover:shadow-2xl hover:shadow-amber-500/10 sm:p-4 text-white"
-    >
-      <div>
-        {/* Photo appétissante en haut */}
-        <div className="relative aspect-4/3 w-full overflow-hidden rounded-xl bg-zinc-950 border border-white/5">
-          <img
-            src={product.image_url}
-            alt={product.name}
-            width={200}
-            height={150}
-            loading="lazy"
-            decoding="async"
-            className="size-full object-cover transition-transform duration-500 ease-out group-hover:scale-106"
-          />
-          {product.popular && (
-            <span className="absolute left-2 top-2 flex items-center gap-1 rounded-md bg-black/85 px-1.5 py-0.5 text-[10px] font-extrabold uppercase text-bmc-gold backdrop-blur-xs border border-bmc-gold/30">
-              <Star className="size-2.5 fill-bmc-gold text-bmc-gold" />
-              Top
-            </span>
-          )}
-        </div>
-
-        {/* Nom du plat en gras & Description */}
-        <div className="mt-2.5 space-y-1">
-          <h3 className="font-display text-sm font-extrabold text-white group-hover:text-bmc-gold transition-colors leading-snug sm:text-base">
-            {product.name}
-          </h3>
-          <p className="line-clamp-2 text-[11px] text-zinc-400 leading-relaxed sm:text-xs">
-            {product.description}
-          </p>
-        </div>
-      </div>
-
-      {/* Prix et Bouton + */}
-      <div className="mt-3 flex items-center justify-between pt-2 border-t border-white/10">
-        <span className="font-display text-base font-extrabold tabular-nums text-bmc-gold sm:text-lg">
-          {formatFcfa(product.price)}
-        </span>
-
-        {/* Bouton d'ajout rapide : Or BMC */}
-        <motion.button
+    <div className="mb-4 flex items-end justify-between gap-4">
+      <h2 className="font-display text-xl font-bold tracking-tight text-white sm:text-2xl">{title}</h2>
+      {onAction && actionLabel && (
+        <button
           type="button"
-          whileHover={{ scale: 1.06 }}
-          whileTap={{ scale: 0.92 }}
-          onClick={handleAdd}
-          aria-label={`Ajouter ${product.name} au panier`}
-          className={`flex size-9 items-center justify-center rounded-xl font-bold transition-all cursor-pointer ${
-            added
-              ? 'bg-bmc-success text-white shadow-sm'
-              : 'bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 text-black hover:brightness-110 shadow-md'
-          }`}
+          onClick={onAction}
+          className="inline-flex h-10 shrink-0 cursor-pointer items-center text-sm font-medium text-bmc-gold hover:text-white"
         >
-          <AnimatePresence mode="wait" initial={false}>
-            {added ? (
-              <motion.div key="check" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                <Check className="size-4 text-white" />
-              </motion.div>
-            ) : (
-              <motion.div key="plus" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                <Plus className="size-4 text-black stroke-[3]" />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.button>
-      </div>
-    </motion.article>
+          {actionLabel}
+        </button>
+      )}
+    </div>
   )
 }
 
 /**
- * Carte Produit Éligible à l'Offre Spéciale (-20% déduit, prix barré et badge promotionnel).
+ * Rangée de cartes : sur téléphone, défilement horizontal avec accroche (on voit la carte suivante dépasser,
+ * ce qui invite à glisser) ; dès la tablette, grille.
  */
-function SpecialOfferProductCard({
-  product,
-  originalPrice,
-  discountedPrice,
-  onAdd,
-  index = 0,
-}: {
-  product: Product
-  originalPrice: number
-  discountedPrice: number
-  onAdd: () => void
-  index?: number
-}) {
-  const [added, setAdded] = useState(false)
-
-  const handleAdd = () => {
-    onAdd()
-    setAdded(true)
-    setTimeout(() => setAdded(false), 1400)
-  }
-
-  // Décalage léger cadencé
-  const staggerDelay = (index % 4) * 0.06
-
+function Rail({ children }: { children: React.ReactNode }) {
   return (
-    <motion.article
-      layout
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-20px' }}
-      transition={{
-        duration: 0.45,
-        delay: staggerDelay,
-        ease: 'easeOut',
-      }}
-      whileHover={{
-        y: -5,
-        transition: { duration: 0.22, ease: 'easeOut' },
-      }}
-      className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-amber-500/35 bg-gradient-to-b from-zinc-900/95 via-zinc-900/85 to-black p-3 sm:p-4 shadow-xl hover:border-amber-400 hover:shadow-2xl hover:shadow-amber-500/10 text-white transition-colors"
-    >
-      <div>
-        {/* Photo du plat avec badge -20% */}
-        <div className="relative aspect-4/3 w-full overflow-hidden rounded-xl bg-zinc-950 border border-amber-500/20">
-          <img
-            src={product.image_url}
-            alt={product.name}
-            width={200}
-            height={150}
-            loading="lazy"
-            decoding="async"
-            className="size-full object-cover transition-transform duration-500 ease-out group-hover:scale-106"
-          />
-
-          {/* Badge exclusif Offre Spéciale -20% */}
-          <span className="absolute left-2 top-2 flex items-center gap-1 rounded-md bg-gradient-to-r from-red-600 to-amber-600 px-2 py-0.5 text-[10px] sm:text-xs font-black uppercase text-white shadow-md">
-            <Tag className="size-3" />
-            -20%
-          </span>
-        </div>
-
-        {/* Nom & Description */}
-        <div className="mt-2.5 space-y-1">
-          <h4 className="font-display text-sm font-extrabold text-white group-hover:text-bmc-gold transition-colors leading-snug sm:text-base">
-            {product.name}
-          </h4>
-          <p className="line-clamp-2 text-[11px] text-zinc-400 leading-relaxed sm:text-xs">
-            {product.description}
-          </p>
-        </div>
-      </div>
-
-      {/* Prix avec remise & Bouton + */}
-      <div className="mt-3 flex items-center justify-between pt-2 border-t border-amber-500/20">
-        <div className="flex flex-col">
-          <span className="line-through text-zinc-500 text-[11px] sm:text-xs font-semibold tabular-nums">
-            {formatFcfa(originalPrice)}
-          </span>
-          <span className="font-display text-base sm:text-lg font-black tabular-nums text-bmc-gold leading-tight">
-            {formatFcfa(discountedPrice)}
-          </span>
-        </div>
-
-        {/* Bouton d'ajout direct */}
-        <motion.button
-          type="button"
-          whileHover={{ scale: 1.06 }}
-          whileTap={{ scale: 0.92 }}
-          onClick={handleAdd}
-          aria-label={`Ajouter ${product.name} en offre spéciale`}
-          className={`flex size-9 sm:size-10 items-center justify-center rounded-xl font-bold transition-all cursor-pointer ${
-            added
-              ? 'bg-bmc-success text-white shadow-sm'
-              : 'bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 text-black hover:brightness-110 shadow-lg shadow-amber-500/20'
-          }`}
-        >
-          <AnimatePresence mode="wait" initial={false}>
-            {added ? (
-              <motion.div key="check" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                <Check className="size-4 sm:size-5 text-white" />
-              </motion.div>
-            ) : (
-              <motion.div key="plus" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                <Plus className="size-4 sm:size-5 text-black stroke-[3]" />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.button>
-      </div>
-    </motion.article>
+    <ul className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 md:grid-cols-4">
+      {children}
+    </ul>
   )
+}
+
+function RailItem({ children }: { children: React.ReactNode }) {
+  return <li className="w-[46%] shrink-0 snap-start sm:w-auto">{children}</li>
 }

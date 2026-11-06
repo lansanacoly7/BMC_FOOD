@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { clearAuthToken, getAuthToken, getAuthUser } from './api/client'
 import { calculateTodayKpis } from './api/orders'
 import { AppHeader, type AdminTab } from './components/common/AppHeader'
+import { AdminSidebar } from './components/common/AdminSidebar'
 import { ConnectionBanner } from './components/common/ConnectionBanner'
 import { KpiBar } from './components/common/KpiBar'
 import { Toast } from './components/common/Toast'
@@ -16,6 +17,7 @@ import { HistoryPage } from './pages/HistoryPage'
 import { KdsPage } from './pages/KdsPage'
 import { LoginPage } from './pages/LoginPage'
 import { PromotionsPage } from './pages/PromotionsPage'
+import { StaffPage } from './pages/StaffPage'
 import { TransactionsPage } from './pages/TransactionsPage'
 import type { KdsOrder, KdsOrderStatus } from './types/kds'
 
@@ -52,7 +54,6 @@ export default function App() {
   const {
     orders,
     isLoading,
-    lastSyncTime,
     connectionState,
     refresh,
     transitionOrder,
@@ -182,72 +183,70 @@ export default function App() {
 
   return (
     <div
-      className="h-screen max-h-screen h-[100dvh] flex flex-col antialiased text-white select-none overflow-hidden kds-cuisine"
+      className="h-screen max-h-screen h-[100dvh] flex flex-row antialiased text-white select-none overflow-hidden kds-cuisine"
       style={{ backgroundColor: '#0B0D10' }}
     >
-      <AppHeader
+      <AdminSidebar
         currentTab={headerTab}
         onTabChange={(tab) => setHeaderTab(tab)}
-        connectionState={connectionState}
-        lastSyncTime={lastSyncTime}
-        onManualRefresh={() => void refresh()}
         onLogout={handleLogout}
         currentUser={currentUser}
       />
 
-      <ConnectionBanner
-        connectionState={connectionState}
-        onRetry={() => void refresh()}
-        isRetrying={isLoading}
-      />
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        <AppHeader currentTab={headerTab} />
 
-      {headerTab === 'kds' && (
-        <KpiBar
-          viewMode={viewMode}
-          onViewModeChange={(mode) => setViewMode(mode)}
-          activeCount={activeOrders.length}
-          historyCount={historyOrders.length}
-          kpis={kpis}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onRefresh={() => void refresh()}
-          isRefreshing={isLoading}
-          lastSyncTime={lastSyncTime}
-          searchInputRef={searchInputRef}
+        <ConnectionBanner
+          connectionState={connectionState}
+          onRetry={() => void refresh()}
+          isRetrying={isLoading}
         />
-      )}
 
-      {/* ZONE PRINCIPALE (100% de la hauteur restante) */}
-      <main className="flex-1 flex flex-col min-h-0 overflow-hidden" role="main">
-        {headerTab === 'special' ? (
-          <DailySpecialPage />
-        ) : headerTab === 'promotions' ? (
-          <PromotionsPage />
-        ) : headerTab === 'transactions' ? (
-          <TransactionsPage
-            orders={orders}
-            onRefresh={() => void refresh()}
-            isRefreshing={isLoading}
-          />
-        ) : viewMode === 'kanban' ? (
-          <KdsPage
-            orders={orders}
-            nowMs={nowMs}
+        {headerTab === 'kds' && (
+          <KpiBar
+            viewMode={viewMode}
+            onViewModeChange={(mode) => setViewMode(mode)}
+            activeCount={activeOrders.length}
+            historyCount={historyOrders.length}
+            kpis={kpis}
             searchQuery={searchQuery}
-            onTransition={handleTransition}
-            onCancel={handleCancelOrder}
-            onViewDetails={(order) => setSelectedOrder(order)}
-            onPrintTicket={handlePrintTicket}
+            onSearchChange={setSearchQuery}
+            searchInputRef={searchInputRef}
           />
-        ) : (
-          <HistoryPage orders={historyOrders} onSelectOrder={(order) => setSelectedOrder(order)} />
         )}
-      </main>
+
+        {/* ZONE PRINCIPALE (100% de la hauteur restante) */}
+        <main className="flex-1 flex flex-col min-h-0 overflow-hidden" role="main">
+          {headerTab === 'special' ? (
+            <DailySpecialPage />
+          ) : headerTab === 'promotions' ? (
+            <PromotionsPage />
+          ) : headerTab === 'transactions' ? (
+            <TransactionsPage orders={orders} />
+          ) : headerTab === 'staff' ? (
+            <StaffPage />
+          ) : viewMode === 'kanban' ? (
+            <KdsPage
+              orders={orders}
+              nowMs={nowMs}
+              searchQuery={searchQuery}
+              onTransition={handleTransition}
+              onCancel={handleCancelOrder}
+              onViewDetails={(order) => setSelectedOrder(order)}
+              onPrintTicket={handlePrintTicket}
+            />
+          ) : (
+            <HistoryPage orders={historyOrders} onSelectOrder={(order) => setSelectedOrder(order)} />
+          )}
+        </main>
+      </div>
 
       <OrderDetailDrawer
         order={selectedOrder}
         onClose={() => setSelectedOrder(null)}
         onPrintTicket={handlePrintTicket}
+        onTransition={handleTransition}
+        onCancel={handleCancelOrder}
       />
 
       <Toast

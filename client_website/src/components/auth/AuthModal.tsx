@@ -1,19 +1,9 @@
-import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
-import {
-  X,
-  User,
-  Lock,
-  Eye,
-  EyeOff,
-  CheckCircle,
-  LogOut,
-  ShieldCheck,
-  Phone,
-  KeyRound,
-  ArrowLeft,
-  Smartphone,
-} from 'lucide-react'
+import { useEffect, useId, useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
+import { AlertCircle, ArrowLeft, Check, Eye, EyeOff, KeyRound, Lock, LogOut, Phone, User, X } from 'lucide-react'
+import { API_BASE_URL } from '../../services/api'
+import { loadProfile } from '../../services/clientData'
+import { ConfirmDialog } from '../ui/ConfirmDialog'
 
 export interface ClientUser {
   name: string
@@ -28,464 +18,377 @@ interface AuthModalProps {
   onLogout?: () => void
 }
 
-export function AuthModal({ isOpen, onClose, onSuccess, onLogout }: AuthModalProps) {
-  // Modes : 'login' (connexion unique), 'register' (formulaire inscription), 'otp' (validation code OTP)
-  const [view, setView] = useState<'login' | 'register' | 'otp'>('login')
+type View = 'login' | 'register' | 'otp'
 
-  // Champs de connexion unique
+const USER_STORAGE_KEY = 'bmc_client_user'
+const PHONE_PATTERN = /^(?:\+221|00221)?(?:7[05678]|33)\d{7}$/
+const MIN_PASSWORD_LENGTH = 4
+
+/**
+ * Code de vérification SIMULÉ : aucun SMS n'est envoyé tant qu'il n'y a pas de service SMS.
+ * À remplacer par une vraie vérification côté serveur avant la mise en production.
+ */
+const SIMULATED_OTP = '454647'
+
+/** Adresse de l'application cuisine (administration), pour les comptes du personnel. */
+const ADMIN_URL: string | undefined = import.meta.env.VITE_ADMIN_URL ?? (import.meta.env.DEV ? 'http://localhost:5174/' : undefined)
+
+const inputClass =
+  'h-12 w-full rounded-lg border border-white/10 bg-zinc-950 pl-11 pr-3 text-base text-white placeholder-zinc-500 outline-none transition-colors focus:border-bmc-gold sm:text-sm'
+
+function Field({
+  id,
+  label,
+  icon: Icon,
+  right,
+  children,
+}: {
+  id: string
+  label: string
+  icon: typeof User
+  right?: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label htmlFor={id} className="text-sm font-medium text-zinc-200">
+        {label}
+      </label>
+      <div className="relative">
+        <Icon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-zinc-400" aria-hidden="true" />
+        {children}
+        {right}
+      </div>
+    </div>
+  )
+}
+
+function PasswordToggle({ shown, onToggle }: { shown: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={shown ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+      className="absolute right-1 top-1/2 grid size-10 -translate-y-1/2 cursor-pointer place-items-center rounded-lg text-zinc-400 transition-colors hover:text-white"
+    >
+      {shown ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
+    </button>
+  )
+}
+
+const primaryButton =
+  'inline-flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-bmc-gold text-sm font-semibold text-black transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50'
+
+const linkButton = 'cursor-pointer font-semibold text-bmc-gold underline-offset-4 transition-colors hover:text-white hover:underline'
+
+/**
+ * Connexion et inscription du client : connexion unique (téléphone + mot de passe), inscription avec
+ * confirmation du mot de passe puis code OTP, déconnexion avec confirmation.
+ * Les comptes du personnel sont reconnus par l'API (jeton staff) et orientés vers l'application cuisine.
+ */
+export function AuthModal({ isOpen, onClose, onSuccess, onLogout }: AuthModalProps) {
+  const baseId = useId()
+  const [view, setView] = useState<View>('login')
+
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
 
-  // Champs d'inscription
   const [registerName, setRegisterName] = useState('')
   const [registerPhone, setRegisterPhone] = useState('')
   const [registerPassword, setRegisterPassword] = useState('')
-  const [registerPasswordConfirm, setRegisterPasswordConfirm] = useState('')
+  const [registerConfirm, setRegisterConfirm] = useState('')
   const [showRegisterPassword, setShowRegisterPassword] = useState(false)
   const [showRegisterConfirm, setShowRegisterConfirm] = useState(false)
-
-  // Simulation OTP défini à 454647
-  const FIXED_OTP = '454647'
   const [otpCode, setOtpCode] = useState('')
 
-  // État de session
   const [currentUser, setCurrentUser] = useState<ClientUser | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [isConfirmingLogout, setIsConfirmingLogout] = useState(false)
+  const [confirmLogout, setConfirmLogout] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [staffRecognized, setStaffRecognized] = useState(false)
 
-  // Charger la session existante
+  // À chaque ouverture : on relit le compte (il a pu changer depuis la page profil) et on repart d'un écran propre
   useEffect(() => {
+    if (!isOpen) return
     try {
-      const savedClient = localStorage.getItem('bmc_client_user')
-      if (savedClient) {
-        setCurrentUser(JSON.parse(savedClient))
-      }
+      const saved = localStorage.getItem(USER_STORAGE_KEY)
+      setCurrentUser(saved ? (JSON.parse(saved) as ClientUser) : null)
     } catch {
-      // Ignorer
+      setCurrentUser(null)
     }
+    setError(null)
+    setSuccess(null)
+    setOtpCode('')
+    setStaffRecognized(false)
+    setView('login')
   }, [isOpen])
 
-  // Réinitialiser à l'ouverture
   useEffect(() => {
-    if (isOpen) {
-      setError(null)
-      setSuccessMessage(null)
-      setOtpCode('')
-      setIsConfirmingLogout(false)
+    if (!isOpen) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !confirmLogout) onClose()
     }
-  }, [isOpen])
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [isOpen, onClose, confirmLogout])
 
-  // Connexion unique (détecte automatiquement Admin ou Client)
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const finishLogin = (user: ClientUser, message: string) => {
+    try {
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user))
+    } catch {
+      /* le compte reste valable pour la session */
+    }
+    setCurrentUser(user)
+    setSuccess(message)
+    onSuccess?.(user)
+    window.setTimeout(onClose, 1200)
+  }
+
+  const handleLogin = async (event: React.FormEvent) => {
+    event.preventDefault()
     setError(null)
 
     const cleanId = identifier.trim()
-    if (!cleanId || !password.trim()) {
-      setError('Veuillez renseigner votre identifiant/téléphone et votre mot de passe.')
+    if (!cleanId || !password) {
+      setError('Renseignez votre numéro de téléphone et votre mot de passe.')
       return
     }
 
     setIsLoading(true)
 
-    // 1. Tenter l'authentification auprès de l'API Django DRF (pour les comptes Admin / Staff)
+    // 1. Compte du personnel : l'API vérifie les identifiants (jeton staff, débit limité)
     try {
-      const response = await fetch('/api/auth/token/', {
+      const response = await fetch(`${API_BASE_URL}/auth/token/`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({
-          username: cleanId,
-          password: password,
-        }),
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ username: cleanId, password }),
       })
-
       if (response.ok) {
-        const data = await response.json()
-        const token = data.token
-        const username = data.username || cleanId
-        localStorage.setItem('bmc_admin_token', token)
-        localStorage.setItem('bmc_admin_username', username)
-
-        setSuccessMessage('Connexion réussie ! Redirection vers l’espace administration & cuisine...')
-        setTimeout(() => {
-          window.location.href = 'http://localhost:5174/'
-        }, 1200)
+        setIsLoading(false)
+        setStaffRecognized(true)
+        setSuccess('Compte du personnel reconnu. Connectez-vous depuis l’application cuisine.')
         return
       }
     } catch {
-      // Poursuivre vers la vérification locale / client
+      /* serveur injoignable : on poursuit avec la connexion client */
     }
 
-    // 2. Démo administrateur en fallback local
-    if (
-      (cleanId.toLowerCase() === 'admin' && password === 'admin123') ||
-      (cleanId.toLowerCase() === 'supervisor' && password === 'admin123')
-    ) {
-      const demoToken = '5950ee892e2812d22579dfb9527874765235f85e'
-      localStorage.setItem('bmc_admin_token', demoToken)
-      localStorage.setItem('bmc_admin_username', cleanId)
-      setSuccessMessage('Connexion administrateur réussie ! Redirection vers la cuisine KDS...')
-      setTimeout(() => {
-        window.location.href = 'http://localhost:5174/'
-      }, 1200)
+    // 2. Compte client : le numéro doit être un numéro sénégalais valide
+    const cleanPhone = cleanId.replace(/\s+/g, '')
+    if (!PHONE_PATTERN.test(cleanPhone)) {
       setIsLoading(false)
+      setError('Identifiant ou mot de passe incorrect. Pour un compte client, saisissez votre numéro (ex. 77 856 13 13).')
+      return
+    }
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setIsLoading(false)
+      setError(`Le mot de passe doit comporter au moins ${MIN_PASSWORD_LENGTH} caractères.`)
       return
     }
 
-    // 3. Connexion Client standard (par numéro de téléphone ou nom)
-    setTimeout(() => {
+    window.setTimeout(() => {
       setIsLoading(false)
-      const user: ClientUser = {
-        name: isNaN(Number(cleanId.replace(/\s+/g, ''))) ? cleanId : 'Client BMC',
-        phone: cleanId,
+      // On reprend le nom déjà enregistré pour ce numéro, sinon un nom générique
+      let name = 'Client BMC'
+      try {
+        const saved = JSON.parse(localStorage.getItem(USER_STORAGE_KEY) ?? 'null') as ClientUser | null
+        const profile = loadProfile()
+        if (saved?.phone === cleanPhone && saved.name) name = saved.name
+        else if (profile.firstName || profile.lastName) name = `${profile.firstName} ${profile.lastName}`.trim()
+      } catch {
+        /* nom générique */
       }
-
-      localStorage.setItem('bmc_client_user', JSON.stringify(user))
-      setCurrentUser(user)
-      setSuccessMessage('Connexion réussie ! Bienvenue sur BMC FOOD.')
-
-      if (onSuccess) {
-        onSuccess(user)
-      }
-
-      setTimeout(() => {
-        onClose()
-      }, 1200)
-    }, 500)
-  }
-
-  // Étape 1 Inscription : validation du formulaire et lancement simulation OTP
-  const handleRegisterFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-
-    const cleanPhone = registerPhone.trim().replace(/\s+/g, '')
-    if (!cleanPhone || cleanPhone.length < 9) {
-      setError('Veuillez entrer un numéro de téléphone valide (ex: 77 856 13 13).')
-      return
-    }
-
-    if (registerPassword.length < 4) {
-      setError('Le mot de passe doit comporter au moins 4 caractères.')
-      return
-    }
-
-    if (registerPassword !== registerPasswordConfirm) {
-      setError('Les mots de passe ne correspondent pas. Veuillez vérifier votre saisie.')
-      return
-    }
-
-    if (!registerName.trim()) {
-      setError('Veuillez entrer votre prénom et nom.')
-      return
-    }
-
-    setIsLoading(true)
-
-    // Simulation de l'envoi du code OTP par SMS
-    setTimeout(() => {
-      setIsLoading(false)
-      setView('otp')
-      setError(null)
-      setSuccessMessage(null)
+      finishLogin({ name, phone: cleanPhone }, 'Connexion réussie. Bienvenue chez BMC Food.')
     }, 400)
   }
 
-  // Étape 2 Inscription : validation du code OTP défini à 454647
-  const handleVerifyOtp = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleRegister = (event: React.FormEvent) => {
+    event.preventDefault()
     setError(null)
 
-    const cleanOtp = otpCode.trim().replace(/\s+/g, '')
-
-    if (cleanOtp !== FIXED_OTP) {
-      setError(`Code de vérification incorrect. Le code de validation est ${FIXED_OTP}.`)
+    if (!registerName.trim()) {
+      setError('Indiquez votre prénom et votre nom.')
+      return
+    }
+    if (!PHONE_PATTERN.test(registerPhone.replace(/\s+/g, ''))) {
+      setError('Numéro invalide (ex. 77 856 13 13).')
+      return
+    }
+    if (registerPassword.length < MIN_PASSWORD_LENGTH) {
+      setError(`Le mot de passe doit comporter au moins ${MIN_PASSWORD_LENGTH} caractères.`)
+      return
+    }
+    if (registerPassword !== registerConfirm) {
+      setError('Les deux mots de passe ne correspondent pas.')
       return
     }
 
     setIsLoading(true)
-
-    setTimeout(() => {
+    window.setTimeout(() => {
       setIsLoading(false)
-      const cleanPhone = registerPhone.trim().replace(/\s+/g, '')
-      const user: ClientUser = {
-        name: registerName.trim(),
-        phone: cleanPhone,
-      }
+      setView('otp')
+    }, 400)
+  }
 
-      localStorage.setItem('bmc_client_user', JSON.stringify(user))
-      setCurrentUser(user)
-      setSuccessMessage('Numéro validé avec succès ! Compte créé et activé.')
+  const handleVerifyOtp = (event: React.FormEvent) => {
+    event.preventDefault()
+    setError(null)
 
-      if (onSuccess) {
-        onSuccess(user)
-      }
+    if (otpCode.trim() !== SIMULATED_OTP) {
+      setError('Code incorrect. Vérifiez les 6 chiffres.')
+      return
+    }
 
-      setTimeout(() => {
-        onClose()
-      }, 1400)
-    }, 500)
+    setIsLoading(true)
+    window.setTimeout(() => {
+      setIsLoading(false)
+      finishLogin(
+        { name: registerName.trim(), phone: registerPhone.replace(/\s+/g, '') },
+        'Numéro validé. Votre compte est créé.',
+      )
+    }, 400)
   }
 
   const handleConfirmLogout = () => {
-    localStorage.removeItem('bmc_client_user')
+    try {
+      localStorage.removeItem(USER_STORAGE_KEY)
+    } catch {
+      /* rien à effacer */
+    }
     setCurrentUser(null)
-    setIsConfirmingLogout(false)
+    setConfirmLogout(false)
     setIdentifier('')
     setPassword('')
-    setSuccessMessage('Déconnexion effectuée avec succès.')
-    if (onLogout) {
-      onLogout()
-    }
-    setTimeout(() => {
-      setSuccessMessage(null)
-      onClose()
-    }, 1000)
+    onLogout?.()
+    onClose()
   }
 
+  const title = currentUser ? 'Mon compte' : view === 'login' ? 'Connexion' : view === 'register' ? 'Inscription' : 'Vérification'
+  const subtitle = currentUser
+    ? 'Vos coordonnées sont reprises à chaque commande.'
+    : view === 'login'
+      ? 'Connectez-vous avec votre numéro de téléphone.'
+      : view === 'register'
+        ? 'Créez votre compte en quelques secondes.'
+        : `Entrez le code reçu au +221 ${registerPhone}.`
+
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
-          {/* Arrière-plan sombre avec flou cinéma */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/85 backdrop-blur-md"
-            aria-hidden="true"
-          />
-
-          {/* Modal Container Unique */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.94, y: 16 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.94, y: 16 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 p-6 sm:p-8 shadow-2xl text-white"
-            role="dialog"
-            aria-modal="true"
-          >
-            {/* Bouton Fermer */}
-            <button
-              type="button"
+    <>
+      <AnimatePresence>
+        {isOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               onClick={onClose}
-              aria-label="Fermer la fenêtre"
-              className="absolute right-4 top-4 flex size-9 items-center justify-center rounded-full bg-white/10 text-zinc-400 hover:bg-white/20 hover:text-white transition-colors cursor-pointer"
+              className="fixed inset-0 bg-black/75"
+              aria-hidden="true"
+            />
+
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={`${baseId}-title`}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 16 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+              className="relative z-10 max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-white/10 bg-zinc-900 p-6 sm:p-8"
             >
-              <X className="size-5" />
-            </button>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Fermer la fenêtre"
+                className="absolute right-3 top-3 grid size-11 cursor-pointer place-items-center rounded-full text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <X className="size-5" aria-hidden="true" />
+              </button>
 
-            {/* En-tête officiel unique : Logo BMC Food */}
-            <div className="text-center mb-5">
-              <div className="relative mx-auto inline-block mb-3">
-                <div className="absolute -inset-2 rounded-full bg-bmc-gold/20 blur-md" />
-                <img
-                  src="/images/brand/logo.png"
-                  alt="BMC Food"
-                  width={84}
-                  height={84}
-                  className="relative h-15 w-auto object-contain mx-auto"
-                />
+              <div className="mb-6 text-center">
+                <img src="/images/brand/logo.png" alt="BMC Food" width={64} height={64} className="mx-auto h-16 w-auto object-contain" />
+                <h2 id={`${baseId}-title`} className="mt-3 font-display text-2xl font-bold text-white">
+                  {title}
+                </h2>
+                <p className="mt-1 text-sm text-zinc-400">{subtitle}</p>
               </div>
 
-              <h2 className="font-display text-xl font-black uppercase tracking-tight text-white">
-                {currentUser ? (
-                  <>
-                    Mon Espace <span className="text-bmc-gold">Profil</span>
-                  </>
-                ) : view === 'login' ? (
-                  <>
-                    Connexion <span className="text-bmc-gold">BMC FOOD</span>
-                  </>
-                ) : view === 'register' ? (
-                  <>
-                    Inscription <span className="text-bmc-gold">BMC FOOD</span>
-                  </>
-                ) : (
-                  <>
-                    Validation <span className="text-bmc-gold">Code OTP</span>
-                  </>
-                )}
-              </h2>
-              <p className="text-xs text-zinc-400 mt-1">
-                {currentUser
-                  ? 'Gérez votre compte et vos coordonnées de livraison'
-                  : view === 'login'
-                    ? 'Connectez-vous à votre espace avec vos identifiants'
-                    : view === 'register'
-                      ? 'Créez votre compte en quelques secondes'
-                      : `Saisissez le code SMS envoyé au +221 ${registerPhone}`}
-              </p>
-            </div>
+              {success && (
+                <p role="status" className="mb-4 flex items-start gap-2 rounded-lg border border-green-500/30 bg-green-500/10 p-3 text-sm text-green-400">
+                  <Check className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                  <span>{success}</span>
+                </p>
+              )}
+              {error && (
+                <p role="alert" className="mb-4 flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
+                  <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                  <span>{error}</span>
+                </p>
+              )}
 
-            {/* Messages de retour */}
-            {successMessage && (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/15 p-3 text-xs font-semibold text-emerald-300"
-              >
-                <CheckCircle className="size-4 shrink-0 text-emerald-400" />
-                <span>{successMessage}</span>
-              </motion.div>
-            )}
-
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-4 flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/15 p-3 text-xs font-semibold text-rose-300"
-              >
-                <ShieldCheck className="size-4 shrink-0 text-rose-400" />
-                <span>{error}</span>
-              </motion.div>
-            )}
-
-            {/* Vue si déjà connecté avec confirmation de déconnexion */}
-            {currentUser && !successMessage && view === 'login' ? (
-              <div className="space-y-4">
-                <div className="rounded-xl border border-bmc-gold/30 bg-zinc-900/80 p-4 text-center">
-                  <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-bmc-gold/20 text-bmc-gold mb-2">
-                    <User className="size-6" />
+              {staffRecognized ? (
+                ADMIN_URL ? (
+                  <a href={ADMIN_URL} className={primaryButton}>
+                    Ouvrir l’application cuisine
+                  </a>
+                ) : null
+              ) : currentUser && !success ? (
+                /* Déjà connecté */
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-white/10 bg-zinc-950 p-4 text-center">
+                    <p className="font-display text-lg font-bold text-white">{currentUser.name}</p>
+                    <p className="text-sm tabular-nums text-zinc-400">{currentUser.phone}</p>
                   </div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-bmc-gold">
-                    Connecté en tant que
-                  </p>
-                  <p className="font-display text-lg font-bold text-white mt-0.5">
-                    {currentUser.name}
-                  </p>
-                  <p className="text-xs text-zinc-400 font-mono mt-0.5">{currentUser.phone}</p>
-                </div>
-
-                {isConfirmingLogout ? (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.96 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="rounded-xl border border-rose-500/40 bg-rose-950/40 p-4 text-center space-y-3"
+                  <button type="button" onClick={onClose} className={primaryButton}>
+                    Continuer mes commandes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmLogout(true)}
+                    className="inline-flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-red-500/40 text-sm font-semibold text-red-400 transition-colors hover:bg-red-500/10"
                   >
-                    <div className="mx-auto flex size-10 items-center justify-center rounded-full bg-rose-500/20 text-rose-400">
-                      <LogOut className="size-5" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-white">Confirmer la déconnexion ?</p>
-                      <p className="text-xs text-zinc-300 mt-1">
-                        Êtes-vous sûr de vouloir vous déconnecter de votre compte BMC Food ?
-                      </p>
-                    </div>
-                    <div className="flex gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => setIsConfirmingLogout(false)}
-                        className="flex-1 h-10 rounded-xl border border-white/10 bg-zinc-800 text-xs font-bold text-zinc-200 hover:bg-zinc-700 transition-colors cursor-pointer"
-                      >
-                        Annuler
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleConfirmLogout}
-                        className="flex-1 h-10 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-lg shadow-rose-900/40"
-                      >
-                        <LogOut className="size-3.5" />
-                        <span>Oui, déconnecter</span>
-                      </button>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <div className="space-y-2.5 pt-1">
-                    <button
-                      type="button"
-                      onClick={onClose}
-                      className="w-full h-11 rounded-xl bg-gradient-to-r from-bmc-gold to-amber-500 font-display text-xs font-black uppercase tracking-wider text-black hover:brightness-110 transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md"
-                    >
-                      <span>Continuer mes commandes</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsConfirmingLogout(true)}
-                      title="Se déconnecter de mon profil"
-                      className="w-full h-10 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
-                    >
-                      <LogOut className="size-4" />
-                      <span>Se déconnecter</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : view === 'login' ? (
-              /* FORMULAIRE DE CONNEXION UNIQUE */
-              <form onSubmit={handleLogin} className="space-y-3.5">
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-300 mb-1">
-                    Identifiant ou Numéro de téléphone
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+                    <LogOut className="size-4" aria-hidden="true" />
+                    Se déconnecter
+                  </button>
+                </div>
+              ) : view === 'login' ? (
+                <form onSubmit={handleLogin} className="space-y-4" noValidate>
+                  <Field id={`${baseId}-identifier`} label="Numéro de téléphone" icon={Phone}>
                     <input
+                      id={`${baseId}-identifier`}
                       type="text"
-                      required
+                      inputMode="tel"
+                      autoComplete="username"
                       value={identifier}
                       onChange={(e) => setIdentifier(e.target.value)}
-                      placeholder="Ex: 77 856 13 13 ou admin"
-                      className="w-full h-11 pl-10 pr-3 rounded-xl border border-white/10 bg-zinc-900 text-sm text-white placeholder-zinc-500 focus:border-bmc-gold focus:outline-none transition-colors"
+                      placeholder="77 856 13 13"
+                      className={inputClass}
                     />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-300 mb-1">
-                    Mot de passe
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+                  </Field>
+                  <Field
+                    id={`${baseId}-password`}
+                    label="Mot de passe"
+                    icon={Lock}
+                    right={<PasswordToggle shown={showPassword} onToggle={() => setShowPassword((v) => !v)} />}
+                  >
                     <input
+                      id={`${baseId}-password`}
                       type={showPassword ? 'text' : 'password'}
-                      required
+                      autoComplete="current-password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full h-11 pl-10 pr-10 rounded-xl border border-white/10 bg-zinc-900 text-sm text-white placeholder-zinc-500 focus:border-bmc-gold focus:outline-none transition-colors"
+                      className={`${inputClass} pr-12`}
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white cursor-pointer"
-                    >
-                      {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                    </button>
-                  </div>
-                </div>
+                  </Field>
 
-                {/* Bouton de Connexion Unique */}
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full h-12 mt-2 rounded-xl bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 font-display text-xs font-black uppercase tracking-wider text-black shadow-lg shadow-bmc-gold/25 hover:brightness-110 active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {isLoading ? (
-                    <div className="size-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <img
-                        src="/images/brand/logo.png"
-                        alt="BMC"
-                        className="h-5 w-auto object-contain shrink-0"
-                      />
-                      <span>Se connecter</span>
-                    </>
-                  )}
-                </button>
+                  <button type="submit" disabled={isLoading} className={primaryButton}>
+                    {isLoading ? <span className="size-4 animate-spin rounded-full border-2 border-black border-t-transparent" /> : 'Se connecter'}
+                  </button>
 
-                {/* Bascule vers Inscription */}
-                <div className="mt-4 pt-3 border-t border-white/10 text-center">
-                  <p className="text-xs text-zinc-400">
+                  <p className="border-t border-white/10 pt-4 text-center text-sm text-zinc-400">
                     Pas encore de compte ?{' '}
                     <button
                       type="button"
@@ -493,115 +396,75 @@ export function AuthModal({ isOpen, onClose, onSuccess, onLogout }: AuthModalPro
                         setView('register')
                         setError(null)
                       }}
-                      className="font-bold text-bmc-gold hover:underline cursor-pointer"
+                      className={linkButton}
                     >
                       Créer un compte
                     </button>
                   </p>
-                </div>
-              </form>
-            ) : view === 'register' ? (
-              /* FORMULAIRE D'INSCRIPTION AVEC CONFIRMATION DE MOT DE PASSE */
-              <form onSubmit={handleRegisterFormSubmit} className="space-y-3">
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-300 mb-1">
-                    Prénom & Nom
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+                </form>
+              ) : view === 'register' ? (
+                <form onSubmit={handleRegister} className="space-y-4" noValidate>
+                  <Field id={`${baseId}-name`} label="Prénom et nom" icon={User}>
                     <input
+                      id={`${baseId}-name`}
                       type="text"
-                      required
+                      autoComplete="name"
                       value={registerName}
                       onChange={(e) => setRegisterName(e.target.value)}
-                      placeholder="Ex: Amadou Diallo"
-                      className="w-full h-10.5 pl-10 pr-3 rounded-xl border border-white/10 bg-zinc-900 text-sm text-white placeholder-zinc-500 focus:border-bmc-gold focus:outline-none transition-colors"
+                      placeholder="Amadou Diallo"
+                      className={inputClass}
                     />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-300 mb-1">
-                    Numéro de téléphone
-                  </label>
-                  <div className="relative">
-                    <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+                  </Field>
+                  <Field id={`${baseId}-phone`} label="Numéro de téléphone" icon={Phone}>
                     <input
+                      id={`${baseId}-phone`}
                       type="tel"
-                      required
+                      inputMode="tel"
+                      autoComplete="tel"
                       value={registerPhone}
                       onChange={(e) => setRegisterPhone(e.target.value)}
                       placeholder="77 856 13 13"
-                      className="w-full h-10.5 pl-10 pr-3 rounded-xl border border-white/10 bg-zinc-900 text-sm text-white placeholder-zinc-500 focus:border-bmc-gold focus:outline-none transition-colors font-mono"
+                      className={inputClass}
                     />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-300 mb-1">
-                    Mot de passe
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+                  </Field>
+                  <Field
+                    id={`${baseId}-rpassword`}
+                    label="Mot de passe"
+                    icon={Lock}
+                    right={<PasswordToggle shown={showRegisterPassword} onToggle={() => setShowRegisterPassword((v) => !v)} />}
+                  >
                     <input
+                      id={`${baseId}-rpassword`}
                       type={showRegisterPassword ? 'text' : 'password'}
-                      required
+                      autoComplete="new-password"
                       value={registerPassword}
                       onChange={(e) => setRegisterPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full h-10.5 pl-10 pr-10 rounded-xl border border-white/10 bg-zinc-900 text-sm text-white placeholder-zinc-500 focus:border-bmc-gold focus:outline-none transition-colors"
+                      className={`${inputClass} pr-12`}
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowRegisterPassword(!showRegisterPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white cursor-pointer"
-                    >
-                      {showRegisterPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-300 mb-1">
-                    Confirmer le mot de passe
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+                  </Field>
+                  <Field
+                    id={`${baseId}-rconfirm`}
+                    label="Confirmer le mot de passe"
+                    icon={Lock}
+                    right={<PasswordToggle shown={showRegisterConfirm} onToggle={() => setShowRegisterConfirm((v) => !v)} />}
+                  >
                     <input
+                      id={`${baseId}-rconfirm`}
                       type={showRegisterConfirm ? 'text' : 'password'}
-                      required
-                      value={registerPasswordConfirm}
-                      onChange={(e) => setRegisterPasswordConfirm(e.target.value)}
+                      autoComplete="new-password"
+                      value={registerConfirm}
+                      onChange={(e) => setRegisterConfirm(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full h-10.5 pl-10 pr-10 rounded-xl border border-white/10 bg-zinc-900 text-sm text-white placeholder-zinc-500 focus:border-bmc-gold focus:outline-none transition-colors"
+                      className={`${inputClass} pr-12`}
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowRegisterConfirm(!showRegisterConfirm)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white cursor-pointer"
-                    >
-                      {showRegisterConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                    </button>
-                  </div>
-                </div>
+                  </Field>
 
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full h-11.5 mt-2 rounded-xl bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 font-display text-xs font-black uppercase tracking-wider text-black shadow-lg shadow-bmc-gold/25 hover:brightness-110 active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {isLoading ? (
-                    <div className="size-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <Smartphone className="size-4 shrink-0" />
-                      <span>Continuer vers la vérification OTP</span>
-                    </>
-                  )}
-                </button>
+                  <button type="submit" disabled={isLoading} className={primaryButton}>
+                    {isLoading ? <span className="size-4 animate-spin rounded-full border-2 border-black border-t-transparent" /> : 'Continuer'}
+                  </button>
 
-                <div className="mt-3 pt-2.5 border-t border-white/10 text-center">
-                  <p className="text-xs text-zinc-400">
+                  <p className="border-t border-white/10 pt-4 text-center text-sm text-zinc-400">
                     Déjà un compte ?{' '}
                     <button
                       type="button"
@@ -609,101 +472,76 @@ export function AuthModal({ isOpen, onClose, onSuccess, onLogout }: AuthModalPro
                         setView('login')
                         setError(null)
                       }}
-                      className="font-bold text-bmc-gold hover:underline cursor-pointer"
+                      className={linkButton}
                     >
                       Se connecter
                     </button>
                   </p>
-                </div>
-              </form>
-            ) : (
-              /* ÉTAPE DE VÉRIFICATION SIMULATION CODE OTP (DÉFINI À 454647) */
-              <form onSubmit={handleVerifyOtp} className="space-y-4">
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-center">
-                  <div className="mx-auto flex size-10 items-center justify-center rounded-full bg-amber-500/20 text-bmc-gold mb-1.5">
-                    <KeyRound className="size-5" />
+                </form>
+              ) : (
+                <form onSubmit={handleVerifyOtp} className="space-y-4" noValidate>
+                  <div className="rounded-xl border border-white/10 bg-zinc-950 p-4 text-center">
+                    <p className="text-sm text-zinc-300">Un code de vérification est envoyé par SMS.</p>
+                    {/* Vérification simulée : le code est affiché tant qu'il n'y a pas de service SMS */}
+                    <p className="mt-2 text-sm text-zinc-400">
+                      Code de test :{' '}
+                      <button
+                        type="button"
+                        onClick={() => setOtpCode(SIMULATED_OTP)}
+                        className="cursor-pointer font-mono font-bold text-bmc-gold underline-offset-4 hover:underline"
+                        title="Toucher pour le saisir automatiquement"
+                      >
+                        {SIMULATED_OTP}
+                      </button>
+                    </p>
                   </div>
-                  <p className="text-xs font-semibold text-zinc-200">
-                    Code de validation envoyé par SMS
-                  </p>
-                  <p className="text-[11px] text-zinc-400 mt-0.5 font-mono">
-                    Numéro : +221 {registerPhone}
-                  </p>
-                  <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg border border-bmc-gold/50 bg-black/60 px-3 py-1 text-xs">
-                    <span className="text-zinc-400">Code de test :</span>
-                    <button
-                      type="button"
-                      onClick={() => setOtpCode(FIXED_OTP)}
-                      className="font-mono font-black text-bmc-gold hover:underline cursor-pointer"
-                      title="Cliquer pour renseigner automatiquement"
-                    >
-                      {FIXED_OTP}
-                    </button>
-                  </div>
-                </div>
 
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-300 mb-1">
-                    Entrez le code à 6 chiffres
-                  </label>
-                  <div className="relative">
-                    <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+                  <Field id={`${baseId}-otp`} label="Code à 6 chiffres" icon={KeyRound}>
                     <input
+                      id={`${baseId}-otp`}
                       type="text"
-                      required
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
                       maxLength={6}
                       value={otpCode}
                       onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                      placeholder="454647"
-                      className="w-full h-11 pl-10 pr-3 rounded-xl border border-white/10 bg-zinc-900 text-center text-lg font-black tracking-widest text-white placeholder-zinc-600 focus:border-bmc-gold focus:outline-none transition-colors font-mono"
+                      placeholder="000000"
+                      className={`${inputClass} text-center font-mono text-lg tracking-widest`}
                     />
-                  </div>
-                </div>
+                  </Field>
 
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full h-12 rounded-xl bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 font-display text-xs font-black uppercase tracking-wider text-black shadow-lg shadow-bmc-gold/25 hover:brightness-110 active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {isLoading ? (
-                    <div className="size-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <CheckCircle className="size-4 shrink-0" />
-                      <span>Valider mon inscription</span>
-                    </>
-                  )}
-                </button>
+                  <button type="submit" disabled={isLoading} className={primaryButton}>
+                    {isLoading ? <span className="size-4 animate-spin rounded-full border-2 border-black border-t-transparent" /> : 'Valider mon inscription'}
+                  </button>
 
-                <div className="flex justify-between items-center pt-2 text-xs text-zinc-400">
                   <button
                     type="button"
                     onClick={() => {
                       setView('register')
                       setError(null)
                     }}
-                    className="inline-flex items-center gap-1 font-semibold text-zinc-400 hover:text-white cursor-pointer"
+                    className="inline-flex h-11 cursor-pointer items-center gap-1.5 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
                   >
-                    <ArrowLeft className="size-3.5" />
-                    <span>Modifier les infos</span>
+                    <ArrowLeft className="size-4" aria-hidden="true" />
+                    Modifier mes informations
                   </button>
+                </form>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOtpCode(FIXED_OTP)
-                      setError(null)
-                    }}
-                    className="font-bold text-bmc-gold hover:underline cursor-pointer"
-                  >
-                    Remplir {FIXED_OTP}
-                  </button>
-                </div>
-              </form>
-            )}
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+      <ConfirmDialog
+        isOpen={confirmLogout}
+        title="Se déconnecter ?"
+        description="Vous serez déconnecté de votre compte BMC Food sur cet appareil."
+        confirmLabel="Oui, me déconnecter"
+        cancelLabel="Rester connecté"
+        destructive
+        onCancel={() => setConfirmLogout(false)}
+        onConfirm={handleConfirmLogout}
+      />
+    </>
   )
 }

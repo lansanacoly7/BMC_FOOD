@@ -8,7 +8,7 @@ const REFRESH_INTERVAL_MS = 10000
 const RETRY_AFTER_ERROR_MS = 60000
 
 export interface DailySpecials {
-  /** Plats du jour disponibles ; liste vide si aucun ou si l'API est injoignable. */
+  /** Plats du jour définis par l'administrateur ; liste vide si aucun (le repli best-seller est ignoré) ou si l'API est injoignable. */
   specials: Product[]
   /** Vrai jusqu'à la première réponse (ou au premier échec) de l'API. */
   isLoading: boolean
@@ -30,10 +30,11 @@ export function useDailySpecials(): DailySpecials {
       window.clearTimeout(refreshTimer)
       let failed = false
       try {
-        const { daily_specials } = await apiRequest<DailySpecialResponse>('/daily-special/', {
+        const { daily_specials, is_fallback } = await apiRequest<DailySpecialResponse>('/daily-special/', {
           signal: controller.signal,
         })
-        setSpecials(daily_specials)
+        // Sans plat du jour défini dans l'admin, le serveur renvoie un best-seller de repli : ce n'est pas un plat du jour
+        setSpecials(is_fallback ? [] : daily_specials)
       } catch {
         // En cas d'absence d'API Django, on synchronise avec le choix fait dans l'Admin local
         failed = true

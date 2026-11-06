@@ -1,5 +1,6 @@
 import type { Category } from '../../types'
 import { FALLBACK_CATEGORIES } from '../../data/mockMenu'
+import { isAddOnCategory } from '../../data/productOptions'
 
 export interface CategoryNavProps {
   categories: Category[]
@@ -14,7 +15,7 @@ export function CategoryNav({
 }: CategoryNavProps) {
   function getCategoryThumb(cat: { name?: string; slug?: string; id: number }): string {
     const s = (cat.slug || cat.name || '').toLowerCase()
-    if (s.includes('boisson')) return '/images/products/canette-bissap-bmc.webp'
+    if (s.includes('boisson')) return '/images/products/categorie-boissons.webp'
     if (s.includes('burger')) return '/images/products/burger-bmc-complet.webp'
     if (s.includes('sauce')) return '/images/products/sauces-assortiment.webp'
     if (s.includes('simple')) return '/images/products/sandwich-chawarma.webp'
@@ -24,7 +25,7 @@ export function CategoryNav({
     return '/images/products/tacos-viande-pane.webp'
   }
 
-  const items = categories.length > 0 ? categories : FALLBACK_CATEGORIES
+  const items = (categories.length > 0 ? categories : FALLBACK_CATEGORIES).filter((cat) => !isAddOnCategory(cat))
 
   return (
     <nav
@@ -53,14 +54,14 @@ export function CategoryNav({
             loading="lazy"
           />
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-            <span className="text-[10px] font-black uppercase text-white tracking-widest">
+            <span className="text-xs font-bold uppercase text-white tracking-widest">
               TOUS
             </span>
           </div>
         </div>
         <span
           className={`text-xs font-bold transition-colors whitespace-nowrap
-            ${activeCategoryId === 'all' ? 'text-bmc-gold font-extrabold' : 'text-zinc-300 group-hover:text-white'}`}
+            ${activeCategoryId === 'all' ? 'text-bmc-gold font-bold' : 'text-zinc-300 group-hover:text-white'}`}
         >
           Tous les plats
         </span>
@@ -96,7 +97,7 @@ export function CategoryNav({
             </div>
             <span
               className={`text-xs font-bold transition-colors whitespace-nowrap
-                ${isActive ? 'text-bmc-gold font-extrabold' : 'text-zinc-300 group-hover:text-white'}`}
+                ${isActive ? 'text-bmc-gold font-bold' : 'text-zinc-300 group-hover:text-white'}`}
             >
               {cat.name}
             </span>

@@ -1,163 +1,200 @@
-import { Menu, Phone, ShoppingBag } from 'lucide-react'
-import { motion } from 'motion/react'
+import { useEffect, useState } from 'react'
+import { Menu, Phone, Search } from 'lucide-react'
+import { isOpenAt } from '../../lib/greeting'
 
 interface TopHeaderProps {
-  cartItemCount: number
-  onOpenCart: () => void
+  cartItemCount?: number
+  onOpenCart?: () => void
+  onOpenSearch?: () => void
   onToggleMenu?: () => void
   onSelectCategory?: (categoryId: string) => void
-  currentPage?: 'home' | 'menu'
-  onNavigate?: (page: 'home' | 'menu') => void
+  currentPage?: 'home' | 'menu' | 'contact' | 'profile'
+  onNavigate?: (page: 'home' | 'menu' | 'contact') => void
   onOpenAuth?: () => void
   clientUser?: { name: string; phone: string } | null
 }
 
+const NAV_ITEMS: { page: 'home' | 'menu' | 'contact'; label: string }[] = [
+  { page: 'home', label: 'Accueil' },
+  { page: 'menu', label: 'La carte' },
+  { page: 'contact', label: 'Contact' },
+]
+
+/** Au-delà de ce défilement (px), l'en-tête passe en version compacte et translucide. */
+const COMPACT_AFTER = 24
+/** Il ne se masque qu'après cette distance, et réapparaît dès qu'on remonte un peu. */
+const HIDE_AFTER = 200
+const SCROLL_STEP = 8
+
 /**
- * En-tête officiel BMC Food (Desktop, Tablette & Mobile).
- * Logo officiel mis en valeur à GAUCHE avec contraste lumineux pour une visibilité parfaite.
+ * En-tête BMC Food, dynamique au défilement :
+ * - en haut de page : grand (logo et nom bien visibles) ;
+ * - dès qu'on descend : il rétrécit nettement, le nom du restaurant s'efface, le fond devient translucide avec flou ;
+ * - quand on descend vite : il se glisse hors de l'écran ; il revient dès qu'on remonte ;
+ * Il est en position fixe, avec un espace réservé de la hauteur maximale : la page ne bouge pas quand il change de taille.
  */
 export function TopHeader({
-  cartItemCount,
-  onOpenCart,
+  onOpenSearch,
   onToggleMenu,
   currentPage = 'home',
   onNavigate,
   onOpenAuth,
   clientUser,
 }: TopHeaderProps) {
+  const isOpen = isOpenAt()
+  const [compact, setCompact] = useState(false)
+  const [hidden, setHidden] = useState(false)
+
+  useEffect(() => {
+    let lastY = window.scrollY
+    let ticking = false
+
+    const update = () => {
+      const y = window.scrollY
+      const delta = y - lastY
+      setCompact(y > COMPACT_AFTER)
+
+      if (y < HIDE_AFTER) {
+        setHidden(false)
+      } else if (delta > SCROLL_STEP) {
+        setHidden(true)
+      } else if (delta < -SCROLL_STEP) {
+        setHidden(false)
+      }
+      if (Math.abs(delta) > SCROLL_STEP) lastY = y
+
+      ticking = false
+    }
+
+    const onScroll = () => {
+      if (ticking) return
+      ticking = true
+      window.requestAnimationFrame(update)
+    }
+
+    update()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+    }
+  }, [])
+
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-zinc-950/95 backdrop-blur-md transition-all">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        {/* GAUCHE : Logo officiel BMC Food posé naturellement dans le header */}
-        <div className="flex items-center">
+    <>
+      {/* Espace réservé : la hauteur maximale de l'en-tête, pour que le contenu ne saute jamais */}
+      <div aria-hidden="true" className="h-[4.5rem] sm:h-20" />
+
+      <header
+        onFocusCapture={() => setHidden(false)}
+        className={`fixed inset-x-0 top-0 z-40 border-b transition-[transform,background-color,border-color,box-shadow,backdrop-filter] duration-300 ease-out motion-reduce:transition-none ${
+          hidden ? '-translate-y-full' : 'translate-y-0'
+        } ${
+          compact
+            ? 'border-white/10 bg-zinc-950/80 shadow-[0_8px_24px_rgba(0,0,0,0.35)] backdrop-blur-xl'
+            : 'border-transparent bg-zinc-950'
+        }`}
+      >
+        <div
+          className={`mx-auto flex max-w-7xl items-center justify-between px-4 transition-[height] duration-300 ease-out motion-reduce:transition-none sm:px-6 lg:px-8 ${
+            compact ? 'h-14' : 'h-[4.5rem] sm:h-20'
+          }`}
+        >
           <button
             type="button"
             onClick={() => onNavigate?.('home')}
-            className="group flex items-center gap-3 focus-visible:outline-2 focus-visible:outline-bmc-gold rounded-lg py-1 cursor-pointer text-left"
-            aria-label="BMC Food — Accueil"
+            className="flex cursor-pointer items-center gap-3 rounded-lg py-1 text-left transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-bmc-gold"
+            aria-label="BMC Food, accueil"
           >
             <img
               src="/images/brand/logo.png"
-              alt="BMC Food — Le goût du vrai plaisir"
+              alt="BMC Food"
               width={140}
               height={56}
-              className="h-10 sm:h-12 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
+              className={`w-auto object-contain transition-[height] duration-300 ease-out motion-reduce:transition-none ${
+                compact ? 'h-9' : 'h-12 sm:h-14'
+              }`}
             />
-            <div className="hidden sm:flex flex-col text-left">
-              <span className="font-display text-sm font-black tracking-tight text-white group-hover:text-bmc-gold transition-colors">
-                BMC FOOD
-              </span>
-              <span className="text-[10px] font-bold text-bmc-gold uppercase tracking-wider">
-                Le Vrai Goût du Plaisir
-              </span>
-            </div>
-          </button>
-        </div>
-
-        {/* CENTRE (Desktop & Tablette) : Liens de navigation Accueil & Menu */}
-        <nav aria-label="Navigation principale" className="hidden lg:flex items-center gap-6">
-          <button
-            type="button"
-            onClick={() => onNavigate?.('home')}
-            className={`text-xs font-black uppercase tracking-wider transition-all cursor-pointer relative py-1 ${
-              currentPage === 'home'
-                ? 'text-bmc-gold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-bmc-gold'
-                : 'text-zinc-300 hover:text-white'
-            }`}
-          >
-            Accueil
+            <span
+              className={`hidden overflow-hidden whitespace-nowrap font-display font-bold text-white transition-[max-width,opacity,font-size] duration-300 ease-out motion-reduce:transition-none sm:block ${
+                compact ? 'max-w-0 text-base opacity-0' : 'max-w-40 text-xl opacity-100'
+              }`}
+            >
+              BMC Food
+            </span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => onNavigate?.('menu')}
-            className={`text-xs font-black uppercase tracking-wider transition-all cursor-pointer relative py-1 ${
-              currentPage === 'menu'
-                ? 'text-bmc-gold after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-bmc-gold'
-                : 'text-zinc-300 hover:text-white'
-            }`}
-          >
-            Menu & La Carte
-          </button>
-
-          {/* Badge Horaires Dakar */}
-          <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-zinc-900/80 px-3 py-1 text-[11px] font-semibold text-zinc-300">
-            <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Ouvert · 11h – 02h</span>
-          </div>
-        </nav>
-
-        {/* DROITE : Connexion/Inscription + Téléphone direct + Panier + Menu mobile */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Bouton Connexion / Inscription avec Logo BMC */}
-          <motion.button
-            type="button"
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.96 }}
-            onClick={onOpenAuth}
-            aria-label={clientUser ? `Espace Client (${clientUser.name})` : "Connexion ou Inscription"}
-            className="flex h-10 items-center gap-2 rounded-full border border-bmc-gold/40 bg-zinc-900/90 px-3 sm:px-3.5 text-zinc-100 hover:border-bmc-gold hover:bg-zinc-800 transition-all cursor-pointer shadow-md group"
-          >
-            <img
-              src="/images/brand/logo.png"
-              alt="BMC Logo"
-              className="h-5 sm:h-5.5 w-auto object-contain transition-transform group-hover:scale-110 shrink-0"
-            />
-            {clientUser ? (
-              <span className="text-xs font-bold text-bmc-gold truncate max-w-[80px] sm:max-w-none">
-                {clientUser.name.split(' ')[0]}
-              </span>
-            ) : (
-              <span className="text-xs font-bold tracking-tight">
-                <span className="hidden sm:inline">Connexion / Inscription</span>
-                <span className="sm:hidden">Connexion</span>
-              </span>
-            )}
-          </motion.button>
-
-          {/* Appel direct (visible dès desktop) */}
-          <a
-            href="tel:778561313"
-            aria-label="Appeler le restaurant au 77 856 13 13"
-            className="hidden xl:inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-900 px-3.5 py-1.5 text-xs font-bold text-zinc-200 transition-colors hover:border-bmc-gold hover:text-bmc-gold"
-          >
-            <Phone className="size-3.5 text-emerald-400" />
-            <span>77 856 13 13</span>
-          </a>
-
-          {/* Bouton Panier avec pastille braise animée */}
-          <motion.button
-            type="button"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onOpenCart}
-            aria-label={`Voir le panier (${cartItemCount} articles)`}
-            className="relative flex h-10 items-center gap-2 rounded-full bg-zinc-900 px-3 sm:px-3.5 text-zinc-200 border border-white/10 hover:border-bmc-gold hover:text-white transition-all cursor-pointer shadow-md"
-          >
-            <ShoppingBag className="size-4.5 text-bmc-gold" aria-hidden="true" />
-            <span className="hidden sm:inline text-xs font-bold">Panier</span>
-            {cartItemCount > 0 && (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="flex size-5 items-center justify-center rounded-full bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 font-display text-[11px] font-black text-black shadow-md shadow-bmc-gold/40"
+          <nav aria-label="Navigation principale" className="hidden items-center gap-7 lg:flex">
+            {NAV_ITEMS.map((item) => (
+              <button
+                key={item.page}
+                type="button"
+                onClick={() => onNavigate?.(item.page)}
+                aria-current={currentPage === item.page ? 'page' : undefined}
+                className={`relative cursor-pointer py-1 text-sm font-medium transition-colors ${
+                  currentPage === item.page
+                    ? 'text-bmc-gold after:absolute after:inset-x-0 after:-bottom-0.5 after:h-0.5 after:bg-bmc-gold'
+                    : 'text-zinc-300 hover:text-white'
+                }`}
               >
-                {cartItemCount}
-              </motion.span>
-            )}
-          </motion.button>
+                {item.label}
+              </button>
+            ))}
 
-          {/* Bouton Menu (Mobile & Tablette) */}
-          <button
-            type="button"
-            onClick={onToggleMenu}
-            aria-label="Ouvrir le menu de navigation"
-            className="lg:hidden flex size-10 items-center justify-center rounded-full text-zinc-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-bmc-gold"
-          >
-            <Menu className="size-5.5" aria-hidden="true" />
-          </button>
+            <span className="flex items-center gap-2 text-sm text-zinc-400">
+              <span className={`size-2 rounded-full ${isOpen ? 'bg-bmc-success' : 'bg-zinc-500'}`} />
+              {isOpen ? 'Ouvert · jusqu’à 02h' : 'Fermé'}
+            </span>
+          </nav>
+
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={onOpenAuth}
+              aria-label={clientUser ? `Mon compte (${clientUser.name})` : 'Connexion ou inscription'}
+              className="flex h-11 cursor-pointer items-center rounded-lg border border-white/15 px-4 text-sm font-medium text-zinc-100 transition-colors hover:border-white/30"
+            >
+              {clientUser ? (
+                <span className="max-w-20 truncate text-bmc-gold sm:max-w-none">{clientUser.name.split(' ')[0]}</span>
+              ) : (
+                <>
+                  <span className="hidden sm:inline">Connexion</span>
+                  <span className="sm:hidden">Compte</span>
+                </>
+              )}
+            </button>
+
+            <a
+              href="tel:778561313"
+              aria-label="Appeler le restaurant au 77 856 13 13"
+              className="hidden h-10 items-center gap-2 rounded-lg border border-white/15 px-3.5 text-sm font-medium text-zinc-200 transition-colors hover:border-white/30 xl:inline-flex"
+            >
+              <Phone className="size-4 text-bmc-gold" />
+              <span>77 856 13 13</span>
+            </a>
+
+            <button
+              type="button"
+              onClick={onOpenSearch}
+              aria-label="Rechercher un plat"
+              className="flex size-11 cursor-pointer items-center justify-center rounded-lg border border-white/15 text-zinc-200 transition-colors hover:border-white/30"
+            >
+              <Search className="size-5" aria-hidden="true" />
+            </button>
+
+            <button
+              type="button"
+              onClick={onToggleMenu}
+              aria-label="Ouvrir le menu de navigation"
+              className="flex size-11 cursor-pointer items-center justify-center rounded-lg text-zinc-300 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-bmc-gold lg:hidden"
+            >
+              <Menu className="size-5" aria-hidden="true" />
+            </button>
+          </div>
         </div>
-      </div>
-    </header>
+
+      </header>
+    </>
   )
 }

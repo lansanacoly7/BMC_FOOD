@@ -9,6 +9,8 @@ interface OrderConfirmationProps {
   order: Order
   deliveryAreaName?: string
   deliveryFee?: number | null
+  /** Livraison chez le client (par défaut) ou retrait au restaurant. */
+  fulfillment?: 'delivery' | 'pickup'
   onNewOrder: () => void
 }
 
@@ -44,8 +46,10 @@ export function OrderConfirmation({
   order,
   deliveryAreaName,
   deliveryFee,
+  fulfillment = 'delivery',
   onNewOrder,
 }: OrderConfirmationProps) {
+  const isPickup = fulfillment === 'pickup'
   // Détermine le libellé du total payé selon le moyen choisi
   const paymentTitle =
     order.payment_method === 'wave'
@@ -59,14 +63,6 @@ export function OrderConfirmation({
 
   return (
     <main className="relative min-h-dvh bg-zinc-950 text-white px-4 py-8 sm:py-12 flex flex-col justify-between overflow-hidden selection:bg-bmc-gold selection:text-black">
-      {/* Halo d'ambiance doré doux en haut */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: [0.2, 0.35, 0.2], scale: [1, 1.08, 1] }}
-        transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
-        className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 size-96 rounded-full bg-gradient-to-b from-bmc-gold/25 via-amber-500/10 to-transparent blur-3xl -z-0"
-      />
-
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -89,38 +85,25 @@ export function OrderConfirmation({
 
         {/* 2. BADGE ET TITRE « COMMANDE ENVOYÉE ! » */}
         <motion.div variants={itemVariants} className="mt-6 flex items-center justify-center gap-3.5">
-          {/* Badge rond Or BMC animé avec pulsation douce */}
-          <div className="relative">
-            <motion.div
-              animate={{ scale: [1, 1.35, 1], opacity: [0.55, 0, 0.55] }}
-              transition={{ duration: 2.2, repeat: Infinity, ease: 'easeOut' }}
-              className="absolute inset-0 rounded-full bg-bmc-gold/40 blur-xs"
-            />
-            <motion.div
-              initial={{ scale: 0, rotate: -20 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ type: 'spring', damping: 14, stiffness: 220, delay: 0.15 }}
-              className="relative grid size-11 place-items-center rounded-full bg-gradient-to-tr from-bmc-gold via-amber-400 to-amber-300 text-black shadow-xl shadow-bmc-gold/30 shrink-0"
-            >
-              <Check className="size-6 stroke-[3.5]" aria-hidden="true" />
-            </motion.div>
+          <div className="grid size-11 shrink-0 place-items-center rounded-full bg-bmc-gold text-black">
+            <Check className="size-6" aria-hidden="true" />
           </div>
 
-          <h1 className="font-display text-2xl sm:text-3xl font-black tracking-tight text-white leading-tight text-left">
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-white leading-tight text-left">
             Commande<br />envoyée !
           </h1>
         </motion.div>
 
         {/* 3. SECTION RÉFÉRENCE (Page 12) */}
         <motion.div variants={itemVariants} className="mt-7 text-center">
-          <p className="font-sans text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">
+          <p className="font-sans text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
             RÉFÉRENCE
           </p>
           <motion.p
             initial={{ scale: 0.95 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.25, type: 'spring', damping: 16 }}
-            className="font-display text-3xl sm:text-4xl font-black tracking-wider text-bmc-gold mt-1 drop-shadow-md"
+            className="font-display text-3xl sm:text-4xl font-bold tracking-wider text-bmc-gold mt-1"
           >
             {order.order_ref}
           </motion.p>
@@ -134,33 +117,26 @@ export function OrderConfirmation({
 
             {/* Étape 1 : Reçue (active / balise live pulsante) */}
             <div className="relative z-10 flex flex-col items-center">
-              <div className="relative flex items-center justify-center">
-                <motion.span
-                  animate={{ scale: [1, 1.9], opacity: [0.75, 0] }}
-                  transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
-                  className="absolute size-4 rounded-full bg-bmc-gold"
-                />
-                <div className="size-4 rounded-full bg-bmc-gold ring-4 ring-zinc-950 shadow-md shadow-bmc-gold/50" />
-              </div>
-              <span className="mt-2 text-[11px] font-black text-bmc-gold">Reçue</span>
+              <div className="size-4 rounded-full bg-bmc-gold ring-4 ring-zinc-950" />
+              <span className="mt-2 text-xs font-semibold text-bmc-gold">Reçue</span>
             </div>
 
             {/* Étape 2 : En cuisine */}
             <div className="relative z-10 flex flex-col items-center opacity-70">
               <div className="size-3.5 rounded-full border-2 border-zinc-600 bg-zinc-900 ring-4 ring-zinc-950" />
-              <span className="mt-2 text-[11px] font-medium text-zinc-400">En cuisine</span>
+              <span className="mt-2 text-xs font-medium text-zinc-400">En cuisine</span>
             </div>
 
             {/* Étape 3 : En route */}
             <div className="relative z-10 flex flex-col items-center opacity-70">
               <div className="size-3.5 rounded-full border-2 border-zinc-600 bg-zinc-900 ring-4 ring-zinc-950" />
-              <span className="mt-2 text-[11px] font-medium text-zinc-400">En route</span>
+              <span className="mt-2 text-xs font-medium text-zinc-400">{isPickup ? 'Prête' : 'En route'}</span>
             </div>
 
             {/* Étape 4 : Livrée */}
             <div className="relative z-10 flex flex-col items-center opacity-70">
               <div className="size-3.5 rounded-full border-2 border-zinc-600 bg-zinc-900 ring-4 ring-zinc-950" />
-              <span className="mt-2 text-[11px] font-medium text-zinc-400">Livrée</span>
+              <span className="mt-2 text-xs font-medium text-zinc-400">{isPickup ? 'Retirée' : 'Livrée'}</span>
             </div>
           </div>
         </motion.div>
@@ -197,10 +173,10 @@ export function OrderConfirmation({
               className="flex items-center justify-between gap-3 text-sm text-zinc-300 pt-1 border-t border-white/5"
             >
               <span className="font-medium truncate text-left text-zinc-400">
-                Livraison · {deliveryAreaName || order.address || 'Dakar'}
+                {isPickup ? `À emporter · ${order.address.replace(/^Retrait sur place – /, '')}` : `Livraison · ${deliveryAreaName || order.address || 'Dakar'}`}
               </span>
               <span className="font-display font-bold tabular-nums text-bmc-gold shrink-0">
-                {deliveryFee ? formatDetailAmount(deliveryFee) : 'Inclus'}
+                {isPickup ? 'Sans frais' : deliveryFee ? formatDetailAmount(deliveryFee) : 'Inclus'}
               </span>
             </motion.div>
           </div>
@@ -210,10 +186,10 @@ export function OrderConfirmation({
 
           {/* Total Payé */}
           <div className="text-center">
-            <p className="font-sans text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">
+            <p className="font-sans text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
               {paymentTitle}
             </p>
-            <p className="font-display text-3xl font-black text-white mt-1 tabular-nums tracking-tight">
+            <p className="font-display text-3xl font-bold text-white mt-1 tabular-nums tracking-tight">
               {formatFcfa(order.total_amount)}
             </p>
           </div>
@@ -226,7 +202,7 @@ export function OrderConfirmation({
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             href="tel:+221778561313"
-            className="group flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 font-display text-base font-black text-bmc-charcoal shadow-xl shadow-bmc-gold/25 transition-all hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white cursor-pointer"
+            className="group flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-bmc-gold font-display text-base font-bold text-bmc-charcoal transition-all hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white cursor-pointer"
           >
             <Phone className="size-4.5 stroke-[2.5] text-bmc-charcoal transition-transform group-hover:-rotate-12" />
             <span>Appeler BMC · 77 856 13 13</span>

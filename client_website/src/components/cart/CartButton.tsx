@@ -33,7 +33,7 @@ export function CartButton({ tone = 'dark' }: CartButtonProps) {
             animate={{ scale: 1 }}
             exit={{ scale: 0 }}
             aria-hidden="true"
-            className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-bmc-orange-braise px-1 text-[11px] font-extrabold tabular-nums text-white"
+            className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-bmc-orange-braise px-1 text-xs font-bold tabular-nums text-white"
           >
             {itemCount > 99 ? '99+' : itemCount}
           </motion.span>

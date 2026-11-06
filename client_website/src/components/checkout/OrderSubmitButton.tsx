@@ -1,5 +1,4 @@
 import { ArrowRight, LoaderCircle } from 'lucide-react'
-import { motion } from 'motion/react'
 import { formatFcfa } from '../../lib/format'
 
 interface OrderSubmitButtonProps {
@@ -11,35 +10,31 @@ interface OrderSubmitButtonProps {
   onClick?: () => void
 }
 
-/**
- * Bouton principal d'envoi de la commande (Univers Dark Luxury).
- * Dégradé Or BMC vibrant (#FCB800) avec texte noir à fort contraste (règle absolue de la charte).
- */
+/** Bouton principal d'envoi de la commande : or BMC, texte noir à fort contraste (règle de la charte). */
 export function OrderSubmitButton({ isSubmitting, amount, disabled = false, onClick }: OrderSubmitButtonProps) {
   const isDisabled = disabled || isSubmitting
 
   return (
-    <motion.button
+    <button
       type={onClick ? 'button' : 'submit'}
       onClick={onClick}
       disabled={isDisabled}
       aria-busy={isSubmitting}
-      whileTap={isDisabled ? undefined : { scale: 0.97 }}
-      className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-bmc-gold via-amber-400 to-amber-500 font-display text-sm sm:text-base font-black uppercase tracking-wider text-black shadow-xl shadow-bmc-gold/30 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none cursor-pointer transition-all"
+      className="flex h-14 w-full cursor-pointer items-center justify-center gap-2.5 rounded-lg bg-bmc-gold font-display text-base font-bold text-black transition-colors hover:bg-amber-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold disabled:cursor-not-allowed disabled:opacity-40"
     >
       {isSubmitting ? (
         <>
-          <LoaderCircle className="size-5 animate-spin text-black" aria-hidden="true" />
+          <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />
           <span>Envoi en cours…</span>
         </>
       ) : (
         <>
           <span>Confirmer la commande</span>
-          <span>·</span>
-          <span className="tabular-nums font-black">{formatFcfa(amount)}</span>
-          <ArrowRight className="size-5 stroke-[3] text-black" aria-hidden="true" />
+          <span aria-hidden="true">·</span>
+          <span className="tabular-nums">{formatFcfa(amount)}</span>
+          <ArrowRight className="size-5" aria-hidden="true" />
         </>
       )}
-    </motion.button>
+    </button>
   )
 }

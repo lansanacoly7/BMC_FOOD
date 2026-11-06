@@ -136,3 +136,54 @@ export function toggleDailySpecial(id: number): Promise<ToggleDailySpecialRespon
     method: 'PATCH',
   })
 }
+
+/** Créer un nouveau plat au catalogue (POST /api/menu/items/). */
+export function createMenuItem(data: {
+  name: string
+  price: number
+  category?: string | number
+  description?: string
+  image_url?: string
+  is_available?: boolean
+  is_daily_special?: boolean
+  popular?: boolean
+}): Promise<{ success: boolean; message: string; item: any }> {
+  return apiRequest('/menu/items/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+/** Récupère les promotions actives (GET /api/promotions/). */
+export function fetchPromotions(signal?: AbortSignal): Promise<{ success: boolean; promotions: any[] }> {
+  return apiRequest('/promotions/', { signal })
+}
+
+/** Enregistre la liste des promotions (POST /api/promotions/). */
+export function savePromotions(promotions: any[]): Promise<{ success: boolean; message: string; promotions: any[] }> {
+  return apiRequest('/promotions/', {
+    method: 'POST',
+    body: JSON.stringify(promotions),
+  })
+}
+
+/** Liste des comptes employés (GET /api/staff/). */
+export function fetchStaff(signal?: AbortSignal): Promise<{ success: boolean; staff: any[] }> {
+  return apiRequest('/staff/', { signal })
+}
+
+/** Créer un compte employé (POST /api/staff/). */
+export function createStaff(data: { username: string; password: string; role?: string }): Promise<{ success: boolean; staff_member: any }> {
+  return apiRequest('/staff/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+/** Supprimer un compte employé (DELETE /api/staff/<id>/). */
+export function deleteStaff(id: number): Promise<{ success: boolean; message: string }> {
+  return apiRequest(`/staff/${id}/`, {
+    method: 'DELETE',
+  })
+}
+

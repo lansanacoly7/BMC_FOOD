@@ -96,7 +96,7 @@ export function CategoryPills({ activeId, onSelect }: CategoryPillsProps) {
                 <div
                   className={`relative aspect-square w-full overflow-hidden rounded-full bg-zinc-900 transition-all duration-300 ${
                     isActive
-                      ? 'ring-2 ring-bmc-gold ring-offset-2 ring-offset-zinc-950 shadow-md shadow-bmc-gold/40 scale-105'
+                      ? 'ring-2 ring-bmc-gold ring-offset-2 ring-offset-zinc-950 scale-105'
                       : 'ring-1 ring-white/15 group-hover:ring-bmc-gold/50 group-hover:scale-105'
                   }`}
                 >
@@ -114,7 +114,7 @@ export function CategoryPills({ activeId, onSelect }: CategoryPillsProps) {
                 {/* Libellé centré sous la vignette */}
                 <span
                   className={`text-center text-xs font-bold leading-tight transition-colors whitespace-nowrap ${
-                    isActive ? 'text-bmc-gold font-black' : 'text-zinc-400 group-hover:text-zinc-200'
+                    isActive ? 'text-bmc-gold font-bold' : 'text-zinc-400 group-hover:text-zinc-200'
                   }`}
                 >
                   {cat.name}

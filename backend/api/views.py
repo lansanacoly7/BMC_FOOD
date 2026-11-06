@@ -135,29 +135,11 @@ class DailySpecialView(APIView):
     )
     def get(self, request):
         specials = MenuItem.objects.filter(is_daily_special=True, is_available=True)
-        if specials.exists():
-            return Response({
-                'success': True,
-                'count': specials.count(),
-                'is_fallback': False,
-                'daily_specials': MenuItemSerializer(specials, many=True).data
-            })
-
-        # Repli gracieux (P15) : premier article populaire (best-seller) disponible
-        fallback_items = MenuItem.objects.filter(is_available=True, popular=True)[:1]
-        if fallback_items.exists():
-            return Response({
-                'success': True,
-                'count': fallback_items.count(),
-                'is_fallback': True,
-                'daily_specials': MenuItemSerializer(fallback_items, many=True).data
-            })
-
         return Response({
             'success': True,
-            'count': 0,
+            'count': specials.count(),
             'is_fallback': False,
-            'daily_specials': []
+            'daily_specials': MenuItemSerializer(specials, many=True).data
         })
 
 
@@ -207,9 +189,6 @@ class ToggleDailySpecialView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
-            if new_state:
-                # Règle D5 : un seul plat du jour actif à la fois
-                MenuItem.objects.filter(is_daily_special=True).exclude(pk=item.pk).update(is_daily_special=False)
             item.is_daily_special = new_state
             item.save()
 

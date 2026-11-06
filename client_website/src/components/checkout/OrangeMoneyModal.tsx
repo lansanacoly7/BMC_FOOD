@@ -97,7 +97,7 @@ function OrangeMoneyScreen({ onClose, amount, orderRef, onConfirm }: OrangeMoney
                 type="button"
                 onClick={onClose}
                 disabled={isProcessing}
-                className="h-14 rounded-2xl border-2 border-white text-lg font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-money disabled:opacity-40"
+                className="h-14 cursor-pointer rounded-2xl border-2 border-white text-lg font-bold transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-money disabled:opacity-40"
               >
                 Quitter
               </button>
@@ -106,7 +106,7 @@ function OrangeMoneyScreen({ onClose, amount, orderRef, onConfirm }: OrangeMoney
                 whileTap={isProcessing ? undefined : { scale: 0.97 }}
                 onClick={confirm}
                 disabled={isProcessing}
-                className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-orange-money text-lg font-bold text-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-80"
+                className="flex h-14 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-orange-money text-lg font-bold text-black transition-[filter] hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-80"
               >
                 {isProcessing ? (
                   <>

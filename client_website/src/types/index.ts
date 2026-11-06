@@ -83,6 +83,8 @@ export interface Order {
 export interface CartItem {
   product: Product
   quantity: number
+  /** Personnalisation choisie par le client (ex. « Sans ketchup · Sauce : Samouraï »). Une variante = une ligne. */
+  note?: string
 }
 
 /** Ligne envoyée à POST /api/orders/ : uniquement le code du plat et la quantité, jamais de prix. */
@@ -113,6 +115,8 @@ export interface MenuResponse {
 export interface DailySpecialResponse {
   success: boolean
   count: number
+  /** Vrai quand aucun plat du jour n'est défini et que le serveur renvoie un best-seller à la place. */
+  is_fallback?: boolean
   daily_specials: Product[]
 }
 

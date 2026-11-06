@@ -90,13 +90,11 @@ export function mapOrderFromApi(apiData: ApiOrder | OrderResponse): KdsOrder {
 export function mapKdsStatusToApiStatus(kdsStatus: KdsOrderStatus): string {
   switch (kdsStatus) {
     case 'pending':
-      return 'confirmed'
+      return 'pending'
     case 'preparing':
       return 'preparing'
     case 'ready':
-      // 'ready' est un état intermédiaire cuisine. Côté DRF, la commande reste en préparation
-      // jusqu'à ce que le cuisinier confirme la remise au livreur ('delivering')
-      return 'preparing'
+      return 'ready'
     case 'delivering':
       return 'delivering'
     case 'delivered':

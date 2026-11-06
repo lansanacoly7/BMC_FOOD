@@ -91,22 +91,42 @@ function toOrderSubmitError(error: unknown): OrderSubmitError {
     return new OrderSubmitError('Trop de tentatives en peu de temps. Patientez une minute puis réessayez.', 'server')
   }
 
+  // 404 : le site parle à un serveur qui ne connaît pas la route des commandes (mauvais service sur ce port)
+  if (error.status === 404) {
+    return new OrderSubmitError(
+      'Le serveur de commandes est introuvable (erreur 404). Vérifiez que le serveur BMC Food est bien lancé sur le bon port.',
+      'server',
+    )
+  }
+
   const serverMessage = firstMessage(payload.error)
   return new OrderSubmitError(
-    serverMessage ?? 'Le serveur n’a pas pu enregistrer la commande. Réessayez dans un instant.',
+    serverMessage ?? `Le serveur n’a pas pu enregistrer la commande (erreur ${error.status}). Réessayez dans un instant.`,
     'server',
   )
 }
 
 /** Corps de la commande : uniquement le code et la quantité de chaque plat, jamais de prix. */
 export function buildOrderPayload(items: CartItem[], customer: OrderCustomerDetails): OrderCreatePayload {
+  // Une même référence peut avoir plusieurs variantes au panier : le serveur reçoit une seule ligne par plat
+  const quantities = new Map<string, number>()
+  for (const item of items) {
+    quantities.set(item.product.code, (quantities.get(item.product.code) ?? 0) + item.quantity)
+  }
+
+  // Les personnalisations (sans ketchup, sauces…) partent dans les notes, une ligne par variante
+  const customizations = items
+    .filter((item) => item.note)
+    .map((item) => `• ${item.quantity} × ${item.product.name} : ${item.note}`)
+  const notes = [customer.notes?.trim() ?? '', ...customizations].filter(Boolean).join('\n')
+
   return {
     customer_name: customer.customer_name.trim(),
     phone: customer.phone.trim(),
     address: customer.address.trim(),
-    notes: customer.notes?.trim() ?? '',
+    notes,
     payment_method: customer.payment_method,
-    items: items.map((item) => ({ id: item.product.code, quantity: item.quantity })),
+    items: [...quantities].map(([id, quantity]) => ({ id, quantity })),
   }
 }
 

@@ -8,19 +8,23 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { formatDateTime, formatFcfa } from '../../lib/formatters'
-import type { KdsOrder } from '../../types/kds'
+import type { KdsOrder, KdsOrderStatus } from '../../types/kds'
 import { OrderTypePill, PaymentPill } from '../common/StatusPills'
 
 interface OrderDetailDrawerProps {
   order: KdsOrder | null
   onClose: () => void
   onPrintTicket: (order: KdsOrder) => void
+  onTransition?: (orderRef: string, nextStatus: KdsOrderStatus) => void
+  onCancel?: (orderRef: string) => void
 }
 
 export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
   order,
   onClose,
   onPrintTicket,
+  onTransition,
+  onCancel,
 }) => {
 
   // Raccourci Échap pour fermer
@@ -229,6 +233,64 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
               </a>
             )}
           </div>
+
+          {/* ACTIONS RAPIDES POUR DÉBLOQUER OU AVANCER LA COMMANDE */}
+          {order.status !== 'delivered' && order.status !== 'cancelled' && (
+            <div className="flex flex-col gap-2 pt-3 border-t border-[#1F242B]">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next: KdsOrderStatus =
+                      order.status === 'pending'
+                        ? 'preparing'
+                        : order.status === 'preparing'
+                        ? 'ready'
+                        : 'delivered'
+                    onTransition?.(order.orderRef, next)
+                    onClose()
+                  }}
+                  className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider cursor-pointer transition-colors ${
+                    order.status === 'ready' || order.status === 'delivering'
+                      ? 'bg-emerald-500 hover:bg-emerald-400 text-black'
+                      : 'bg-[#F5B301] hover:bg-[#ffc32b] text-black'
+                  }`}
+                >
+                  {order.status === 'pending'
+                    ? 'Lancer la préparation'
+                    : order.status === 'preparing'
+                    ? 'Marquer prête au comptoir'
+                    : order.status === 'ready'
+                    ? 'Terminer / Remise effectuée'
+                    : 'Confirmer livraison'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onTransition?.(order.orderRef, 'delivered')
+                    onClose()
+                  }}
+                  className="px-3 py-2.5 rounded-xl bg-[#1A1E24] hover:bg-[#252B35] text-xs font-semibold text-white border border-[#2A313C] cursor-pointer transition-colors"
+                  title="Marquer directement comme terminée et archivée"
+                >
+                  Terminer
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm(`Confirmer l'annulation de la commande ${order.orderRef} ?`)) {
+                    onCancel?.(order.orderRef)
+                    onClose()
+                  }
+                }}
+                className="w-full py-2 rounded-xl text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer transition-colors"
+              >
+                Annuler cette commande
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
