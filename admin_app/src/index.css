@@ -51,14 +51,87 @@
   --animate-count-up: count-up 0.6s ease-out both;
 }
 
+/*
+ * Système visuel du back office : une seule liste de rôles, deux thèmes.
+ * - .theme-light : pages de gestion (fond blanc cassé, 60 % de clair selon la charte).
+ * - .theme-dark  : barre latérale et écran cuisine (noir BMC et charbon).
+ * Les composants n'emploient que ces rôles, jamais une couleur en dur.
+ */
+@theme inline {
+  --color-canvas: var(--ui-canvas);
+  --color-surface: var(--ui-surface);
+  --color-raised: var(--ui-raised);
+  --color-line: var(--ui-line);
+  --color-field: var(--ui-field);
+  --color-ink: var(--ui-ink);
+  --color-ink-soft: var(--ui-ink-soft);
+  --color-ink-faint: var(--ui-ink-faint);
+  --color-price: var(--ui-price);
+  --color-ok: var(--ui-ok);
+  --color-ok-soft: var(--ui-ok-soft);
+  --color-warn: var(--ui-warn);
+  --color-warn-soft: var(--ui-warn-soft);
+  --color-bad: var(--ui-bad);
+  --color-bad-soft: var(--ui-bad-soft);
+  --color-gold-soft: var(--ui-gold-soft);
+}
+
+.theme-light {
+  color-scheme: light;
+  --ui-canvas: #FAFAFA;
+  --ui-surface: #FFFFFF;
+  --ui-raised: #F4F4F5;
+  --ui-line: #E4E4E7;
+  --ui-field: #71717A;
+  --ui-ink: #18181B;
+  --ui-ink-soft: #52525B;
+  --ui-ink-faint: #71717A;
+  /* L'or sur blanc est interdit (1,8:1) : les prix restent en charbon sur fond clair. */
+  --ui-price: #18181B;
+  --ui-focus: #C2410C;
+  --ui-ok: #15803D;
+  --ui-ok-soft: #DCFCE7;
+  --ui-warn: #92400E;
+  --ui-warn-soft: #FEF3C7;
+  --ui-bad: #B91C1C;
+  --ui-bad-soft: #FEE2E2;
+  --ui-gold-soft: #FFF4CC;
+}
+
+.theme-dark {
+  color-scheme: dark;
+  --ui-canvas: #0C0C0D;
+  --ui-surface: #18181B;
+  --ui-raised: #27272A;
+  --ui-line: #2E2E33;
+  --ui-field: #71717A;
+  --ui-ink: #FAFAFA;
+  --ui-ink-soft: #A1A1AA;
+  --ui-ink-faint: #8E8E96;
+  --ui-price: #FCB800;
+  --ui-focus: #FCB800;
+  --ui-ok: #4ADE80;
+  --ui-ok-soft: rgba(74, 222, 128, 0.14);
+  --ui-warn: #FCB800;
+  --ui-warn-soft: rgba(252, 184, 0, 0.14);
+  --ui-bad: #EF4444;
+  --ui-bad-soft: rgba(239, 68, 68, 0.16);
+  --ui-gold-soft: rgba(252, 184, 0, 0.14);
+}
+
 @layer base {
   html {
-    color-scheme: dark;
     -webkit-tap-highlight-color: transparent;
   }
 
   body {
-    @apply bg-bmc-charcoal font-sans text-bmc-offwhite antialiased;
+    @apply bg-bmc-black font-sans text-bmc-offwhite antialiased;
+  }
+
+  /* Contour de focus clavier toujours visible (charte, page 16). */
+  :focus-visible {
+    outline: 2px solid var(--ui-focus, #FCB800);
+    outline-offset: 2px;
   }
 }
 

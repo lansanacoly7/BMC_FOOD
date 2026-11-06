@@ -10,10 +10,9 @@ import {
   ShoppingBag,
   Utensils,
   History,
-  RotateCcw,
 } from 'lucide-react'
 import { formatDateTime, formatFcfa } from '../../lib/formatters'
-import type { KdsOrder, KdsOrderStatus, OrderType } from '../../types/kds'
+import type { KdsOrder, OrderType } from '../../types/kds'
 
 interface OrderHistoryDrawerProps {
   isOpen: boolean
@@ -21,7 +20,6 @@ interface OrderHistoryDrawerProps {
   orders: KdsOrder[]
   onViewDetails: (order: KdsOrder) => void
   onPrintTicket: (order: KdsOrder) => void
-  onRestoreOrder?: (orderRef: string, status: KdsOrderStatus) => void
 }
 
 const TYPE_CONFIG: Record<
@@ -39,7 +37,6 @@ export const OrderHistoryDrawer: React.FC<OrderHistoryDrawerProps> = ({
   orders,
   onViewDetails,
   onPrintTicket,
-  onRestoreOrder,
 }) => {
   const [filter, setFilter] = useState<'all' | 'delivered' | 'cancelled'>('all')
   const [search, setSearch] = useState<string>('')
@@ -89,21 +86,21 @@ export const OrderHistoryDrawer: React.FC<OrderHistoryDrawerProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-black/70 select-none animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex justify-end bg-black/60 select-none"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="history-drawer-title"
     >
       <div
-        className="w-full max-w-lg h-full flex flex-col border-l border-[#262A33] bg-[#0F1115] text-[#E6E8EC] font-sans shadow-2xl overflow-hidden"
+        className="w-full max-w-lg h-full flex flex-col border-l border-line bg-canvas text-ink font-sans shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* EN-TÊTE FIXE */}
-        <div className="p-3.5 border-b border-[#262A33] bg-[#171A21] flex items-center justify-between gap-3 shrink-0">
+        <div className="p-3.5 border-b border-line bg-surface flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-2">
-            <History className="size-4 text-[#E8A33D]" />
-            <h2 id="history-drawer-title" className="text-sm font-bold text-[#E6E8EC] uppercase tracking-wider">
+            <History className="size-4 text-bmc-gold" />
+            <h2 id="history-drawer-title" className="font-display text-lg font-bold text-ink">
               Historique des commandes ({historyOrders.length})
             </h2>
           </div>
@@ -111,7 +108,7 @@ export const OrderHistoryDrawer: React.FC<OrderHistoryDrawerProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded text-[#8B93A1] hover:text-[#E6E8EC] hover:bg-[#262A33] transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-ink-soft hover:text-ink hover:bg-raised transition-colors cursor-pointer"
             title="Fermer (Échap)"
           >
             <X className="size-4" />
@@ -119,15 +116,15 @@ export const OrderHistoryDrawer: React.FC<OrderHistoryDrawerProps> = ({
         </div>
 
         {/* BARRE DE RECHERCHE ET FILTRES */}
-        <div className="p-3 border-b border-[#262A33] bg-[#12141A] flex flex-col gap-2 shrink-0">
+        <div className="p-3 border-b border-line bg-canvas flex flex-col gap-2 shrink-0">
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-[#8B93A1]" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-ink-soft" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher par #réf, client, plat..."
-              className="w-full h-8 pl-8 pr-3 rounded bg-[#0F1115] border border-[#262A33] text-xs text-[#E6E8EC] placeholder-[#8B93A1] focus:outline-none focus:border-[#E8A33D] transition-colors"
+              className="w-full h-8 pl-8 pr-3 rounded-lg bg-canvas border border-line text-xs text-ink placeholder:text-ink-faint focus:outline-none focus:border-bmc-gold transition-colors"
             />
           </div>
 
@@ -135,10 +132,10 @@ export const OrderHistoryDrawer: React.FC<OrderHistoryDrawerProps> = ({
             <button
               type="button"
               onClick={() => setFilter('all')}
-              className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg text-[13px] font-medium transition-colors cursor-pointer ${
                 filter === 'all'
-                  ? 'bg-[#262A33] text-[#E6E8EC] font-semibold'
-                  : 'text-[#8B93A1] hover:text-[#E6E8EC]'
+                  ? 'bg-raised text-ink font-semibold'
+                  : 'text-ink-soft hover:text-ink'
               }`}
             >
               Toutes ({historyOrders.length})
@@ -146,34 +143,34 @@ export const OrderHistoryDrawer: React.FC<OrderHistoryDrawerProps> = ({
             <button
               type="button"
               onClick={() => setFilter('delivered')}
-              className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1 ${
+              className={`px-2.5 py-1 rounded-lg text-[13px] font-medium transition-colors cursor-pointer flex items-center gap-1 ${
                 filter === 'delivered'
-                  ? 'bg-[#262A33] text-[#E6E8EC] font-semibold'
-                  : 'text-[#8B93A1] hover:text-[#E6E8EC]'
+                  ? 'bg-raised text-ink font-semibold'
+                  : 'text-ink-soft hover:text-ink'
               }`}
             >
-              <CheckCircle2 className="size-3 text-[#8B93A1]" />
+              <CheckCircle2 className="size-3 text-ink-soft" />
               <span>Remises ({deliveredCount})</span>
             </button>
             <button
               type="button"
               onClick={() => setFilter('cancelled')}
-              className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1 ${
+              className={`px-2.5 py-1 rounded-lg text-[13px] font-medium transition-colors cursor-pointer flex items-center gap-1 ${
                 filter === 'cancelled'
-                  ? 'bg-[#262A33] text-[#E6E8EC] font-semibold'
-                  : 'text-[#8B93A1] hover:text-[#E6E8EC]'
+                  ? 'bg-raised text-ink font-semibold'
+                  : 'text-ink-soft hover:text-ink'
               }`}
             >
-              <XCircle className="size-3 text-[#E04848]" />
+              <XCircle className="size-3 text-bad" />
               <span>Annulées ({cancelledCount})</span>
             </button>
           </div>
         </div>
 
         {/* LISTE DES COMMANDES ARCHIVÉES */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-2.5 kds-column-scroll">
+        <div className="flex-1 overflow-y-auto p-3 space-y-2.5 kds-grid-scroll">
           {filteredOrders.length === 0 ? (
-            <div className="py-16 text-center text-xs text-[#8B93A1]">
+            <div className="py-16 text-center text-xs text-ink-soft">
               Aucune commande trouvée dans l'historique
             </div>
           ) : (
@@ -186,47 +183,47 @@ export const OrderHistoryDrawer: React.FC<OrderHistoryDrawerProps> = ({
               return (
                 <div
                   key={order.id}
-                  className="rounded-lg border border-[#262A33] bg-[#171A21] p-3 flex flex-col gap-2 hover:border-[#363C4A] transition-colors"
+                  className="rounded-lg border border-line bg-surface p-3 flex flex-col gap-2 hover:border-field transition-colors"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-[#E6E8EC]">
+                      <span className="tabular-nums text-xs font-bold text-ink">
                         {displayRef}
                       </span>
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-[#0F1115] text-[#8B93A1] border border-[#262A33]">
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-xs bg-canvas text-ink-soft border border-line">
                         <TypeIcon className="size-2.5" />
                         <span>{typeCfg.label}</span>
                       </span>
                     </div>
 
                     {isDelivered ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-[#262A33] text-[#E6E8EC]">
-                        <CheckCircle2 className="size-3 text-[#8B93A1]" />
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold bg-raised text-ink">
+                        <CheckCircle2 className="size-3 text-ink-soft" />
                         <span>Remise</span>
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-[#E04848]/20 border border-[#E04848]/40 text-[#FF7070]">
-                        <XCircle className="size-3 text-[#FF7070]" />
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold bg-bad-soft text-bad">
+                        <XCircle className="size-3 text-bad" />
                         <span>Annulée</span>
                       </span>
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between text-xs text-[#8B93A1]">
-                    <span className="font-medium text-[#E6E8EC] truncate">
+                  <div className="flex items-center justify-between text-xs text-ink-soft">
+                    <span className="font-medium text-ink truncate">
                       {order.customerName}
                     </span>
-                    <span className="text-[11px] text-[#5D6472]">
+                    <span className="text-[13px] text-ink-faint">
                       {formatDateTime(order.createdAt)}
                     </span>
                   </div>
 
-                  <div className="text-xs text-[#8B93A1] line-clamp-2">
+                  <div className="text-xs text-ink-soft line-clamp-2">
                     {order.items.map((i) => `${i.quantity}× ${i.name}`).join(' · ')}
                   </div>
 
-                  <div className="pt-2 border-t border-[#262A33] flex items-center justify-between gap-2">
-                    <span className="font-mono text-xs font-bold text-[#E6E8EC]">
+                  <div className="pt-2 border-t border-line flex items-center justify-between gap-2">
+                    <span className="tabular-nums text-xs font-bold text-ink">
                       {formatFcfa(order.totalAmount)}
                     </span>
 
@@ -234,33 +231,21 @@ export const OrderHistoryDrawer: React.FC<OrderHistoryDrawerProps> = ({
                       <button
                         type="button"
                         onClick={() => onViewDetails(order)}
-                        className="px-2 py-1 rounded bg-[#0F1115] hover:bg-[#262A33] border border-[#262A33] text-[11px] text-[#E6E8EC] flex items-center gap-1 cursor-pointer transition-colors"
+                        className="px-2 py-1 rounded-lg bg-canvas hover:bg-raised border border-line text-[13px] text-ink flex items-center gap-1 cursor-pointer transition-colors"
                         title="Voir le ticket complet"
                       >
-                        <Eye className="size-3 text-[#8B93A1]" />
+                        <Eye className="size-3 text-ink-soft" />
                         <span>Détails</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => onPrintTicket(order)}
-                        className="p-1 rounded bg-[#0F1115] hover:bg-[#262A33] border border-[#262A33] text-[#8B93A1] hover:text-[#E6E8EC] cursor-pointer transition-colors"
+                        className="p-1 rounded-lg bg-canvas hover:bg-raised border border-line text-ink-soft hover:text-ink cursor-pointer transition-colors"
                         title="Imprimer le ticket"
                       >
                         <Printer className="size-3.5" />
                       </button>
-
-                      {onRestoreOrder && (
-                        <button
-                          type="button"
-                          onClick={() => onRestoreOrder(order.orderRef, 'pending')}
-                          className="px-2 py-1 rounded bg-[#0F1115] hover:bg-[#262A33] border border-[#262A33] text-[11px] text-[#E8A33D] flex items-center gap-1 cursor-pointer transition-colors"
-                          title="Réinsérer dans le workflow cuisine"
-                        >
-                          <RotateCcw className="size-3" />
-                          <span>Réactiver</span>
-                        </button>
-                      )}
                     </div>
                   </div>
                 </div>

@@ -1,4 +1,5 @@
 import React from 'react'
+import { CircleAlert } from 'lucide-react'
 import type { KdsOrderItem } from '../../types/kds'
 
 interface TicketItemLineProps {
@@ -17,58 +18,50 @@ export const TicketItemLine: React.FC<TicketItemLineProps> = ({
   return (
     <div
       onClick={() => onToggleDone(index)}
-      className={`px-3 py-2 cursor-pointer select-none border-b border-[#262A33]/50 transition-colors ${
-        isDone
-          ? 'bg-[#13151A]/40 text-[#5E6676]'
-          : 'hover:bg-[#1F232C] text-[#F2F4F7]'
-      }`}
-      role="button"
-      aria-pressed={isDone}
-      tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === ' ' || e.key === 'Enter') {
           e.preventDefault()
           onToggleDone(index)
         }
       }}
-      title="Cliquer pour rayer / valider ce plat"
+      role="button"
+      aria-pressed={isDone}
+      tabIndex={0}
+      title="Toucher pour rayer ce plat"
+      className={`flex cursor-pointer select-none gap-2 rounded-lg px-1.5 py-1.5 transition-colors ${
+        isDone ? 'opacity-45' : 'hover:bg-raised/60'
+      }`}
     >
-      {/* LIGNE PRINCIPALE DU PLAT : 17px semi-gras */}
-      <div
-        className={`flex items-baseline gap-1.5 text-[17px] font-semibold leading-snug tracking-tight ${
-          isDone ? 'line-through text-[#5E6676]' : 'text-[#F2F4F7]'
-        }`}
-      >
-        <span className="font-mono font-bold text-[#8A93A3] shrink-0">
-          {item.quantity}×
-        </span>
-        <span className="line-clamp-2 break-words leading-tight">
+      <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-md bg-raised px-1 text-[13px] font-bold tabular-nums text-ink">
+        {item.quantity}
+      </span>
+
+      <div className="min-w-0 flex-1">
+        <p
+          className={`line-clamp-2 break-words text-base font-semibold leading-6 text-ink ${
+            isDone ? 'line-through' : ''
+          }`}
+        >
           {item.name}
-        </span>
+        </p>
+
+        {item.options && item.options.length > 0 && (
+          <p className={`line-clamp-2 break-words text-[13px] leading-snug text-ink-soft ${isDone ? 'line-through' : ''}`}>
+            {item.options.join(' · ')}
+          </p>
+        )}
+
+        {item.notes && (
+          <p
+            className={`mt-0.5 flex items-start gap-1.5 text-sm font-semibold leading-snug text-ink ${
+              isDone ? 'line-through' : ''
+            }`}
+          >
+            <CircleAlert className="mt-0.5 size-3.5 shrink-0 text-bmc-gold" />
+            <span className="line-clamp-2 break-words">{item.notes}</span>
+          </p>
+        )}
       </div>
-
-      {/* OPTIONS DU PLAT : 13px gris */}
-      {item.options && item.options.length > 0 && (
-        <div
-          className={`text-[13px] pl-5 mt-0.5 leading-tight line-clamp-2 break-words ${
-            isDone ? 'line-through text-[#454B58]' : 'text-[#8A93A3]'
-          }`}
-        >
-          {item.options.join(' · ')}
-        </div>
-      )}
-
-      {/* REMARQUE CUISINE : Texte blanc, en gras, avec petite icône accent devant, sans fond coloré */}
-      {item.notes && (
-        <div
-          className={`text-[14px] font-bold pl-5 mt-0.5 leading-tight line-clamp-2 break-words flex items-start gap-1 ${
-            isDone ? 'line-through text-[#5E6676]' : 'text-[#F2F4F7]'
-          }`}
-        >
-          <span className="text-[#F59E0B] font-black shrink-0 select-none">◆</span>
-          <span>{item.notes}</span>
-        </div>
-      )}
     </div>
   )
 }

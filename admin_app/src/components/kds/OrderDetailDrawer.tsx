@@ -62,33 +62,33 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-black/70 select-none"
+      className="fixed inset-0 z-50 flex justify-end bg-black/60 select-none"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="drawer-title"
     >
       <div
-        className="w-full max-w-md h-full flex flex-col border-l border-[#262A33] bg-[#0F1115] text-[#E6E8EC] font-sans shadow-xl overflow-y-auto"
+        className="w-full max-w-md h-full flex flex-col border-l border-line bg-canvas text-ink font-sans shadow-xl overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* EN-TÊTE DU TIROIR */}
-        <div className="p-4 border-b border-[#262A33] bg-[#171A21] flex items-start justify-between gap-3 sticky top-0 z-10">
+        <div className="p-4 border-b border-line bg-surface flex items-start justify-between gap-3 sticky top-0 z-10">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <h2
                 id="drawer-title"
-                className="text-xl font-bold font-mono text-[#E6E8EC] tracking-tight"
+                className="font-display text-2xl font-bold tabular-nums text-ink"
               >
                 {order.orderRef}
               </h2>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-[#0F1115] text-[#8B93A1] border border-[#262A33]">
-                <TypeIcon className="size-3 text-[#8B93A1]" />
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-medium bg-canvas text-ink-soft border border-line">
+                <TypeIcon className="size-3 text-ink-soft" />
                 <span>{typeConfig.label}</span>
               </span>
             </div>
-            <p className="text-xs text-[#8B93A1] flex items-center gap-1.5">
-              <Clock className="size-3 text-[#5D6472]" />
+            <p className="text-xs text-ink-soft flex items-center gap-1.5">
+              <Clock className="size-3 text-ink-faint" />
               Reçue à {formatDateTime(order.createdAt)}
             </p>
           </div>
@@ -96,7 +96,7 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded text-[#8B93A1] hover:text-[#E6E8EC] hover:bg-[#262A33] transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-ink-soft hover:text-ink hover:bg-raised transition-colors cursor-pointer"
             title="Fermer"
           >
             <X className="size-5" />
@@ -106,20 +106,20 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
         {/* CORPS DU TIROIR */}
         <div className="p-4 flex-1 flex flex-col gap-4">
           {/* INFORMATIONS CLIENT & PAIEMENT */}
-          <div className="p-3 rounded border border-[#262A33] bg-[#171A21] flex flex-col gap-2">
-            <div className="flex items-center justify-between text-xs text-[#8B93A1] font-medium uppercase tracking-wider">
+          <div className="p-3 rounded-lg border border-line bg-surface flex flex-col gap-2">
+            <div className="flex items-center justify-between text-xs text-ink-soft font-medium">
               <span>Client</span>
-              <span className="font-mono text-[#E6E8EC]">
+              <span className="tabular-nums text-ink">
                 {paymentMethodLabel} · {paymentStatusLabel}
               </span>
             </div>
 
-            <div className="text-base font-bold text-[#E6E8EC]">{order.customerName}</div>
+            <div className="text-base font-bold text-ink">{order.customerName}</div>
 
             {order.phone && (
               <a
                 href={`tel:${order.phone}`}
-                className="flex items-center gap-2 text-xs font-medium text-[#E8A33D] hover:underline"
+                className="flex items-center gap-2 text-xs font-medium text-bmc-gold hover:underline"
               >
                 <Phone className="size-3.5" />
                 <span>{order.phone}</span>
@@ -127,8 +127,8 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
             )}
 
             {order.address && (
-              <div className="flex items-start gap-1.5 text-xs text-[#8B93A1]">
-                <MapPin className="size-3.5 shrink-0 mt-0.5 text-[#5D6472]" />
+              <div className="flex items-start gap-1.5 text-xs text-ink-soft">
+                <MapPin className="size-3.5 shrink-0 mt-0.5 text-ink-faint" />
                 <span>{order.address}</span>
               </div>
             )}
@@ -136,10 +136,10 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
 
           {/* NOTE DU CLIENT */}
           {order.notes && (
-            <div className="p-3 rounded border border-[#262A33] bg-[#171A21] flex items-start gap-2 text-xs text-[#E6E8EC]">
-              <MessageSquare className="size-3.5 text-[#E8A33D] shrink-0 mt-0.5" />
+            <div className="p-3 rounded-lg border border-line bg-surface flex items-start gap-2 text-xs text-ink">
+              <MessageSquare className="size-3.5 text-bmc-gold shrink-0 mt-0.5" />
               <div>
-                <span className="font-semibold text-[#E8A33D] block mb-0.5">Note client :</span>
+                <span className="font-semibold text-bmc-gold block mb-0.5">Note client :</span>
                 <span className="italic leading-relaxed">« {order.notes} »</span>
               </div>
             </div>
@@ -147,33 +147,33 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
 
           {/* DÉTAIL DES ARTICLES COMMANDÉS */}
           <div className="flex flex-col gap-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-[#8B93A1]">
+            <h3 className="text-xs font-semibold text-ink-soft">
               Articles ({order.items.reduce((s, i) => s + i.quantity, 0)})
             </h3>
 
-            <div className="rounded border border-[#262A33] bg-[#171A21] divide-y divide-[#262A33] overflow-hidden">
+            <div className="rounded-lg border border-line bg-surface divide-y divide-line overflow-hidden">
               {order.items.map((item, idx) => (
                 <div key={idx} className="p-2.5 flex items-start justify-between gap-2.5 text-xs">
                   <div className="flex items-start gap-2">
-                    <span className="px-1 py-0.2 rounded text-xs font-mono font-bold bg-[#0F1115] text-[#E8A33D] border border-[#262A33] shrink-0">
+                    <span className="px-1 py-0.2 rounded-lg text-xs tabular-nums font-bold bg-canvas text-bmc-gold border border-line shrink-0">
                       {item.quantity}×
                     </span>
                     <div>
-                      <div className="font-medium text-[#E6E8EC] text-xs">{item.name}</div>
+                      <div className="font-medium text-ink text-xs">{item.name}</div>
                       {item.notes && (
-                        <div className="text-[11px] italic text-[#E8A33D] mt-0.5">
+                        <div className="text-[13px] italic text-bmc-gold mt-0.5">
                           Note : {item.notes}
                         </div>
                       )}
                       {item.options && item.options.length > 0 && (
-                        <div className="text-[11px] text-[#8B93A1] mt-0.5">
+                        <div className="text-[13px] text-ink-soft mt-0.5">
                           • {item.options.join(' · ')}
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="font-mono text-[#8B93A1] text-xs font-medium text-right shrink-0">
+                  <div className="tabular-nums text-ink-soft text-xs font-medium text-right shrink-0">
                     {formatFcfa(item.unitPrice * item.quantity)}
                   </div>
                 </div>
@@ -182,11 +182,11 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
           </div>
 
           {/* MONTANT TOTAL EN F CFA */}
-          <div className="p-3 rounded border border-[#262A33] bg-[#171A21] flex items-center justify-between">
-            <span className="text-xs font-medium text-[#8B93A1] uppercase tracking-wider">
+          <div className="p-3 rounded-lg border border-line bg-surface flex items-center justify-between">
+            <span className="text-xs font-medium text-ink-soft">
               Total TTC
             </span>
-            <span className="text-lg font-bold font-mono text-[#E6E8EC]">
+            <span className="font-display text-xl font-bold tabular-nums text-price">
               {formatFcfa(order.totalAmount)}
             </span>
           </div>
@@ -196,18 +196,18 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
             <button
               type="button"
               onClick={() => onPrintTicket(order)}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded border border-[#262A33] bg-[#171A21] text-xs font-medium text-[#E6E8EC] hover:bg-[#262A33] transition-colors cursor-pointer"
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-line bg-surface text-xs font-medium text-ink hover:bg-raised transition-colors cursor-pointer"
             >
-              <Printer className="size-3.5 text-[#8B93A1]" />
+              <Printer className="size-3.5 text-ink-soft" />
               <span>Imprimer le ticket</span>
             </button>
 
             {order.phone && (
               <a
                 href={`tel:${order.phone}`}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded border border-[#262A33] bg-[#171A21] text-xs font-medium text-[#E6E8EC] hover:bg-[#262A33] transition-colors"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-line bg-surface text-xs font-medium text-ink hover:bg-raised transition-colors"
               >
-                <Phone className="size-3.5 text-[#8B93A1]" />
+                <Phone className="size-3.5 text-ink-soft" />
                 <span>Appeler</span>
               </a>
             )}
@@ -215,7 +215,7 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
 
           {/* BOUTON DE TRANSITION DU WORKFLOW */}
           {order.status !== 'delivered' && order.status !== 'cancelled' && (
-            <div className="flex flex-col gap-2 pt-2 border-t border-[#262A33]">
+            <div className="flex flex-col gap-2 pt-2 border-t border-line">
               <button
                 type="button"
                 onClick={() => {
@@ -228,13 +228,15 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
                   onTransition?.(order.orderRef, next)
                   onClose()
                 }}
-                className="w-full py-2.5 rounded text-xs font-semibold uppercase tracking-wider cursor-pointer transition-colors bg-[#E8A33D] hover:bg-[#D69330] text-[#0F1115]"
+                className="w-full h-12 rounded-lg font-display text-[15px] font-bold cursor-pointer transition-colors bg-bmc-gold hover:bg-[#E5A700] text-bmc-charcoal"
               >
                 {order.status === 'pending'
-                  ? 'Lancer la préparation'
+                  ? 'Lancer la cuisson'
                   : order.status === 'preparing'
                   ? 'Marquer prêt'
-                  : 'Remettre / Servir'}
+                  : order.orderType === 'delivery'
+                  ? 'Remis au livreur'
+                  : 'Remis au client'}
               </button>
 
               <button
@@ -243,7 +245,7 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
                   onCancel?.(order.orderRef)
                   onClose()
                 }}
-                className="w-full py-1.5 rounded text-xs font-medium text-[#E04848] hover:bg-[#E04848]/10 cursor-pointer transition-colors"
+                className="w-full py-1.5 rounded-lg text-xs font-medium text-bad hover:bg-bad-soft cursor-pointer transition-colors"
               >
                 Annuler la commande
               </button>

@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
-import { clearAuthToken, getAuthToken, getAuthUser, DEV_DEFAULT_TOKEN } from './api/client'
+import {
+  clearAuthToken,
+  DEV_DEFAULT_TOKEN,
+  getAuthToken,
+  getAuthUser,
+  SESSION_EXPIRED_EVENT,
+  setAuthToken,
+} from './api/client'
 import { AppHeader, type AdminTab } from './components/common/AppHeader'
 import { AdminSidebar } from './components/common/AdminSidebar'
 import { ConnectionBanner } from './components/common/ConnectionBanner'
 import { Toast } from './components/common/Toast'
+import { Notice } from './components/ui/primitives'
 import { OrderDetailDrawer } from './components/kds/OrderDetailDrawer'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { useNow } from './hooks/useNow'
@@ -20,14 +28,19 @@ import type { KdsOrder, KdsOrderStatus, OrderType } from './types/kds'
 
 export default function App() {
   // 0. État d'authentification administrateur
-  const [authToken, setAuthTokenState] = useState<string | null>(
-    () => getAuthToken() || (import.meta.env.DEV ? DEV_DEFAULT_TOKEN : null),
-  )
+  const [authToken, setAuthTokenState] = useState<string | null>(() => {
+    const storedToken = getAuthToken()
+    if (storedToken || !import.meta.env.DEV) return storedToken
+    // En développement, la connexion automatique doit aussi servir aux appels API.
+    setAuthToken(DEV_DEFAULT_TOKEN)
+    return DEV_DEFAULT_TOKEN
+  })
   const [currentUser, setCurrentUserState] = useState<string | null>(() => getAuthUser() || 'admin')
 
   const handleLoginSuccess = (user: string) => {
     setAuthTokenState(getAuthToken())
     setCurrentUserState(user)
+    void refresh()
   }
 
   const handleLogout = () => {
@@ -37,7 +50,8 @@ export default function App() {
   }
 
   const [headerTab, setHeaderTab] = useState<AdminTab>('kds')
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false)
+  // Sur tablette, la cuisine garde toute la largeur : le menu démarre replié.
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => window.innerWidth < 1280)
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [typeFilter, setTypeFilter] = useState<'all' | OrderType>('all')
   const [selectedOrder, setSelectedOrder] = useState<KdsOrder | null>(null)
@@ -55,6 +69,7 @@ export default function App() {
     orders,
     isLoading,
     connectionState,
+    actionError,
     newOrdersSet,
     isAudioMuted,
     toggleAudio,
@@ -64,6 +79,16 @@ export default function App() {
     activeUndoAction,
     acknowledgeNewOrders,
   } = useOrders(nowMs)
+
+  // Jeton refusé par le serveur : retour à la page de connexion
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setAuthTokenState(null)
+      setCurrentUserState(null)
+    }
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired)
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired)
+  }, [])
 
   // 4. Déverrouillage audio sur la première interaction utilisateur
   useEffect(() => {
@@ -177,28 +202,26 @@ export default function App() {
 
   return (
     <div
-      className="h-screen max-h-screen h-[100dvh] flex flex-row antialiased text-[#FFFFFF] select-none overflow-hidden kds-cuisine font-sans bg-[#0E1116]"
+      className={`flex h-[100dvh] flex-row overflow-hidden bg-canvas font-sans text-ink antialiased ${
+        headerTab === 'kds' ? 'theme-dark select-none' : 'theme-light'
+      }`}
     >
-      {!isSidebarCollapsed && (
-        <AdminSidebar
-          currentTab={headerTab}
-          onTabChange={(tab) => setHeaderTab(tab)}
-          onLogout={handleLogout}
-          currentUser={currentUser}
-        />
-      )}
+      <AdminSidebar
+        currentTab={headerTab}
+        onTabChange={(tab) => setHeaderTab(tab)}
+        onLogout={handleLogout}
+        currentUser={currentUser}
+        isCollapsed={isSidebarCollapsed}
+        liveCount={orders.filter((o) => o.status !== 'delivered' && o.status !== 'cancelled').length}
+      />
 
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        {/* En-tête générique affiché UNIQUEMENT sur les autres modules (Promotions, Transactions, etc.) */}
+        {/* L'écran cuisine porte sa propre barre (filtres et indicateurs de service). */}
         {headerTab !== 'kds' && (
           <AppHeader
             currentTab={headerTab}
             isSidebarCollapsed={isSidebarCollapsed}
             onToggleSidebar={() => setIsSidebarCollapsed((prev) => !prev)}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            typeFilter={typeFilter}
-            onTypeFilterChange={setTypeFilter}
             isAudioMuted={isAudioMuted}
             onToggleAudio={toggleAudio}
           />
@@ -210,8 +233,7 @@ export default function App() {
           isRetrying={isLoading}
         />
 
-        {/* ZONE PRINCIPALE (100% de la hauteur restante, sans barre superflue) */}
-        <main className="flex-1 flex flex-col min-h-0 overflow-hidden" role="main">
+                <main className="flex-1 flex flex-col min-h-0 overflow-hidden" role="main">
           {headerTab === 'special' ? (
             <DailySpecialPage />
           ) : headerTab === 'promotions' ? (
@@ -250,10 +272,11 @@ export default function App() {
         onCancel={handleCancelOrder}
       />
 
+      <Notice notice={actionError ? { message: actionError, type: 'error' } : null} />
+
       <Toast
         undoAction={activeUndoAction}
         onUndo={(orderRef) => undoTransition(orderRef)}
-        onDismiss={() => {}}
       />
     </div>
   )

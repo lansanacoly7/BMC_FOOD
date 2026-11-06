@@ -1,6 +1,30 @@
 import React, { useState, useEffect } from 'react'
-import { Eye, Plus, Search, Tag, X } from 'lucide-react'
+import { Eye, Plus, SearchX, Tag } from 'lucide-react'
 import { createMenuItem, fetchPromotions, savePromotions } from '../services/api'
+import { NewDishModal, type NewDishValues } from '../components/admin/NewDishModal'
+import {
+  Badge,
+  Button,
+  Card,
+  DishCell,
+  EmptyBlock,
+  Modal,
+  Notice,
+  PageBody,
+  SearchInput,
+  Segmented,
+  SelectInput,
+  Stat,
+  StatGrid,
+  Table,
+  Td,
+  Th,
+  Toolbar,
+  Tr,
+  type NoticeState,
+  type SegmentOption,
+} from '../components/ui/primitives'
+import { buttonClass } from '../components/ui/styles'
 
 interface PromoItem {
   id: number
@@ -109,9 +133,31 @@ const INITIAL_CATALOG: PromoItem[] = [
   },
 ]
 
-const formatPrice = (v: number) => `${v.toLocaleString('fr-FR')} F CFA`
+const formatPrice = (v: number) => `${v.toLocaleString('fr-FR')} F`
 const calcDiscounted = (price: number, percent: number) =>
   Math.round((price * (100 - percent)) / 100 / 50) * 50
+
+const DISCOUNTS = [10, 15, 20, 25]
+
+const CATEGORY_OPTIONS: SegmentOption<string>[] = [
+  { id: 'all', label: 'Toutes' },
+  { id: 'tacos', label: 'Tacos panés' },
+  { id: 'burgers', label: 'Burgers' },
+  { id: 'poulet', label: 'Poulet' },
+  { id: 'boissons', label: 'Boissons' },
+]
+
+const DISH_CATEGORIES = ['Tacos panés', 'Burgers', 'Poulet', 'Boissons']
+
+const DISH_PHOTOS = [
+  { url: '/images/products/tacos-viande-pane.webp', label: 'Tacos viande pané' },
+  { url: '/images/products/tacos-poulet-pane.webp', label: 'Tacos poulet pané' },
+  { url: '/images/products/tacos-mixte-pane.webp', label: 'Tacos mixte pané' },
+  { url: '/images/products/burger-bmc-complet.webp', label: 'Burger BMC complet' },
+  { url: '/images/products/burger-poulet-crispy.webp', label: 'Burger poulet crispy' },
+  { url: '/images/products/tenders-poulet.webp', label: 'Tenders de poulet' },
+  { url: '/images/products/canette-bissap-bmc.webp', label: 'Canette bissap' },
+]
 
 export const PromotionsPage: React.FC = () => {
   const [products, setProducts] = useState<PromoItem[]>(INITIAL_CATALOG)
@@ -119,15 +165,10 @@ export const PromotionsPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [editingProduct, setEditingProduct] = useState<PromoItem | null>(null)
   const [selectedPercent, setSelectedPercent] = useState<number>(20)
-  const [notification, setNotification] = useState<string | null>(null)
+  const [notification, setNotification] = useState<NoticeState | null>(null)
 
-  // Modal nouveau plat
+  // Fenêtre « Ajouter un plat »
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newPrice, setNewPrice] = useState('3500')
-  const [newCategory, setNewCategory] = useState('Tacos panés')
-  const [newDescription, setNewDescription] = useState('')
-  const [newImageUrl, setNewImageUrl] = useState('/images/products/tacos-viande-pane.webp')
   const [newDiscountPercent, setNewDiscountPercent] = useState<number>(20)
   const [newSetPromo, setNewSetPromo] = useState<boolean>(true)
   const [isSubmittingNew, setIsSubmittingNew] = useState(false)
@@ -162,8 +203,8 @@ export const PromotionsPage: React.FC = () => {
     }
   }, [])
 
-  const showNotification = (msg: string) => {
-    setNotification(msg)
+  const showNotification = (message: string, type: NoticeState['type'] = 'success') => {
+    setNotification({ message, type })
     setTimeout(() => setNotification(null), 3000)
   }
 
@@ -209,29 +250,28 @@ export const PromotionsPage: React.FC = () => {
   }
 
   // Créer un nouveau plat
-  const handleCreateProduct = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newName.trim()) return
+  const handleCreateProduct = async (values: NewDishValues) => {
+    if (!values.name.trim()) return
 
     setIsSubmittingNew(true)
     try {
       const res = await createMenuItem({
-        name: newName.trim(),
-        price: parseInt(newPrice, 10) || 3000,
-        category: newCategory,
-        description: newDescription.trim(),
-        image_url: newImageUrl,
+        name: values.name.trim(),
+        price: parseInt(values.price, 10) || 3000,
+        category: values.category,
+        description: values.description.trim(),
+        image_url: values.imageUrl,
         is_available: true,
       })
 
       const newItem: PromoItem = {
         id: res.item?.id || Date.now(),
         code: res.item?.code || `plat-${Date.now()}`,
-        name: res.item?.name || newName,
-        category: res.item?.category_name || newCategory,
-        price: res.item?.price || parseInt(newPrice, 10),
-        image_url: res.item?.image_url || newImageUrl,
-        description: res.item?.description || newDescription,
+        name: res.item?.name || values.name,
+        category: res.item?.category_name || values.category,
+        price: res.item?.price || parseInt(values.price, 10),
+        image_url: res.item?.image_url || values.imageUrl,
+        description: res.item?.description || values.description,
         isPromo: newSetPromo,
         discountPercent: newSetPromo ? newDiscountPercent : undefined,
       }
@@ -239,12 +279,10 @@ export const PromotionsPage: React.FC = () => {
       const updated = [newItem, ...products]
       setProducts(updated)
       void persistPromotions(updated)
-      showNotification(`Plat « ${newItem.name} » ajouté${newSetPromo ? ' avec promotion' : ''} !`)
+      showNotification(`Plat « ${newItem.name} » ajouté${newSetPromo ? ' avec promotion' : ''}.`)
       setIsAddModalOpen(false)
-      setNewName('')
-      setNewDescription('')
     } catch {
-      showNotification("Erreur lors de l'ajout du plat")
+      showNotification("Le plat n'a pas pu être ajouté. Réessayez.", 'error')
     } finally {
       setIsSubmittingNew(false)
     }
@@ -252,458 +290,215 @@ export const PromotionsPage: React.FC = () => {
 
   // Promotions actives en ligne
   const activePromos = products.filter((p) => p.isPromo)
+  const averageDiscount =
+    activePromos.length > 0
+      ? Math.round(activePromos.reduce((sum, p) => sum + (p.discountPercent || 20), 0) / activePromos.length)
+      : 0
 
-  // Filtrage du catalogue
-  const filteredProducts = products.filter((p) => {
-    const matchCat =
-      selectedCategory === 'all' ||
-      (selectedCategory === 'tacos' && p.category.toLowerCase().includes('tacos')) ||
-      (selectedCategory === 'burgers' && p.category.toLowerCase().includes('burger')) ||
-      (selectedCategory === 'poulet' && p.category.toLowerCase().includes('poulet')) ||
-      (selectedCategory === 'boissons' && p.category.toLowerCase().includes('boisson'))
+  // Filtrage du catalogue, plats en promotion en tête
+  const filteredProducts = products
+    .filter((p) => {
+      const matchCat =
+        selectedCategory === 'all' ||
+        (selectedCategory === 'tacos' && p.category.toLowerCase().includes('tacos')) ||
+        (selectedCategory === 'burgers' && p.category.toLowerCase().includes('burger')) ||
+        (selectedCategory === 'poulet' && p.category.toLowerCase().includes('poulet')) ||
+        (selectedCategory === 'boissons' && p.category.toLowerCase().includes('boisson'))
 
-    const q = searchQuery.toLowerCase().trim()
-    const matchSearch =
-      q === '' ||
-      p.name.toLowerCase().includes(q) ||
-      p.code.toLowerCase().includes(q) ||
-      p.category.toLowerCase().includes(q)
+      const q = searchQuery.toLowerCase().trim()
+      const matchSearch =
+        q === '' ||
+        p.name.toLowerCase().includes(q) ||
+        p.code.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q)
 
-    return matchCat && matchSearch
-  })
+      return matchCat && matchSearch
+    })
+    .sort((a, b) => Number(b.isPromo) - Number(a.isPromo))
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-6 space-y-6 text-left overflow-y-auto">
-      {notification && (
-        <div className="fixed top-5 right-5 z-50 rounded-xl px-4 py-2.5 bg-[#14171C] border border-[#F5B301]/40 text-xs text-white shadow-xl">
-          {notification}
+    <PageBody>
+      <Notice notice={notification} />
+
+      <StatGrid>
+        <Stat label="Promotions en ligne" value={activePromos.length} hint="Visibles sur le site client" />
+        <Stat
+          label="Remise moyenne"
+          value={activePromos.length > 0 ? `-${averageDiscount} %` : '—'}
+          hint="Sur les plats en promotion"
+        />
+        <Stat label="Plats au catalogue" value={products.length} hint="Tous les plats listés ci-dessous" />
+        <div className="flex flex-col justify-center gap-2">
+          <Button variant="primary" icon={Plus} onClick={() => setIsAddModalOpen(true)}>
+            Ajouter un plat
+          </Button>
+          <a href="http://localhost:5173/" target="_blank" rel="noreferrer" className={buttonClass('secondary', 'md')}>
+            <Eye className="size-4" />
+            Voir le site client
+          </a>
         </div>
-      )}
+      </StatGrid>
 
-      {/* 1. SECTION VEDETTE : Promotions Actuellement en Ligne */}
-      <section className="space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold text-white">
-              Promotions Actuellement en Ligne ({activePromos.length})
-            </h2>
-            <p className="text-xs text-[#8A93A0]">
-              Ces plats apparaissent automatiquement avec leur tarif réduit sur le site client.
-            </p>
-          </div>
+      <Card className="overflow-hidden">
+        <Toolbar>
+          <Segmented
+            label="Filtrer par catégorie"
+            options={CATEGORY_OPTIONS}
+            value={selectedCategory}
+            onChange={setSelectedCategory}
+          />
+          <SearchInput
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Rechercher un plat…"
+            aria-label="Rechercher un plat"
+            wrapperClassName="ml-auto w-full sm:w-64"
+          />
+        </Toolbar>
 
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setIsAddModalOpen(true)}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#1A1E24] hover:bg-[#222730] border border-[#2A313C] px-3.5 py-2 text-xs font-semibold text-white cursor-pointer transition-colors"
-            >
-              <Plus className="size-4 text-[#F5B301]" />
-              <span>Nouveau plat</span>
-            </button>
-
-            <a
-              href="http://localhost:5173/"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-[#2A313C] bg-[#12151A] px-3 py-2 text-xs font-semibold text-[#C4CAD3] hover:text-white transition-colors"
-            >
-              <Eye className="size-3.5" />
-              <span>Aperçu client</span>
-            </a>
-          </div>
-        </div>
-
-        {activePromos.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {activePromos.map((item) => {
-              const promoPrice = calcDiscounted(item.price, item.discountPercent || 20)
-              return (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-4 rounded-xl border border-[#2A313C] bg-[#12151A] p-4 text-white"
-                >
-                  <img
-                    src={item.image_url}
-                    alt={item.name}
-                    className="size-16 rounded-lg object-cover shrink-0 bg-black border border-white/5"
-                    onError={(e) => {
-                      e.currentTarget.src = '/images/products/tacos-viande-pane.webp'
-                    }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-white truncate">{item.name}</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#F5B301]/20 text-[#F5B301] font-semibold">
-                        -{item.discountPercent}%
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs font-bold text-[#F5B301]">{promoPrice.toLocaleString('fr-FR')} F</span>
-                      <span className="text-[11px] text-[#5F6875] line-through">{item.price.toLocaleString('fr-FR')} F</span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRemovePromo(item)}
-                    className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded hover:bg-red-500/10 transition-colors cursor-pointer"
-                  >
-                    Retirer
-                  </button>
-                </div>
-              )
-            })}
-          </div>
+        {filteredProducts.length === 0 ? (
+          <EmptyBlock icon={SearchX} title="Aucun plat trouvé" description="Essayez un autre nom ou une autre catégorie." />
         ) : (
-          <div className="rounded-xl border border-dashed border-[#2A313C] bg-[#12151A] p-6 text-center space-y-1">
-            <Tag className="mx-auto size-6 text-[#5F6875]" />
-            <p className="text-xs font-medium text-[#C4CAD3]">Aucune promotion active</p>
-            <p className="text-[11px] text-[#5F6875]">Activez une promotion dans la liste ci-dessous.</p>
+          <div className="overflow-x-auto">
+            <Table>
+              <thead>
+                <tr>
+                  <Th>Plat</Th>
+                  <Th className="hidden md:table-cell">Catégorie</Th>
+                  <Th className="text-right">Prix de carte</Th>
+                  <Th className="text-right">Prix affiché</Th>
+                  <Th>Statut</Th>
+                  <Th className="text-right">
+                    <span className="sr-only">Action</span>
+                  </Th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredProducts.map((product) => (
+                  <Tr key={product.id}>
+                    <Td className="max-w-72">
+                      <DishCell name={product.name} imageUrl={product.image_url} meta={product.code} />
+                    </Td>
+                    <Td className="hidden whitespace-nowrap text-ink-soft md:table-cell">{product.category}</Td>
+                    <Td
+                      className={`whitespace-nowrap text-right tabular-nums ${
+                        product.isPromo ? 'text-ink-faint line-through' : ''
+                      }`}
+                    >
+                      {formatPrice(product.price)}
+                    </Td>
+                    <Td className="whitespace-nowrap text-right font-display font-semibold tabular-nums">
+                      {product.isPromo
+                        ? formatPrice(calcDiscounted(product.price, product.discountPercent || 20))
+                        : formatPrice(product.price)}
+                    </Td>
+                    <Td>
+                      {product.isPromo ? (
+                        <Badge tone="gold">-{product.discountPercent} % en ligne</Badge>
+                      ) : (
+                        <Badge>Prix normal</Badge>
+                      )}
+                    </Td>
+                    <Td className="text-right">
+                      {product.isPromo ? (
+                        <Button size="sm" variant="danger" onClick={() => handleRemovePromo(product)}>
+                          Retirer
+                        </Button>
+                      ) : (
+                        <Button size="sm" icon={Tag} onClick={() => handleOpenPromoModal(product)}>
+                          Mettre en promo
+                        </Button>
+                      )}
+                    </Td>
+                  </Tr>
+                ))}
+              </tbody>
+            </Table>
           </div>
         )}
-      </section>
+      </Card>
 
-      {/* 2. CATALOGUE DES PRODUITS : Activer une promotion */}
-      <section className="space-y-4 pt-4 border-t border-[#1F242B]">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h3 className="text-base font-semibold text-white">Catalogue des Spécialités</h3>
-            <p className="text-xs text-[#8A93A0]">
-              Cliquez sur « Mettre en promotion » pour définir la remise.
-            </p>
-          </div>
-
-          <div className="relative w-full sm:w-64">
-            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[#5F6875]" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Rechercher un plat..."
-              className="w-full rounded-lg border border-[#2A313C] bg-[#12151A] pl-9 pr-3 py-1.5 text-xs text-white placeholder-[#5F6875] focus:border-[#F5B301] focus:outline-none"
-            />
-          </div>
-        </div>
-
-        {/* Filtres de catégorie */}
-        <div className="flex flex-wrap items-center gap-2">
-          {[
-            { id: 'all', label: 'Toutes' },
-            { id: 'tacos', label: 'Tacos panés' },
-            { id: 'burgers', label: 'Burgers' },
-            { id: 'poulet', label: 'Poulet' },
-            { id: 'boissons', label: 'Boissons' },
-          ].map((cat) => (
-            <button
-              key={cat.id}
-              type="button"
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
-                selectedCategory === cat.id
-                  ? 'bg-[#1A1E24] text-white border border-[#2A313C]'
-                  : 'text-[#8A93A0] hover:text-white hover:bg-[#15191E]'
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Grille de cartes */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-          {filteredProducts.map((product) => {
-            const hasPromo = product.isPromo
-            const promoPrice = hasPromo
-              ? calcDiscounted(product.price, product.discountPercent || 20)
-              : null
-
-            return (
-              <div
-                key={product.id}
-                className={`flex flex-col justify-between rounded-xl border p-4 transition-colors ${
-                  hasPromo
-                    ? 'border-[#F5B301]/40 bg-[#15191F]'
-                    : 'border-[#1F242B] bg-[#12151A] hover:border-[#2A313C]'
+      {editingProduct && (
+        <Modal
+          title="Appliquer une promotion"
+          description={`${editingProduct.name} · ${formatPrice(editingProduct.price)}`}
+          onClose={() => setEditingProduct(null)}
+          size="sm"
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setEditingProduct(null)}>
+                Annuler
+              </Button>
+              <Button variant="primary" onClick={handleApplyPromo}>
+                Publier la promotion
+              </Button>
+            </>
+          }
+        >
+          <p className="mb-2 text-[13px] font-medium">Réduction</p>
+          <div className="grid grid-cols-4 gap-2">
+            {DISCOUNTS.map((pct) => (
+              <button
+                key={pct}
+                type="button"
+                aria-pressed={selectedPercent === pct}
+                onClick={() => setSelectedPercent(pct)}
+                className={`h-10 cursor-pointer rounded-lg font-display text-sm font-semibold transition-colors ${
+                  selectedPercent === pct
+                    ? 'bg-bmc-gold text-bmc-charcoal'
+                    : 'border border-line text-ink hover:bg-raised'
                 }`}
               >
-                <div className="space-y-3">
-                  <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
-                    <img
-                      src={product.image_url}
-                      alt={product.name}
-                      onError={(e) => {
-                        e.currentTarget.src = '/images/products/tacos-viande-pane.webp'
-                      }}
-                      className="size-full object-cover object-center"
-                    />
-                    {hasPromo && (
-                      <div className="absolute top-2 left-2 rounded px-2 py-0.5 text-[10px] font-semibold bg-[#F5B301] text-black">
-                        -{product.discountPercent}% en ligne
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <h4 className="text-sm font-semibold text-white">{product.name}</h4>
-                      <div className="text-right">
-                        {promoPrice !== null ? (
-                          <div className="flex flex-col items-end">
-                            <span className="text-xs font-bold text-[#F5B301]">
-                              {promoPrice.toLocaleString('fr-FR')} F
-                            </span>
-                            <span className="text-[10px] text-[#5F6875] line-through">
-                              {product.price.toLocaleString('fr-FR')} F
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-xs font-semibold text-[#8A93A0]">
-                            {product.price.toLocaleString('fr-FR')} F
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <p className="line-clamp-2 text-xs text-[#8A93A0]">{product.description}</p>
-                  </div>
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-[#1F242B] flex items-center justify-between gap-2">
-                  <span className="text-[11px] text-[#5F6875]">{product.code}</span>
-
-                  {hasPromo ? (
-                    <button
-                      type="button"
-                      onClick={() => handleRemovePromo(product)}
-                      className="inline-flex items-center gap-1 rounded-lg bg-[#1A1E24] hover:bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 cursor-pointer transition-colors"
-                    >
-                      <span>Retirer promo</span>
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleOpenPromoModal(product)}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-[#1A1E24] hover:bg-[#252B35] border border-[#2A313C] px-3 py-1.5 text-xs font-semibold text-white cursor-pointer transition-colors"
-                    >
-                      <Tag className="size-3.5 text-[#F5B301]" />
-                      <span>Mettre en promo</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </section>
-
-      {/* MODAL : Configuration de la promotion */}
-      {editingProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="w-full max-w-sm rounded-2xl border border-[#2A313C] bg-[#12151A] p-6 shadow-2xl space-y-4 text-left">
-            <div className="flex items-center justify-between border-b border-[#1F242B] pb-3">
-              <h3 className="text-base font-semibold text-white">Appliquer une promotion</h3>
-              <button
-                type="button"
-                onClick={() => setEditingProduct(null)}
-                className="text-[#8A93A0] hover:text-white cursor-pointer"
-              >
-                <X className="size-5" />
+                -{pct} %
               </button>
-            </div>
-
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-white">{editingProduct.name}</p>
-              <p className="text-xs text-[#8A93A0]">Prix initial : {formatPrice(editingProduct.price)}</p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-[#C4CAD3] mb-2">
-                Pourcentage de réduction
-              </label>
-              <div className="grid grid-cols-4 gap-2">
-                {[10, 15, 20, 25].map((pct) => (
-                  <button
-                    key={pct}
-                    type="button"
-                    onClick={() => setSelectedPercent(pct)}
-                    className={`py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                      selectedPercent === pct
-                        ? 'bg-[#F5B301] text-black font-bold'
-                        : 'bg-[#1A1E24] border border-[#2A313C] text-[#C4CAD3] hover:text-white'
-                    }`}
-                  >
-                    -{pct}%
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-xl bg-[#0F1216] border border-[#1F242B] p-3 text-xs flex justify-between items-center">
-              <span className="text-[#8A93A0]">Nouveau prix affiché</span>
-              <span className="font-bold text-[#F5B301] text-sm">
-                {calcDiscounted(editingProduct.price, selectedPercent).toLocaleString('fr-FR')} F CFA
-              </span>
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setEditingProduct(null)}
-                className="flex-1 rounded-lg bg-[#1A1E24] py-2 text-xs font-medium text-[#C4CAD3] hover:text-white cursor-pointer"
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                onClick={handleApplyPromo}
-                className="flex-1 rounded-lg bg-[#F5B301] hover:bg-[#ffc32b] py-2 text-xs font-semibold text-black cursor-pointer transition-colors"
-              >
-                Confirmer
-              </button>
-            </div>
+            ))}
           </div>
-        </div>
+
+          <div className="mt-4 flex items-baseline justify-between rounded-lg bg-raised px-3 py-2.5">
+            <span className="text-sm text-ink-soft">Prix affiché</span>
+            <span className="font-display text-xl font-bold tabular-nums">
+              {calcDiscounted(editingProduct.price, selectedPercent).toLocaleString('fr-FR')} F CFA
+            </span>
+          </div>
+        </Modal>
       )}
 
-      {/* MODAL : Ajouter un nouveau plat */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl border border-[#2A313C] bg-[#12151A] p-6 shadow-2xl text-left">
-            <div className="flex items-center justify-between mb-4 border-b border-[#1F242B] pb-3">
-              <h3 className="text-base font-semibold text-white">Ajouter un nouveau plat</h3>
-              <button
-                type="button"
-                onClick={() => setIsAddModalOpen(false)}
-                className="text-[#8A93A0] hover:text-white cursor-pointer"
+        <NewDishModal
+          categories={DISH_CATEGORIES}
+          photos={DISH_PHOTOS}
+          isSubmitting={isSubmittingNew}
+          onClose={() => setIsAddModalOpen(false)}
+          onSubmit={(values) => void handleCreateProduct(values)}
+        >
+          <div className="flex items-center gap-2.5">
+            <input
+              type="checkbox"
+              id="set-promo"
+              checked={newSetPromo}
+              onChange={(e) => setNewSetPromo(e.target.checked)}
+              className="size-4 cursor-pointer accent-bmc-orange-braise"
+            />
+            <label htmlFor="set-promo" className="cursor-pointer text-sm">
+              Mettre en promotion
+            </label>
+            {newSetPromo && (
+              <SelectInput
+                aria-label="Réduction"
+                value={newDiscountPercent}
+                onChange={(e) => setNewDiscountPercent(Number(e.target.value))}
+                className="ml-auto !h-9 !w-24"
               >
-                <X className="size-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateProduct} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-[#C4CAD3] mb-1">
-                  Nom du plat *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Ex: Tacos Suprême Fromager"
-                  className="w-full rounded-lg border border-[#2A313C] bg-[#0F1216] px-3 py-2 text-xs text-white placeholder-[#5F6875] focus:border-[#F5B301] focus:outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-[#C4CAD3] mb-1">
-                    Prix (F CFA) *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min={500}
-                    step={100}
-                    value={newPrice}
-                    onChange={(e) => setNewPrice(e.target.value)}
-                    className="w-full rounded-lg border border-[#2A313C] bg-[#0F1216] px-3 py-2 text-xs text-white focus:border-[#F5B301] focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-[#C4CAD3] mb-1">
-                    Catégorie
-                  </label>
-                  <select
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
-                    className="w-full rounded-lg border border-[#2A313C] bg-[#0F1216] px-3 py-2 text-xs text-white focus:border-[#F5B301] focus:outline-none"
-                  >
-                    <option value="Tacos panés">Tacos panés</option>
-                    <option value="Burgers">Burgers</option>
-                    <option value="Poulet">Poulet</option>
-                    <option value="Boissons">Boissons</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-[#C4CAD3] mb-1">
-                  Description
-                </label>
-                <textarea
-                  rows={2}
-                  value={newDescription}
-                  onChange={(e) => setNewDescription(e.target.value)}
-                  placeholder="Ingrédients, recette..."
-                  className="w-full rounded-lg border border-[#2A313C] bg-[#0F1216] px-3 py-2 text-xs text-white placeholder-[#5F6875] focus:border-[#F5B301] focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-[#C4CAD3] mb-1">
-                  Photo
-                </label>
-                <select
-                  value={newImageUrl}
-                  onChange={(e) => setNewImageUrl(e.target.value)}
-                  className="w-full rounded-lg border border-[#2A313C] bg-[#0F1216] px-3 py-2 text-xs text-white focus:border-[#F5B301] focus:outline-none"
-                >
-                  <option value="/images/products/tacos-viande-pane.webp">Tacos Viande Pané</option>
-                  <option value="/images/products/tacos-poulet-pane.webp">Tacos Poulet Pané</option>
-                  <option value="/images/products/tacos-mixte-pane.webp">Tacos Mixte Pané</option>
-                  <option value="/images/products/burger-bmc-complet.webp">Burger BMC Complet</option>
-                  <option value="/images/products/burger-poulet-crispy.webp">Burger Poulet Crispy</option>
-                  <option value="/images/products/tenders-poulet.webp">Tenders Poulet</option>
-                  <option value="/images/products/canette-bissap-bmc.webp">Canette Bissap</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="set_promo_check"
-                  checked={newSetPromo}
-                  onChange={(e) => setNewSetPromo(e.target.checked)}
-                  className="rounded border-[#2A313C] bg-[#0F1216] text-[#F5B301] focus:ring-0 cursor-pointer"
-                />
-                <label htmlFor="set_promo_check" className="text-xs text-[#C4CAD3] cursor-pointer">
-                  Mettre en promotion
-                </label>
-                {newSetPromo && (
-                  <select
-                    value={newDiscountPercent}
-                    onChange={(e) => setNewDiscountPercent(Number(e.target.value))}
-                    className="ml-auto rounded border border-[#2A313C] bg-[#0F1216] px-2 py-0.5 text-xs text-[#F5B301] font-semibold"
-                  >
-                    <option value={10}>-10%</option>
-                    <option value={15}>-15%</option>
-                    <option value={20}>-20%</option>
-                    <option value={25}>-25%</option>
-                  </select>
-                )}
-              </div>
-
-              <div className="flex gap-2 pt-3 border-t border-[#1F242B]">
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="flex-1 rounded-lg bg-[#1A1E24] py-2 text-xs font-medium text-[#C4CAD3] hover:text-white cursor-pointer"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmittingNew}
-                  className="flex-1 rounded-lg bg-[#F5B301] py-2 text-xs font-semibold text-black hover:bg-[#ffc32b] cursor-pointer disabled:opacity-50"
-                >
-                  {isSubmittingNew ? 'Enregistrement...' : 'Enregistrer'}
-                </button>
-              </div>
-            </form>
+                {DISCOUNTS.map((pct) => (
+                  <option key={pct} value={pct}>
+                    -{pct} %
+                  </option>
+                ))}
+              </SelectInput>
+            )}
           </div>
-        </div>
+        </NewDishModal>
       )}
-    </div>
+    </PageBody>
   )
 }

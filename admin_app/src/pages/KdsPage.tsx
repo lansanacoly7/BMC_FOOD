@@ -2,8 +2,9 @@ import React, { useMemo, useState } from 'react'
 import type { ChronoThresholds, KdsOrder, KdsOrderStatus, OrderType } from '../types/kds'
 import { DEFAULT_KDS_THRESHOLDS } from '../styles/kdsTokens'
 import { getElapsedSeconds } from '../lib/formatters'
+import { KdsProduceBar } from '../components/kds/KdsProduceBar'
 import { KdsTopBar } from '../components/kds/KdsTopBar'
-import { KdsThreeColumns } from '../components/kds/KdsThreeColumns'
+import { KdsBoard } from '../components/kds/KdsBoard'
 import { OrderHistoryDrawer } from '../components/kds/OrderHistoryDrawer'
 
 interface KdsPageProps {
@@ -84,13 +85,16 @@ export const KdsPage: React.FC<KdsPageProps> = ({
     )
   }, [filteredOrders])
 
+  // Retards sur les 3 colonnes : le compteur correspond aux tickets rouges affichés
   const lateCount = useMemo(() => {
     const dangerSec = thresholds.dangerMinutes * 60
-    return activeOrders.filter((o) => {
-      const elapsed = getElapsedSeconds(o.createdAt, nowMs)
-      return elapsed >= dangerSec
-    }).length
-  }, [activeOrders, nowMs, thresholds])
+    return filteredOrders.filter(
+      (o) =>
+        o.status !== 'delivered' &&
+        o.status !== 'cancelled' &&
+        getElapsedSeconds(o.createdAt, nowMs) >= dangerSec,
+    ).length
+  }, [filteredOrders, nowMs, thresholds])
 
   const avgWaitMinutes = useMemo(() => {
     if (activeOrders.length === 0) return 0
@@ -112,7 +116,6 @@ export const KdsPage: React.FC<KdsPageProps> = ({
     <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-[#0F1115] text-[#F2F4F7] font-sans select-none kds-no-hscroll">
       {/* 1. BARRE DU HAUT SIMPLIFIÉE (UNE LIGNE) */}
       <KdsTopBar
-        orders={filteredOrders}
         isSidebarCollapsed={isSidebarCollapsed}
         onToggleSidebar={onToggleSidebar}
         searchQuery={searchQuery}
@@ -128,8 +131,10 @@ export const KdsPage: React.FC<KdsPageProps> = ({
         onToggleAudio={onToggleAudio}
       />
 
-      {/* 2. ZONE PRINCIPALE : 3 COLONNES DE LARGEUR ÉGALE, PLEINE HAUTEUR (PAS DE BARRE BASSE) */}
-      <KdsThreeColumns
+      <KdsProduceBar orders={filteredOrders} />
+
+      {/* 2. ZONE PRINCIPALE : UN ONGLET PAR ÉTAPE, TICKETS SUR TOUTE LA LARGEUR */}
+      <KdsBoard
         orders={filteredOrders}
         nowMs={nowMs}
         thresholds={thresholds}
@@ -146,9 +151,6 @@ export const KdsPage: React.FC<KdsPageProps> = ({
         orders={searchedOrders}
         onViewDetails={onViewDetails}
         onPrintTicket={onPrintTicket}
-        onRestoreOrder={(orderRef, status) => {
-          onTransition(orderRef, status)
-        }}
       />
     </div>
   )
