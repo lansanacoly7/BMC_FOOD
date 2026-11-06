@@ -35,7 +35,10 @@ class ExpiringTokenAuthentication(TokenAuthentication):
             now = timezone.now()
             if token.created < now - timedelta(seconds=ttl_seconds):
                 # Supprimer le jeton expiré pour forcer une réauthentification via StaffTokenView
-                token.delete()
+                try:
+                    token.delete()
+                except Exception:
+                    pass
                 raise AuthenticationFailed("Le jeton d'authentification a expiré. Veuillez vous reconnecter.")
 
         return user, token

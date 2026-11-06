@@ -133,14 +133,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # --- CORS ------------------------------------------------------------------
 # CORS n'est PAS de l'authentification : il limite seulement les origines
-# navigateur autorisées. En développement, les ports Vite par défaut sont permis.
+# navigateur autorisées. En développement, les ports locaux courants sont permis.
 _DEV_CORS_ORIGINS = [
     f'http://{host}:{port}'
     for host in ('localhost', '127.0.0.1')
-    for port in (5173, 5174, 5175)
+    for port in (5173, 5174, 5175, 5176, 5177, 3000, 8000, 8001)
 ]
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = env_list('CORS_ALLOWED_ORIGINS', default=_DEV_CORS_ORIGINS if DEBUG else [])
+CORS_ALLOWED_ORIGIN_REGEXES = [r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"] if DEBUG else []
 CORS_ALLOW_CREDENTIALS = False  # Authentification par jeton (en-tête), pas par cookie.
 
 # --- Sécurité (production) -------------------------------------------------
@@ -173,7 +174,7 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'EXCEPTION_HANDLER': 'api.exceptions.bmc_exception_handler',
     'DEFAULT_THROTTLE_RATES': {
-        'auth': os.environ.get('BMC_AUTH_THROTTLE_RATE', '10/min'),
+        'auth': os.environ.get('BMC_AUTH_THROTTLE_RATE', '60/min'),
         'order_create': os.environ.get('BMC_ORDER_THROTTLE_RATE', '15/min'),
         'order_track': os.environ.get('BMC_TRACK_THROTTLE_RATE', '30/min'),
     },

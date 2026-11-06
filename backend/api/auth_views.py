@@ -15,6 +15,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 
 from datetime import timedelta
+from django.db import transaction
 from django.utils import timezone
 from .api_schemas import AuthTokenRequestSerializer, AuthTokenResponseSerializer, ErrorEnvelopeSerializer
 from .authentication import get_token_ttl_seconds
@@ -43,12 +44,13 @@ class StaffTokenView(ObtainAuthToken):
         if not user.is_staff:
             raise PermissionDenied("Ce compte n'a pas accès à l'administration.")
 
-        token, created = Token.objects.get_or_create(user=user)
         ttl = get_token_ttl_seconds()
-        if not created and ttl > 0:
-            if token.created < timezone.now() - timedelta(seconds=ttl):
-                token.delete()
-                token = Token.objects.create(user=user)
+        with transaction.atomic():
+            token, created = Token.objects.select_for_update().get_or_create(user=user)
+            if not created and ttl > 0:
+                if token.created < timezone.now() - timedelta(seconds=ttl):
+                    token.delete()
+                    token = Token.objects.create(user=user)
 
         return Response({'success': True, 'token': token.key, 'username': user.get_username()})
 
