@@ -8,6 +8,9 @@ import {
   Utensils,
   ChevronDown,
   ChevronUp,
+  Flame,
+  Inbox,
+  Check,
 } from 'lucide-react'
 import type { ColumnDefinition, KdsOrder, KdsOrderStatus, OrderType } from '../types/kds'
 import { KanbanColumn } from '../components/kds/KanbanColumn'
@@ -59,6 +62,8 @@ export const KDS_COLUMNS: ColumnDefinition[] = [
   },
 ]
 
+type WorkflowStage = 'all' | 'pending' | 'preparing' | 'ready' | 'delivered'
+
 export const KdsPage: React.FC<KdsPageProps> = ({
   orders,
   nowMs,
@@ -68,8 +73,10 @@ export const KdsPage: React.FC<KdsPageProps> = ({
   onViewDetails,
   onPrintTicket,
 }) => {
-  const [layoutView, setLayoutView] = useState<'pipeline' | 'grid'>('pipeline')
-  const [typeFilter, setTypeFilter] = useState<'all' | OrderType | 'delivered'>('all')
+  // Par défaut, la vue Rack / Grille continue est idéale pour les flux intenses de commandes
+  const [layoutView, setLayoutView] = useState<'grid' | 'pipeline'>('grid')
+  const [stageFilter, setStageFilter] = useState<WorkflowStage>('all')
+  const [typeFilter, setTypeFilter] = useState<'all' | OrderType>('all')
   const [isSummaryExpanded, setIsSummaryExpanded] = useState<boolean>(true)
 
   // 1. Filtrage par recherche
@@ -86,18 +93,13 @@ export const KdsPage: React.FC<KdsPageProps> = ({
     })
   }, [orders, searchQuery])
 
-  // 2. Filtrage par type
-  const filteredOrders = useMemo(() => {
-    if (typeFilter === 'delivered') {
-      return searchedOrders.filter((o) => o.status === 'delivered')
-    }
-    if (typeFilter === 'all') {
-      return searchedOrders
-    }
+  // 2. Filtrage par type de commande (Livraison, Emporter, Sur place)
+  const typeFilteredOrders = useMemo(() => {
+    if (typeFilter === 'all') return searchedOrders
     return searchedOrders.filter((o) => o.orderType === typeFilter)
   }, [searchedOrders, typeFilter])
 
-  // 3. Regroupement par colonne KDS
+  // 3. Regroupement par statut du workflow (FIFO : plus ancienne d'abord)
   const ordersByStatus = useMemo(() => {
     const map: Record<KdsOrderStatus, KdsOrder[]> = {
       pending: [],
@@ -108,17 +110,17 @@ export const KdsPage: React.FC<KdsPageProps> = ({
       cancelled: [],
     }
 
-    filteredOrders.forEach((o) => {
+    typeFilteredOrders.forEach((o) => {
       if (map[o.status]) {
         map[o.status].push(o)
       }
     })
 
-    // Intégrer les éventuelles commandes delivering dans la colonne Prêt
+    // Intégrer les commandes en cours de livraison dans la section Prêt / Remise
     const readyAndDelivering = [...map['ready'], ...map['delivering']]
     map['ready'] = readyAndDelivering
 
-    // Tri FIFO : les plus anciennes en premier
+    // Tri FIFO : les plus anciennes en premier pour respecter les temps de préparation
     Object.keys(map).forEach((k) => {
       map[k as KdsOrderStatus].sort(
         (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
@@ -126,9 +128,9 @@ export const KdsPage: React.FC<KdsPageProps> = ({
     })
 
     return map
-  }, [filteredOrders])
+  }, [typeFilteredOrders])
 
-  // 4. Sommaire de production cumulée (sobre et monochrome)
+  // 4. Sommaire de production cumulée (Quels plats sont à cuire au total)
   const productionSummary = useMemo(() => {
     const activeOrders = searchedOrders.filter(
       (o) => o.status === 'pending' || o.status === 'preparing',
@@ -151,43 +153,245 @@ export const KdsPage: React.FC<KdsPageProps> = ({
     return { list, totalDishes }
   }, [searchedOrders])
 
-  // Comptages rapides
-  const activeOrdersCount = useMemo(() => {
-    return searchedOrders.filter((o) => o.status !== 'delivered' && o.status !== 'cancelled').length
-  }, [searchedOrders])
+  // Comptages rapides pour les onglets du workflow
+  const counts = useMemo(() => {
+    const active = searchedOrders.filter((o) => o.status !== 'delivered' && o.status !== 'cancelled')
+    const pending = searchedOrders.filter((o) => o.status === 'pending').length
+    const preparing = searchedOrders.filter((o) => o.status === 'preparing').length
+    const ready = searchedOrders.filter((o) => o.status === 'ready' || o.status === 'delivering').length
+    const delivered = searchedOrders.filter((o) => o.status === 'delivered').length
 
-  const deliveryCount = useMemo(() => {
-    return searchedOrders.filter((o) => o.orderType === 'delivery' && o.status !== 'delivered' && o.status !== 'cancelled').length
-  }, [searchedOrders])
-
-  const takeawayCount = useMemo(() => {
-    return searchedOrders.filter((o) => o.orderType === 'takeaway' && o.status !== 'delivered' && o.status !== 'cancelled').length
-  }, [searchedOrders])
-
-  const dineInCount = useMemo(() => {
-    return searchedOrders.filter((o) => o.orderType === 'dine_in' && o.status !== 'delivered' && o.status !== 'cancelled').length
-  }, [searchedOrders])
-
-  const deliveredCount = useMemo(() => {
-    return searchedOrders.filter((o) => o.status === 'delivered').length
-  }, [searchedOrders])
-
-  const gridOrders = useMemo(() => {
-    if (typeFilter === 'delivered') {
-      return ordersByStatus['delivered']
+    return {
+      all: active.length,
+      pending,
+      preparing,
+      ready,
+      delivered,
     }
-    return filteredOrders.filter((o) => o.status !== 'delivered' && o.status !== 'cancelled')
-  }, [typeFilter, filteredOrders, ordersByStatus])
+  }, [searchedOrders])
+
+  // Liste des commandes affichées dans la vue Rack / Grille
+  const gridDisplayedOrders = useMemo(() => {
+    if (stageFilter === 'all') {
+      return typeFilteredOrders.filter((o) => o.status !== 'delivered' && o.status !== 'cancelled')
+    }
+    if (stageFilter === 'delivered') {
+      return typeFilteredOrders.filter((o) => o.status === 'delivered')
+    }
+    if (stageFilter === 'ready') {
+      return typeFilteredOrders.filter((o) => o.status === 'ready' || o.status === 'delivering')
+    }
+    return typeFilteredOrders.filter((o) => o.status === stageFilter)
+  }, [stageFilter, typeFilteredOrders])
 
   return (
-    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden text-left bg-[#0A0C10]">
-      {/* 1. BARRE DE SYNTHÈSE DES PLATS : Monochrome & reposante */}
+    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden text-left bg-[#080A0E] select-none">
+      {/* 1. BARRE DE WORKFLOW UNIFIÉE & COMPACTE (46px) */}
+      <div className="h-11 min-h-11 px-3 border-b border-[#171D27] bg-[#0E1218] flex items-center justify-between gap-3 shrink-0">
+        {/* ÉTAPES DU WORKFLOW (Segmented Control sobre) */}
+        <div className="flex items-center gap-1 overflow-x-auto py-1 no-scrollbar">
+          <button
+            type="button"
+            onClick={() => setStageFilter('all')}
+            className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              stageFilter === 'all'
+                ? 'bg-[#1C2432] text-white border border-[#2B384D] shadow-xs'
+                : 'text-[#7D8B9F] hover:text-[#CBD5E1]'
+            }`}
+          >
+            <span>Toutes actives</span>
+            <span
+              className={`font-mono text-[11px] px-1.5 py-0.2 rounded ${
+                stageFilter === 'all' ? 'bg-[#293649] text-white' : 'text-[#64748B]'
+              }`}
+            >
+              {counts.all}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStageFilter('pending')}
+            className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              stageFilter === 'pending'
+                ? 'bg-[#1C2432] text-white border border-[#2B384D] shadow-xs'
+                : 'text-[#7D8B9F] hover:text-[#CBD5E1]'
+            }`}
+          >
+            <Inbox className="size-3 text-[#64748B]" />
+            <span>1. À préparer</span>
+            {counts.pending > 0 && (
+              <span
+                className={`font-mono text-[11px] px-1.5 py-0.2 rounded ${
+                  stageFilter === 'pending'
+                    ? 'bg-[#F5B301] text-black font-black'
+                    : 'bg-[#1A222E] text-[#F5B301]'
+                }`}
+              >
+                {counts.pending}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStageFilter('preparing')}
+            className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              stageFilter === 'preparing'
+                ? 'bg-[#1C2432] text-white border border-[#2B384D] shadow-xs'
+                : 'text-[#7D8B9F] hover:text-[#CBD5E1]'
+            }`}
+          >
+            <Flame className="size-3 text-[#64748B]" />
+            <span>2. En cuisson</span>
+            {counts.preparing > 0 && (
+              <span
+                className={`font-mono text-[11px] px-1.5 py-0.2 rounded ${
+                  stageFilter === 'preparing'
+                    ? 'bg-[#22C55E] text-black font-black'
+                    : 'bg-[#1A222E] text-[#22C55E]'
+                }`}
+              >
+                {counts.preparing}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStageFilter('ready')}
+            className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              stageFilter === 'ready'
+                ? 'bg-[#1C2432] text-white border border-[#2B384D] shadow-xs'
+                : 'text-[#7D8B9F] hover:text-[#CBD5E1]'
+            }`}
+          >
+            <Check className="size-3 text-[#64748B]" />
+            <span>3. Prêtes</span>
+            {counts.ready > 0 && (
+              <span
+                className={`font-mono text-[11px] px-1.5 py-0.2 rounded ${
+                  stageFilter === 'ready' ? 'bg-[#293649] text-white' : 'text-[#64748B]'
+                }`}
+              >
+                {counts.ready}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStageFilter('delivered')}
+            className={`px-3 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              stageFilter === 'delivered'
+                ? 'bg-[#1C2432] text-white border border-[#2B384D]'
+                : 'text-[#5A6779] hover:text-[#94A3B8]'
+            }`}
+          >
+            <span>Clôturées</span>
+            <span className="font-mono text-[11px] text-[#5A6779]">{counts.delivered}</span>
+          </button>
+        </div>
+
+        {/* CONTRÔLES DROITE : Filtre type + Switch Grille / Colonnes */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Filtres types discrets */}
+          <div className="hidden lg:flex items-center gap-1 bg-[#12161E] p-0.5 rounded-lg border border-[#1A212D]">
+            <button
+              type="button"
+              onClick={() => setTypeFilter('all')}
+              className={`px-2 py-1 rounded text-[11px] font-medium transition-colors cursor-pointer ${
+                typeFilter === 'all' ? 'bg-[#1C2432] text-white' : 'text-[#64748B] hover:text-white'
+              }`}
+            >
+              Tous
+            </button>
+            <button
+              type="button"
+              onClick={() => setTypeFilter('delivery')}
+              className={`px-2 py-1 rounded text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer ${
+                typeFilter === 'delivery'
+                  ? 'bg-[#1C2432] text-white'
+                  : 'text-[#64748B] hover:text-white'
+              }`}
+              title="Livraison"
+            >
+              <Bike className="size-3" />
+              <span>Livraison</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setTypeFilter('takeaway')}
+              className={`px-2 py-1 rounded text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer ${
+                typeFilter === 'takeaway'
+                  ? 'bg-[#1C2432] text-white'
+                  : 'text-[#64748B] hover:text-white'
+              }`}
+              title="À emporter"
+            >
+              <ShoppingBag className="size-3" />
+              <span>Emporter</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setTypeFilter('dine_in')}
+              className={`px-2 py-1 rounded text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer ${
+                typeFilter === 'dine_in'
+                  ? 'bg-[#1C2432] text-white'
+                  : 'text-[#64748B] hover:text-white'
+              }`}
+              title="Sur place"
+            >
+              <Utensils className="size-3" />
+              <span>Sur place</span>
+            </button>
+          </div>
+
+          {/* Switch de vue : Grille de flux (recommandé flux intense) ou 3 colonnes */}
+          <div className="flex items-center gap-0.5 bg-[#12161E] p-0.5 rounded-lg border border-[#1A212D]">
+            <button
+              type="button"
+              onClick={() => setLayoutView('grid')}
+              className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors ${
+                layoutView === 'grid'
+                  ? 'bg-[#1C2432] text-white shadow-xs'
+                  : 'text-[#64748B] hover:text-white'
+              }`}
+              title="Grille continue de tickets (Idéal pour grand volume sans goulot d'étranglement)"
+            >
+              <LayoutGrid className="size-3.5" />
+              <span className="hidden sm:inline">Grille Rack</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setLayoutView('pipeline')
+                if (stageFilter !== 'all') setStageFilter('all')
+              }}
+              className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors ${
+                layoutView === 'pipeline'
+                  ? 'bg-[#1C2432] text-white shadow-xs'
+                  : 'text-[#64748B] hover:text-white'
+              }`}
+              title="Vue Kanban 3 colonnes"
+            >
+              <Columns3 className="size-3.5" />
+              <span className="hidden sm:inline">3 Colonnes</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. CUMUL CUISINE EN COURS (Synthèse de production rétractable) */}
       {productionSummary.totalDishes > 0 && (
-        <div className="border-b border-[#181D26] bg-[#0E1218] px-4 py-2 shrink-0 select-none">
+        <div className="border-b border-[#171D27] bg-[#0B0E14] px-3.5 py-1.5 shrink-0">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 overflow-x-auto py-0.5 no-scrollbar flex-1">
-              <span className="text-xs font-semibold text-[#8590A2] uppercase tracking-wider shrink-0 mr-1">
-                À cuire ({productionSummary.totalDishes}) :
+              <span className="text-[11px] font-black text-[#8C98AA] uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1.5">
+                <span>À griller / cuire :</span>
+                <strong className="text-[#F5B301] font-mono text-xs font-black">
+                  {productionSummary.totalDishes} plats
+                </strong>
               </span>
 
               {isSummaryExpanded ? (
@@ -195,17 +399,20 @@ export const KdsPage: React.FC<KdsPageProps> = ({
                   {productionSummary.list.map((item, idx) => (
                     <span
                       key={idx}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#151922] border border-[#202734] text-xs text-white shrink-0"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#131822] border border-[#1F2736] text-xs text-white shrink-0"
                     >
-                      <strong className="text-[#F5B301] font-mono">{item.quantity}×</strong>
-                      <span className="truncate max-w-[160px] text-[#C2C9D6]">{item.name}</span>
+                      <strong className="text-[#F5B301] font-mono font-bold">{item.quantity}×</strong>
+                      <span className="truncate max-w-[170px] text-[#CBD5E1] font-medium">{item.name}</span>
                     </span>
                   ))}
                 </div>
               ) : (
-                <span className="text-xs text-[#6B7687] truncate">
-                  {productionSummary.list.slice(0, 4).map((i) => `${i.quantity}× ${i.name}`).join(' · ')}
-                  {productionSummary.list.length > 4 && '…'}
+                <span className="text-xs text-[#64748B] truncate">
+                  {productionSummary.list
+                    .slice(0, 5)
+                    .map((i) => `${i.quantity}× ${i.name}`)
+                    .join(' · ')}
+                  {productionSummary.list.length > 5 && ' …'}
                 </span>
               )}
             </div>
@@ -213,137 +420,23 @@ export const KdsPage: React.FC<KdsPageProps> = ({
             <button
               type="button"
               onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
-              className="p-1 text-[#6B7687] hover:text-white rounded hover:bg-white/5 shrink-0 transition-colors"
+              className="p-1 text-[#64748B] hover:text-white rounded hover:bg-white/5 shrink-0 transition-colors cursor-pointer"
               title={isSummaryExpanded ? 'Réduire' : 'Déplier'}
             >
-              {isSummaryExpanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+              {isSummaryExpanded ? (
+                <ChevronUp className="size-3.5" />
+              ) : (
+                <ChevronDown className="size-3.5" />
+              )}
             </button>
           </div>
         </div>
       )}
 
-      {/* 2. BARRE DE FILTRES : Sobres, unifiées, zéro effet arc-en-ciel */}
-      <div className="h-11 min-h-11 px-4 border-b border-[#181D26] bg-[#0C0F14] flex items-center justify-between gap-3 shrink-0">
-        <div className="flex items-center gap-1 overflow-x-auto py-1 no-scrollbar">
-          <button
-            type="button"
-            onClick={() => setTypeFilter('all')}
-            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              typeFilter === 'all'
-                ? 'bg-[#181D26] text-white border border-[#283140]'
-                : 'text-[#6B7687] hover:text-[#C2C9D6]'
-            }`}
-          >
-            <span>Toutes</span>
-            <span className="font-mono text-[11px] text-[#8590A2]">
-              {activeOrdersCount}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setTypeFilter('delivery')}
-            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              typeFilter === 'delivery'
-                ? 'bg-[#181D26] text-white border border-[#283140]'
-                : 'text-[#6B7687] hover:text-[#C2C9D6]'
-            }`}
-          >
-            <Bike className="size-3 text-[#6B7687]" />
-            <span>Livraison</span>
-            {deliveryCount > 0 && (
-              <span className="font-mono text-[11px] text-[#8590A2]">
-                {deliveryCount}
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setTypeFilter('takeaway')}
-            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              typeFilter === 'takeaway'
-                ? 'bg-[#181D26] text-white border border-[#283140]'
-                : 'text-[#6B7687] hover:text-[#C2C9D6]'
-            }`}
-          >
-            <ShoppingBag className="size-3 text-[#6B7687]" />
-            <span>À emporter</span>
-            {takeawayCount > 0 && (
-              <span className="font-mono text-[11px] text-[#8590A2]">
-                {takeawayCount}
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setTypeFilter('dine_in')}
-            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              typeFilter === 'dine_in'
-                ? 'bg-[#181D26] text-white border border-[#283140]'
-                : 'text-[#6B7687] hover:text-[#C2C9D6]'
-            }`}
-          >
-            <Utensils className="size-3 text-[#6B7687]" />
-            <span>Sur place</span>
-            {dineInCount > 0 && (
-              <span className="font-mono text-[11px] text-[#8590A2]">
-                {dineInCount}
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setTypeFilter('delivered')}
-            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              typeFilter === 'delivered'
-                ? 'bg-[#181D26] text-white border border-[#283140]'
-                : 'text-[#6B7687] hover:text-[#C2C9D6]'
-            }`}
-          >
-            <span>Terminées</span>
-            <span className="font-mono text-[11px] text-[#6B7687]">
-              {deliveredCount}
-            </span>
-          </button>
-        </div>
-
-        {/* Sélecteur de vue épuré */}
-        <div className="flex items-center gap-0.5 bg-[#12161E] p-0.5 rounded-lg border border-[#1E2532] shrink-0">
-          <button
-            type="button"
-            onClick={() => setLayoutView('pipeline')}
-            className={`p-1.5 rounded text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors ${
-              layoutView === 'pipeline'
-                ? 'bg-[#1C2330] text-white'
-                : 'text-[#6B7687] hover:text-white'
-            }`}
-            title="Vue 3 Colonnes"
-          >
-            <Columns3 className="size-3.5" />
-            <span className="hidden sm:inline">Colonnes</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setLayoutView('grid')}
-            className={`p-1.5 rounded text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors ${
-              layoutView === 'grid'
-                ? 'bg-[#1C2330] text-white'
-                : 'text-[#6B7687] hover:text-white'
-            }`}
-            title="Vue Grille"
-          >
-            <LayoutGrid className="size-3.5" />
-            <span className="hidden sm:inline">Grille</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 3. COLONNES KDS PRO */}
+      {/* 3. ZONE PRINCIPALE DES TICKETS (Optimisée pour de fortes charges de commandes) */}
       <div className="flex-1 overflow-hidden p-3 w-full">
-        {layoutView === 'pipeline' && typeFilter !== 'delivered' ? (
+        {layoutView === 'pipeline' && stageFilter === 'all' ? (
+          /* VUE 3 COLONNES PIPELINE */
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 h-full w-full overflow-hidden">
             {KDS_COLUMNS.map((col) => (
               <KanbanColumn
@@ -359,17 +452,21 @@ export const KdsPage: React.FC<KdsPageProps> = ({
             ))}
           </div>
         ) : (
-          <div className="h-full overflow-y-auto pr-1 w-full">
-            {gridOrders.length === 0 ? (
-              <div className="h-44 flex flex-col items-center justify-center text-center p-8 rounded-xl border border-dashed border-[#1C212B] bg-[#10131A]/40 text-[#556070] space-y-2">
-                <CheckCircle2 className="size-6 text-[#556070]" />
-                <p className="text-sm font-medium text-[#7A8699]">
+          /* VUE RACK / GRILLE CONTINUE (Absorption maximale des commandes simultanées) */
+          <div className="h-full overflow-y-auto pr-1 w-full no-scrollbar">
+            {gridDisplayedOrders.length === 0 ? (
+              <div className="h-48 flex flex-col items-center justify-center text-center p-8 rounded-xl border border-dashed border-[#1A212D] bg-[#0E1218]/40 text-[#475569] space-y-2">
+                <CheckCircle2 className="size-7 text-[#334155]" />
+                <p className="text-sm font-semibold text-[#64748B]">
                   Aucune commande dans cette section
+                </p>
+                <p className="text-xs text-[#475569]">
+                  Les nouvelles commandes s'afficheront ici automatiquement en temps réel.
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 w-full">
-                {gridOrders.map((order) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 w-full pb-4">
+                {gridDisplayedOrders.map((order) => (
                   <OrderCard
                     key={order.id}
                     order={order}

@@ -6,10 +6,12 @@ import {
   MapPin,
   Clock,
   AlertCircle,
+  Bike,
+  Utensils,
+  ShoppingBag,
 } from 'lucide-react'
 import { formatDateTime, formatFcfa } from '../../lib/formatters'
-import type { KdsOrder, KdsOrderStatus } from '../../types/kds'
-import { OrderTypePill, PaymentPill } from '../common/StatusPills'
+import type { KdsOrder, KdsOrderStatus, OrderType } from '../../types/kds'
 
 interface OrderDetailDrawerProps {
   order: KdsOrder | null
@@ -19,6 +21,12 @@ interface OrderDetailDrawerProps {
   onCancel?: (orderRef: string) => void
 }
 
+const TYPE_ICONS: Record<OrderType, React.FC<{ className?: string }>> = {
+  delivery: Bike,
+  takeaway: ShoppingBag,
+  dine_in: Utensils,
+}
+
 export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
   order,
   onClose,
@@ -26,7 +34,6 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
   onTransition,
   onCancel,
 }) => {
-
   // Raccourci Échap pour fermer
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -38,43 +45,43 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
 
   if (!order) return null
 
+  const TypeIcon = TYPE_ICONS[order.orderType] || Bike
+  const typeLabel =
+    order.orderType === 'delivery'
+      ? 'Livraison'
+      : order.orderType === 'takeaway'
+      ? 'À emporter'
+      : 'Sur place'
+
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex justify-end bg-black/75 backdrop-blur-xs select-none"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="drawer-title"
     >
       <div
-        className="w-full max-w-lg h-full flex flex-col border-l shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-200"
-        style={{
-          backgroundColor: 'var(--kds-bg-surface)',
-          borderColor: 'var(--kds-border-default)',
-        }}
+        className="w-full max-w-lg h-full flex flex-col border-l border-[#1A212D] bg-[#0E1218] shadow-2xl overflow-y-auto no-scrollbar"
         onClick={(e) => e.stopPropagation()}
       >
         {/* EN-TÊTE DU TIROIR */}
-        <div
-          className="p-6 border-b flex items-start justify-between gap-4 sticky top-0 z-10"
-          style={{
-            backgroundColor: 'var(--kds-bg-surface-raised)',
-            borderColor: 'var(--kds-border-default)',
-          }}
-        >
+        <div className="p-5 border-b border-[#1A212D] bg-[#121720] flex items-start justify-between gap-4 sticky top-0 z-10">
           <div>
-            <div className="flex items-center gap-3 mb-1">
+            <div className="flex items-center gap-2.5 mb-1">
               <h2
                 id="drawer-title"
-                className="text-2xl font-black font-tabular tracking-tight"
-                style={{ color: 'var(--kds-text-primary)' }}
+                className="text-2xl font-black font-mono text-white tracking-tight"
               >
                 {order.orderRef}
               </h2>
-              <OrderTypePill type={order.orderType} />
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold bg-[#1A212D] text-[#CBD5E1] border border-[#273244]">
+                <TypeIcon className="size-3 text-[#7E8B9F]" />
+                <span>{typeLabel}</span>
+              </span>
             </div>
-            <p className="text-xs font-semibold flex items-center gap-1.5" style={{ color: 'var(--kds-text-muted)' }}>
-              <Clock size={13} />
+            <p className="text-xs font-medium text-[#7E8B9F] flex items-center gap-1.5">
+              <Clock className="size-3.5 text-[#5A6779]" />
               Reçue à {formatDateTime(order.createdAt)}
             </p>
           </div>
@@ -82,111 +89,84 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2.5 rounded-xl border text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
-            style={{ borderColor: 'var(--kds-border-default)' }}
-            title="Fermer le panneau"
+            className="p-2 rounded-xl text-[#7E8B9F] hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            title="Fermer"
           >
-            <X size={20} />
+            <X className="size-5" />
           </button>
         </div>
 
         {/* CORPS DU TIROIR */}
-        <div className="p-6 flex-1 flex flex-col gap-6">
+        <div className="p-5 flex-1 flex flex-col gap-5">
           {/* INFORMATIONS CLIENT */}
-          <div
-            className="p-4 rounded-xl border flex flex-col gap-3"
-            style={{
-              backgroundColor: 'var(--kds-bg-app)',
-              borderColor: 'var(--kds-border-default)',
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--kds-text-muted)' }}>
-                Client
+          <div className="p-4 rounded-xl border border-[#1A212D] bg-[#11161F] flex flex-col gap-2.5">
+            <div className="flex items-center justify-between text-xs text-[#7E8B9F] font-bold uppercase tracking-wider">
+              <span>Client</span>
+              <span className="font-mono text-[#CBD5E1]">
+                {order.paymentMethod.toUpperCase()} ({order.paymentStatus === 'paid' ? 'Payé' : 'À payer'})
               </span>
-              <PaymentPill method={order.paymentMethod} status={order.paymentStatus} />
             </div>
 
-            <div className="text-xl font-black" style={{ color: 'var(--kds-text-primary)' }}>
-              {order.customerName}
-            </div>
+            <div className="text-lg font-bold text-white">{order.customerName}</div>
 
             {order.phone && (
               <a
                 href={`tel:${order.phone}`}
-                className="flex items-center gap-2 text-sm font-bold text-amber-400 hover:underline"
+                className="flex items-center gap-2 text-xs font-semibold text-[#F5B301] hover:underline"
               >
-                <Phone size={16} />
+                <Phone className="size-3.5" />
                 <span>{order.phone}</span>
               </a>
             )}
 
             {order.address && (
-              <div className="flex items-start gap-2 text-sm font-medium" style={{ color: 'var(--kds-text-secondary)' }}>
-                <MapPin size={16} className="shrink-0 mt-0.5 text-slate-400" />
+              <div className="flex items-start gap-2 text-xs text-[#8C98AA]">
+                <MapPin className="size-3.5 shrink-0 mt-0.5 text-[#5A6779]" />
                 <span>{order.address}</span>
               </div>
             )}
           </div>
 
-          {/* NOTES DE COMMANDE */}
+          {/* NOTE CLIENT (Si présente) */}
           {order.notes && (
-            <div
-              className="p-4 rounded-xl border flex items-start gap-3"
-              style={{
-                backgroundColor: 'rgba(245, 158, 11, 0.12)',
-                borderColor: 'rgba(245, 158, 11, 0.35)',
-              }}
-            >
-              <AlertCircle size={20} className="text-amber-400 shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-xl border border-[#2B3545] bg-[#151B24] flex items-start gap-2.5 text-xs text-[#E2E8F0]">
+              <AlertCircle className="size-4 text-[#F5B301] shrink-0 mt-0.5" />
               <div>
-                <div className="text-xs font-black uppercase tracking-wider text-amber-400 mb-0.5">
-                  Consigne Cuisinier
-                </div>
-                <div className="text-sm font-bold text-amber-100">{order.notes}</div>
+                <span className="font-bold text-[#F5B301] block mb-0.5">Instruction :</span>
+                <span className="italic leading-relaxed">« {order.notes} »</span>
               </div>
             </div>
           )}
 
-          {/* DÉTAIL DES ARTICLES & LIGNES */}
-          <div className="flex flex-col gap-3">
-            <h3 className="text-sm font-black uppercase tracking-wider" style={{ color: 'var(--kds-text-muted)' }}>
-              Articles commandés ({order.items.reduce((s, i) => s + i.quantity, 0)})
+          {/* ARTICLES COMMANDÉS */}
+          <div className="flex flex-col gap-2.5">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#7E8B9F]">
+              Articles à préparer ({order.items.reduce((s, i) => s + i.quantity, 0)})
             </h3>
 
-            <div
-              className="rounded-xl border divide-y overflow-hidden"
-              style={{
-                backgroundColor: 'var(--kds-bg-app)',
-                borderColor: 'var(--kds-border-default)',
-              }}
-            >
+            <div className="rounded-xl border border-[#1A212D] bg-[#11161F] divide-y divide-[#1A212D] overflow-hidden">
               {order.items.map((item, idx) => (
-                <div key={idx} className="p-3.5 flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <span
-                      className="px-2 py-0.5 rounded text-sm font-black font-tabular shrink-0"
-                      style={{
-                        backgroundColor: 'rgba(252, 184, 0, 0.2)',
-                        color: 'var(--kds-gold)',
-                      }}
-                    >
+                <div key={idx} className="p-3 flex items-start justify-between gap-3 text-xs">
+                  <div className="flex items-start gap-2.5">
+                    <span className="px-1.5 py-0.5 rounded text-xs font-mono font-bold bg-[#1A212D] text-white border border-[#273244] shrink-0">
                       {item.quantity}×
                     </span>
                     <div>
-                      <div className="text-sm font-bold" style={{ color: 'var(--kds-text-primary)' }}>
-                        {item.name}
-                      </div>
+                      <div className="font-bold text-white text-sm">{item.name}</div>
                       {item.notes && (
-                        <div className="text-xs italic text-amber-300 mt-0.5">Note : {item.notes}</div>
+                        <div className="text-[11px] italic text-[#F5B301] mt-0.5">
+                          Note : {item.notes}
+                        </div>
                       )}
                       {item.options && item.options.length > 0 && (
-                        <div className="text-xs text-slate-400 mt-0.5">+ {item.options.join(', ')}</div>
+                        <div className="text-[11px] text-[#7E8B9F] mt-0.5">
+                          • {item.options.join(' · ')}
+                        </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="text-sm font-bold font-tabular text-right shrink-0" style={{ color: 'var(--kds-text-secondary)' }}>
+                  <div className="font-mono text-[#8C98AA] font-bold text-right shrink-0">
                     {formatFcfa(item.unitPrice * item.quantity)}
                   </div>
                 </div>
@@ -194,49 +174,41 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
             </div>
           </div>
 
-          {/* TOTAL & MODE DE RÈGLEMENT */}
-          <div
-            className="p-4 rounded-xl border flex items-center justify-between"
-            style={{
-              backgroundColor: 'var(--kds-bg-surface-raised)',
-              borderColor: 'var(--kds-border-default)',
-            }}
-          >
-            <span className="text-base font-bold" style={{ color: 'var(--kds-text-secondary)' }}>
-              Montant total TTC
+          {/* MONTANT TOTAL */}
+          <div className="p-4 rounded-xl border border-[#1A212D] bg-[#121720] flex items-center justify-between">
+            <span className="text-xs font-bold text-[#7E8B9F] uppercase tracking-wider">
+              Total commande
             </span>
-            <span className="text-2xl font-black font-tabular" style={{ color: 'var(--kds-text-primary)' }}>
+            <span className="text-xl font-black font-mono text-white">
               {formatFcfa(order.totalAmount)}
             </span>
           </div>
 
-          {/* BOUTONS D'ACTION SECONDAIRE */}
-          <div className="flex items-center gap-3 pt-2">
+          {/* BOUTONS D'IMPRESSION ET D'APPEL */}
+          <div className="flex items-center gap-2 pt-1">
             <button
               type="button"
               onClick={() => onPrintTicket(order)}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border font-bold text-sm text-slate-200 hover:text-white hover:bg-white/10 transition-colors"
-              style={{ borderColor: 'var(--kds-border-default)' }}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border border-[#1E2634] bg-[#141A23] font-bold text-xs text-white hover:bg-[#1C2432] transition-colors cursor-pointer"
             >
-              <Printer size={18} />
+              <Printer className="size-3.5 text-[#7E8B9F]" />
               <span>Imprimer ticket</span>
             </button>
 
             {order.phone && (
               <a
                 href={`tel:${order.phone}`}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border font-bold text-sm text-slate-200 hover:text-white hover:bg-white/10 transition-colors"
-                style={{ borderColor: 'var(--kds-border-default)' }}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border border-[#1E2634] bg-[#141A23] font-bold text-xs text-white hover:bg-[#1C2432] transition-colors"
               >
-                <Phone size={18} />
-                <span>Appeler</span>
+                <Phone className="size-3.5 text-[#7E8B9F]" />
+                <span>Appeler client</span>
               </a>
             )}
           </div>
 
-          {/* ACTIONS RAPIDES POUR DÉBLOQUER OU AVANCER LA COMMANDE */}
+          {/* ACTIONS D'AVANCEMENT DU WORKFLOW */}
           {order.status !== 'delivered' && order.status !== 'cancelled' && (
-            <div className="flex flex-col gap-2 pt-3 border-t border-[#1F242B]">
+            <div className="flex flex-col gap-2 pt-2 border-t border-[#1A212D]">
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -250,30 +222,17 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
                     onTransition?.(order.orderRef, next)
                     onClose()
                   }}
-                  className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider cursor-pointer transition-colors ${
+                  className={`flex-1 py-2.5 rounded-lg font-black text-xs uppercase tracking-wider cursor-pointer transition-colors ${
                     order.status === 'ready' || order.status === 'delivering'
-                      ? 'bg-emerald-500 hover:bg-emerald-400 text-black'
-                      : 'bg-[#F5B301] hover:bg-[#ffc32b] text-black'
+                      ? 'bg-[#22C55E] hover:bg-[#16A34A] text-black'
+                      : 'bg-[#F5B301] hover:bg-[#E5A700] text-black'
                   }`}
                 >
                   {order.status === 'pending'
-                    ? 'Lancer la préparation'
+                    ? 'Lancer cuisson'
                     : order.status === 'preparing'
-                    ? 'Marquer prête au comptoir'
-                    : order.status === 'ready'
-                    ? 'Terminer / Remise effectuée'
-                    : 'Confirmer livraison'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onTransition?.(order.orderRef, 'delivered')
-                    onClose()
-                  }}
-                  className="px-3 py-2.5 rounded-xl bg-[#1A1E24] hover:bg-[#252B35] text-xs font-semibold text-white border border-[#2A313C] cursor-pointer transition-colors"
-                  title="Marquer directement comme terminée et archivée"
-                >
-                  Terminer
+                    ? 'Marquer prête'
+                    : 'Remettre / Servir'}
                 </button>
               </div>
 
@@ -285,9 +244,9 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
                     onClose()
                   }
                 }}
-                className="w-full py-2 rounded-xl text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer transition-colors"
+                className="w-full py-1.5 rounded-lg text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer transition-colors"
               >
-                Annuler cette commande
+                Annuler commande
               </button>
             </div>
           )}

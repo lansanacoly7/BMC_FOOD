@@ -1,10 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { clearAuthToken, getAuthToken, getAuthUser } from './api/client'
-import { calculateTodayKpis } from './api/orders'
 import { AppHeader, type AdminTab } from './components/common/AppHeader'
 import { AdminSidebar } from './components/common/AdminSidebar'
 import { ConnectionBanner } from './components/common/ConnectionBanner'
-import { KpiBar } from './components/common/KpiBar'
 import { Toast } from './components/common/Toast'
 import { OrderDetailDrawer } from './components/kds/OrderDetailDrawer'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
@@ -13,7 +11,6 @@ import { useOrders } from './hooks/useOrders'
 import { useWakeLock } from './hooks/useWakeLock'
 import { audioAlert } from './lib/audioAlert'
 import { DailySpecialPage } from './pages/DailySpecialPage'
-import { HistoryPage } from './pages/HistoryPage'
 import { KdsPage } from './pages/KdsPage'
 import { LoginPage } from './pages/LoginPage'
 import { PromotionsPage } from './pages/PromotionsPage'
@@ -39,9 +36,9 @@ export default function App() {
 
   const [headerTab, setHeaderTab] = useState<AdminTab>('kds')
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false)
-  const [viewMode, setViewMode] = useState<'kanban' | 'history'>('kanban')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [selectedOrder, setSelectedOrder] = useState<KdsOrder | null>(null)
+  const [isAudioMuted, setIsAudioMuted] = useState<boolean>(() => audioAlert.muted)
 
   const searchInputRef = useRef<HTMLInputElement>(null)
 
@@ -92,27 +89,24 @@ export default function App() {
       else if (searchQuery) setSearchQuery('')
     },
     onRefresh: () => void refresh(),
-    onToggleSound: () => audioAlert.toggleMute(),
+    onToggleSound: () => {
+      const next = audioAlert.toggleMute()
+      setIsAudioMuted(next)
+    },
   })
 
-  // 6. Calcul des KPI et séparation En cours / Historique
-  const { activeOrders, historyOrders } = useMemo(() => {
-    const active = orders.filter(
-      (o) => o.status === 'pending' || o.status === 'preparing' || o.status === 'ready' || o.status === 'delivering',
-    )
-    const history = orders.filter((o) => o.status === 'delivered' || o.status === 'cancelled')
-    return { activeOrders: active, historyOrders: history }
-  }, [orders])
-
-  const kpis = useMemo(() => calculateTodayKpis(orders), [orders])
-
-  // 7. Handlers de commande
+  // 6. Handlers de commande
   const handleTransition = async (orderRef: string, nextStatus: KdsOrderStatus) => {
     await transitionOrder(orderRef, nextStatus)
   }
 
   const handleCancelOrder = async (orderRef: string) => {
     await transitionOrder(orderRef, 'cancelled')
+  }
+
+  const handleToggleMute = () => {
+    const next = audioAlert.toggleMute()
+    setIsAudioMuted(next)
   }
 
   const handlePrintTicket = (order: KdsOrder) => {
@@ -185,7 +179,7 @@ export default function App() {
   return (
     <div
       className="h-screen max-h-screen h-[100dvh] flex flex-row antialiased text-white select-none overflow-hidden kds-cuisine"
-      style={{ backgroundColor: '#0B0D10' }}
+      style={{ backgroundColor: '#080A0E' }}
     >
       {!isSidebarCollapsed && (
         <AdminSidebar
@@ -201,6 +195,10 @@ export default function App() {
           currentTab={headerTab}
           isSidebarCollapsed={isSidebarCollapsed}
           onToggleSidebar={() => setIsSidebarCollapsed((prev) => !prev)}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          isMuted={isAudioMuted}
+          onToggleMute={handleToggleMute}
         />
 
         <ConnectionBanner
@@ -209,20 +207,7 @@ export default function App() {
           isRetrying={isLoading}
         />
 
-        {headerTab === 'kds' && (
-          <KpiBar
-            viewMode={viewMode}
-            onViewModeChange={(mode) => setViewMode(mode)}
-            activeCount={activeOrders.length}
-            historyCount={historyOrders.length}
-            kpis={kpis}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            searchInputRef={searchInputRef}
-          />
-        )}
-
-        {/* ZONE PRINCIPALE (100% de la hauteur restante) */}
+        {/* ZONE PRINCIPALE (100% de la hauteur restante, sans barre superflue) */}
         <main className="flex-1 flex flex-col min-h-0 overflow-hidden" role="main">
           {headerTab === 'special' ? (
             <DailySpecialPage />
@@ -232,7 +217,7 @@ export default function App() {
             <TransactionsPage orders={orders} />
           ) : headerTab === 'staff' ? (
             <StaffPage />
-          ) : viewMode === 'kanban' ? (
+          ) : (
             <KdsPage
               orders={orders}
               nowMs={nowMs}
@@ -242,8 +227,6 @@ export default function App() {
               onViewDetails={(order) => setSelectedOrder(order)}
               onPrintTicket={handlePrintTicket}
             />
-          ) : (
-            <HistoryPage orders={historyOrders} onSelectOrder={(order) => setSelectedOrder(order)} />
           )}
         </main>
       </div>
