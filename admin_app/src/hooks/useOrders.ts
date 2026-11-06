@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { acknowledgeOrders, fetchActiveOrders, transitionOrderStatus } from '../api/orders'
+import { getAuthToken } from '../api/client'
+import { acknowledgeOrders, fetchActiveOrders, isUsingDemoData, transitionOrderStatus } from '../api/orders'
 import { audioAlert } from '../lib/audioAlert'
 import type { KdsOrder, KdsOrderStatus } from '../types/kds'
 
-export type ApiConnectionState = 'connected' | 'syncing' | 'error' | 'offline'
+export type ApiConnectionState = 'connected' | 'syncing' | 'error' | 'offline' | 'demo'
 
 export interface UndoableAction {
   orderRef: string
@@ -20,6 +21,8 @@ export interface UseOrdersResult {
   error: Error | null
   lastSyncTime: Date | null
   connectionState: ApiConnectionState
+  /** Dernière action refusée ou perdue, à afficher à l'équipe. */
+  actionError: string | null
   newOrdersSet: Set<string>
   isAudioMuted: boolean
   toggleAudio: () => void
@@ -48,6 +51,7 @@ export function useOrders(nowMs: number = Date.now()): UseOrdersResult {
   const [connectionState, setConnectionState] = useState<ApiConnectionState>('syncing')
   const [activeUndoAction, setActiveUndoAction] = useState<UndoableAction | null>(null)
   const [isAudioMuted, setIsAudioMuted] = useState<boolean>(() => audioAlert.muted)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   // Suivi des IDs des commandes déjà vues pour détecter et sonner sur les NOUVELLES
   const knownOrderRefs = useRef<Set<string>>(new Set())
@@ -76,6 +80,9 @@ export function useOrders(nowMs: number = Date.now()): UseOrdersResult {
    * Récupération des commandes
    */
   const loadOrders = useCallback(async (isSilent = false) => {
+    // Pas de session : rien à lire tant que l'équipe n'est pas connectée.
+    if (!getAuthToken()) return
+
     if (!navigator.onLine) {
       setConnectionState('offline')
       return
@@ -136,7 +143,7 @@ export function useOrders(nowMs: number = Date.now()): UseOrdersResult {
       })
 
       setLastSyncTime(new Date())
-      setConnectionState('connected')
+      setConnectionState(isUsingDemoData() ? 'demo' : 'connected')
       setError(null)
     } catch (err) {
       setError(err as Error)
@@ -201,6 +208,27 @@ export function useOrders(nowMs: number = Date.now()): UseOrdersResult {
   )
 
   /**
+   * Envoie une transition au serveur. En cas de refus, la commande reprend son statut
+   * et l'équipe est prévenue.
+   */
+  const sendTransition = useCallback(
+    async (orderRef: string, newStatus: KdsOrderStatus, previousStatus: KdsOrderStatus) => {
+      try {
+        await transitionOrderStatus(orderRef, newStatus)
+      } catch (apiErr) {
+        console.error(`Échec transition ${orderRef} vers ${newStatus}:`, apiErr)
+        setOrders((prev) =>
+          prev.map((o) => (o.orderRef === orderRef ? { ...o, status: previousStatus } : o)),
+        )
+        setError(apiErr as Error)
+        setActionError(`La commande ${orderRef} n'a pas pu être mise à jour. Réessayez.`)
+        setTimeout(() => setActionError(null), 5000)
+      }
+    },
+    [],
+  )
+
+  /**
    * Transition de statut en 1 clic avec mise à jour optimiste + fenêtre Undo de 5 secondes
    */
   const transitionOrder = useCallback(
@@ -216,25 +244,20 @@ export function useOrders(nowMs: number = Date.now()): UseOrdersResult {
       )
       audioAlert.playActionConfirm()
 
-      // 2. Si un ancien undo était en attente, le finaliser immédiatement
+      // 2. Si un ancien undo était en attente, l'envoyer tout de suite : sinon il serait perdu
       if (activeUndoAction) {
         clearTimeout(activeUndoAction.timeoutId)
+        void sendTransition(
+          activeUndoAction.orderRef,
+          activeUndoAction.targetStatus,
+          activeUndoAction.previousStatus,
+        )
       }
 
       // 3. Programmer l'envoi réel à l'API après expiration des 5 secondes d'Undo
       const timeoutId = setTimeout(async () => {
-        try {
-          await transitionOrderStatus(orderRef, newStatus)
-          setActiveUndoAction(null)
-        } catch (apiErr) {
-          // Rollback en cas d'erreur API
-          console.error(`Échec transition ${orderRef} vers ${newStatus}:`, apiErr)
-          setOrders((prev) =>
-            prev.map((o) => (o.orderRef === orderRef ? { ...o, status: previousStatus } : o)),
-          )
-          setActiveUndoAction(null)
-          setError(apiErr as Error)
-        }
+        await sendTransition(orderRef, newStatus, previousStatus)
+        setActiveUndoAction(null)
       }, UNDO_DURATION_MS)
 
       setActiveUndoAction({
@@ -245,7 +268,7 @@ export function useOrders(nowMs: number = Date.now()): UseOrdersResult {
         timeoutId,
       })
     },
-    [orders, activeUndoAction],
+    [orders, activeUndoAction, sendTransition],
   )
 
   const refresh = useCallback(async () => {
@@ -259,6 +282,7 @@ export function useOrders(nowMs: number = Date.now()): UseOrdersResult {
     error,
     lastSyncTime,
     connectionState,
+    actionError,
     newOrdersSet,
     isAudioMuted,
     toggleAudio,

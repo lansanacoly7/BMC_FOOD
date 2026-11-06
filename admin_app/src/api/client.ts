@@ -14,6 +14,9 @@ const TOKEN_KEY = 'bmc_admin_token'
 const USER_KEY = 'bmc_admin_username'
 export const DEV_DEFAULT_TOKEN = '5b52fcdaf0cd1621c18dc47f0a60b6386b906803'
 
+/** Émis quand le serveur refuse le jeton en cours : l'application revient à la connexion. */
+export const SESSION_EXPIRED_EVENT = 'bmc:session-expired'
+
 export function getAuthToken(): string | null {
   try {
     return localStorage.getItem(TOKEN_KEY)
@@ -75,6 +78,11 @@ export class ApiError extends Error {
   }
 }
 
+/** Vrai si le backend ne répond pas (arrêté, proxy en erreur), et non s'il refuse la requête. */
+export function isBackendUnreachable(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 0 || error.status === 408 || error.status >= 500)
+}
+
 export interface RequestOptions extends RequestInit {
   timeoutMs?: number
 }
@@ -128,6 +136,10 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     const payload: unknown = await response.json().catch(() => null)
 
     if (!response.ok) {
+      if (response.status === 401 && token) {
+        clearAuthToken()
+        window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
+      }
       throw new ApiError(
         `Erreur API ${response.status} (${response.statusText})`,
         response.status,

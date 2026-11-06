@@ -1,7 +1,7 @@
 import type { DailySpecialResponse, Order, OrderListResponse, OrderResponse, ToggleDailySpecialResponse } from '../types'
 import type { KdsKpis, KdsOrder, KdsOrderStatus } from '../types/kds'
 import { mapKdsStatusToApiStatus, mapOrderFromApi } from './adapter'
-import { apiClient, USE_MOCK } from './client'
+import { apiClient, isBackendUnreachable, USE_MOCK } from './client'
 import { MOCK_KDS_ORDERS } from './mockData'
 
 /**
@@ -11,6 +11,13 @@ import { MOCK_KDS_ORDERS } from './mockData'
 
 // Stockage en mémoire pour le mode Mock (permet de manipuler les statuts en direct)
 let inMemoryMockOrders: KdsOrder[] = [...MOCK_KDS_ORDERS]
+
+// Vrai quand la dernière lecture a dû se rabattre sur les données de démonstration.
+let usingDemoData = false
+
+export function isUsingDemoData(): boolean {
+  return usingDemoData
+}
 
 export function resetMockOrders(): void {
   inMemoryMockOrders = [...MOCK_KDS_ORDERS]
@@ -31,11 +38,14 @@ export async function fetchActiveOrders(signal?: AbortSignal): Promise<KdsOrder[
     const list: Order[] = Array.isArray(raw)
       ? raw
       : (raw && 'orders' in raw && Array.isArray(raw.orders) ? raw.orders : [])
+    usingDemoData = false
     return list.map(mapOrderFromApi)
   } catch (error) {
-    // Si le serveur Django est arrêté en local, bascule en douceur sur le mock en développement
-    if (import.meta.env.DEV) {
+    // Si le serveur Django est arrêté en local, bascule sur le mock en développement.
+    // Un refus (401, 403) n'est pas une panne : il remonte pour être traité.
+    if (import.meta.env.DEV && isBackendUnreachable(error)) {
       console.warn('Backend Django injoignable, bascule automatique sur les données de démonstration :', error)
+      usingDemoData = true
       return [...inMemoryMockOrders]
     }
     throw error
@@ -86,7 +96,7 @@ export async function transitionOrderStatus(
     mapped.status = newStatus // Conserve le statut précis KDS (ex. 'ready')
     return mapped
   } catch (error) {
-    if (import.meta.env.DEV) {
+    if (import.meta.env.DEV && usingDemoData) {
       // Fallback local mock
       const index = inMemoryMockOrders.findIndex((o) => o.orderRef.replace(/^#/, '') === cleanRef)
       if (index !== -1) {

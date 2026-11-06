@@ -13,11 +13,12 @@ import type { KdsOrder, KdsOrderItem, KdsOrderStatus, OrderType, PaymentMethod, 
  */
 function inferOrderType(address: string = '', notes: string = ''): OrderType {
   const normalized = (address + ' ' + notes).toLowerCase()
-  if (normalized.includes('sur place') || normalized.includes('table')) {
-    return 'dine_in'
-  }
+  // À tester en premier : le site client écrit « Retrait sur place » pour une commande à emporter.
   if (normalized.includes('emporter') || normalized.includes('retrait') || normalized.includes('comptoir')) {
     return 'takeaway'
+  }
+  if (normalized.includes('sur place') || /\btable\b/.test(normalized)) {
+    return 'dine_in'
   }
   return 'delivery'
 }
