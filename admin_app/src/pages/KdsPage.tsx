@@ -6,7 +6,6 @@ import {
   Bike,
   ShoppingBag,
   Utensils,
-  Flame,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react'
@@ -29,8 +28,8 @@ export const KDS_COLUMNS: ColumnDefinition[] = [
     id: 'pending',
     title: '1. À PRÉPARER',
     subtitle: 'Nouvelles commandes',
-    badgeColor: '#F5B301',
-    borderColor: '#232830',
+    badgeColor: '#1E2532',
+    borderColor: '#1A1F28',
     actionLabel: 'Lancer cuisson',
     actionClass: '',
     nextStatus: 'preparing',
@@ -39,9 +38,9 @@ export const KDS_COLUMNS: ColumnDefinition[] = [
   {
     id: 'preparing',
     title: '2. EN CUISSON',
-    subtitle: 'Au gril & cuisson',
-    badgeColor: '#F97316',
-    borderColor: '#232830',
+    subtitle: 'Sur le gril',
+    badgeColor: '#1E2532',
+    borderColor: '#1A1F28',
     actionLabel: 'Marquer prête',
     actionClass: '',
     nextStatus: 'ready',
@@ -51,8 +50,8 @@ export const KDS_COLUMNS: ColumnDefinition[] = [
     id: 'ready',
     title: '3. PRÊT AU COMPTOIR',
     subtitle: 'À servir ou emballer',
-    badgeColor: '#10B981',
-    borderColor: '#232830',
+    badgeColor: '#1E2532',
+    borderColor: '#1A1F28',
     actionLabel: 'Terminer / Remise',
     actionClass: '',
     nextStatus: 'delivered',
@@ -87,7 +86,7 @@ export const KdsPage: React.FC<KdsPageProps> = ({
     })
   }, [orders, searchQuery])
 
-  // 2. Filtrage par type de commande (Livraison, Emporter, Sur place) ou statut
+  // 2. Filtrage par type
   const filteredOrders = useMemo(() => {
     if (typeFilter === 'delivered') {
       return searchedOrders.filter((o) => o.status === 'delivered')
@@ -115,12 +114,11 @@ export const KdsPage: React.FC<KdsPageProps> = ({
       }
     })
 
-    // Dans la 3e colonne "Prêt au comptoir", intégrer également les éventuelles commandes "delivering"
-    // afin que tout reste parfaitement accessible en 3 colonnes nettes
+    // Intégrer les éventuelles commandes delivering dans la colonne Prêt
     const readyAndDelivering = [...map['ready'], ...map['delivering']]
     map['ready'] = readyAndDelivering
 
-    // Tri FIFO : les plus anciennes en premier (gestion des priorités)
+    // Tri FIFO : les plus anciennes en premier
     Object.keys(map).forEach((k) => {
       map[k as KdsOrderStatus].sort(
         (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
@@ -130,7 +128,7 @@ export const KdsPage: React.FC<KdsPageProps> = ({
     return map
   }, [filteredOrders])
 
-  // 4. Sommaire de production cumulée (Qu'est-ce qu'on doit cuire en ce moment même ?)
+  // 4. Sommaire de production cumulée (sobre et monochrome)
   const productionSummary = useMemo(() => {
     const activeOrders = searchedOrders.filter(
       (o) => o.status === 'pending' || o.status === 'preparing',
@@ -153,7 +151,7 @@ export const KdsPage: React.FC<KdsPageProps> = ({
     return { list, totalDishes }
   }, [searchedOrders])
 
-  // Comptages rapides pour les filtres
+  // Comptages rapides
   const activeOrdersCount = useMemo(() => {
     return searchedOrders.filter((o) => o.status !== 'delivered' && o.status !== 'cancelled').length
   }, [searchedOrders])
@@ -174,7 +172,6 @@ export const KdsPage: React.FC<KdsPageProps> = ({
     return searchedOrders.filter((o) => o.status === 'delivered').length
   }, [searchedOrders])
 
-  // Commandes pour la vue grille
   const gridOrders = useMemo(() => {
     if (typeFilter === 'delivered') {
       return ordersByStatus['delivered']
@@ -183,15 +180,14 @@ export const KdsPage: React.FC<KdsPageProps> = ({
   }, [typeFilter, filteredOrders, ordersByStatus])
 
   return (
-    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden text-left bg-[#0A0D12]">
-      {/* 1. BARRE DE PRODUCTION CUMULÉE (Anti-rush : que poser sur le gril ?) */}
+    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden text-left bg-[#0A0C10]">
+      {/* 1. BARRE DE SYNTHÈSE DES PLATS : Monochrome & reposante */}
       {productionSummary.totalDishes > 0 && (
-        <div className="border-b border-[#1E2532] bg-[#111620] px-4 py-2 shrink-0 transition-all select-none">
+        <div className="border-b border-[#181D26] bg-[#0E1218] px-4 py-2 shrink-0 select-none">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 overflow-x-auto py-0.5 no-scrollbar flex-1">
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-black uppercase tracking-wider bg-orange-500/20 text-orange-400 border border-orange-500/30 shrink-0">
-                <Flame className="size-3 text-orange-400" />
-                <span>En cuisine ({productionSummary.totalDishes})</span>
+              <span className="text-xs font-semibold text-[#8590A2] uppercase tracking-wider shrink-0 mr-1">
+                À cuire ({productionSummary.totalDishes}) :
               </span>
 
               {isSummaryExpanded ? (
@@ -199,15 +195,15 @@ export const KdsPage: React.FC<KdsPageProps> = ({
                   {productionSummary.list.map((item, idx) => (
                     <span
                       key={idx}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#18202C] border border-[#273346] text-xs text-white shrink-0 font-medium"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#151922] border border-[#202734] text-xs text-white shrink-0"
                     >
-                      <strong className="text-[#F5B301] font-mono font-black">{item.quantity}×</strong>
-                      <span className="truncate max-w-[160px]">{item.name}</span>
+                      <strong className="text-[#F5B301] font-mono">{item.quantity}×</strong>
+                      <span className="truncate max-w-[160px] text-[#C2C9D6]">{item.name}</span>
                     </span>
                   ))}
                 </div>
               ) : (
-                <span className="text-xs text-[#8C9AA9] truncate">
+                <span className="text-xs text-[#6B7687] truncate">
                   {productionSummary.list.slice(0, 4).map((i) => `${i.quantity}× ${i.name}`).join(' · ')}
                   {productionSummary.list.length > 4 && '…'}
                 </span>
@@ -217,123 +213,114 @@ export const KdsPage: React.FC<KdsPageProps> = ({
             <button
               type="button"
               onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
-              className="p-1 text-[#8C9AA9] hover:text-white rounded hover:bg-white/10 shrink-0 transition-colors"
-              title={isSummaryExpanded ? 'Réduire la synthèse' : 'Afficher tout le cumul'}
+              className="p-1 text-[#6B7687] hover:text-white rounded hover:bg-white/5 shrink-0 transition-colors"
+              title={isSummaryExpanded ? 'Réduire' : 'Déplier'}
             >
-              {isSummaryExpanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+              {isSummaryExpanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
             </button>
           </div>
         </div>
       )}
 
-      {/* 2. BARRE D'OUTILS ET FILTRES RAPIDES PAR TYPE (LIVRAISON / EMPORTER / SUR PLACE) */}
-      <div className="h-11 min-h-11 px-4 border-b border-[#1E2532] bg-[#0E1218] flex items-center justify-between gap-3 shrink-0">
-        <div className="flex items-center gap-1.5 overflow-x-auto py-1 no-scrollbar">
-          {/* Tous en cours */}
+      {/* 2. BARRE DE FILTRES : Sobres, unifiées, zéro effet arc-en-ciel */}
+      <div className="h-11 min-h-11 px-4 border-b border-[#181D26] bg-[#0C0F14] flex items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-1 overflow-x-auto py-1 no-scrollbar">
           <button
             type="button"
             onClick={() => setTypeFilter('all')}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
               typeFilter === 'all'
-                ? 'bg-[#1C2330] text-white border border-[#2F3C50]'
-                : 'text-[#8C9AA9] hover:text-white hover:bg-[#151A22]'
+                ? 'bg-[#181D26] text-white border border-[#283140]'
+                : 'text-[#6B7687] hover:text-[#C2C9D6]'
             }`}
           >
             <span>Toutes</span>
-            <span
-              className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
-                activeOrdersCount > 0 ? 'bg-[#F5B301] text-black' : 'bg-[#1C2330] text-[#5F6875]'
-              }`}
-            >
+            <span className="font-mono text-[11px] text-[#8590A2]">
               {activeOrdersCount}
             </span>
           </button>
 
-          {/* Filtre Livraison */}
           <button
             type="button"
             onClick={() => setTypeFilter('delivery')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
               typeFilter === 'delivery'
-                ? 'bg-[#1C2330] text-blue-300 border border-blue-500/40'
-                : 'text-[#8C9AA9] hover:text-white hover:bg-[#151A22]'
+                ? 'bg-[#181D26] text-white border border-[#283140]'
+                : 'text-[#6B7687] hover:text-[#C2C9D6]'
             }`}
           >
-            <Bike className="size-3.5 text-blue-400" />
-            <span>Livraisons</span>
+            <Bike className="size-3 text-[#6B7687]" />
+            <span>Livraison</span>
             {deliveryCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-blue-500/30 text-blue-300">
+              <span className="font-mono text-[11px] text-[#8590A2]">
                 {deliveryCount}
               </span>
             )}
           </button>
 
-          {/* Filtre À emporter */}
           <button
             type="button"
             onClick={() => setTypeFilter('takeaway')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
               typeFilter === 'takeaway'
-                ? 'bg-[#1C2330] text-emerald-300 border border-emerald-500/40'
-                : 'text-[#8C9AA9] hover:text-white hover:bg-[#151A22]'
+                ? 'bg-[#181D26] text-white border border-[#283140]'
+                : 'text-[#6B7687] hover:text-[#C2C9D6]'
             }`}
           >
-            <ShoppingBag className="size-3.5 text-emerald-400" />
+            <ShoppingBag className="size-3 text-[#6B7687]" />
             <span>À emporter</span>
             {takeawayCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-emerald-500/30 text-emerald-300">
+              <span className="font-mono text-[11px] text-[#8590A2]">
                 {takeawayCount}
               </span>
             )}
           </button>
 
-          {/* Filtre Sur place */}
           <button
             type="button"
             onClick={() => setTypeFilter('dine_in')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
               typeFilter === 'dine_in'
-                ? 'bg-[#1C2330] text-amber-300 border border-amber-500/40'
-                : 'text-[#8C9AA9] hover:text-white hover:bg-[#151A22]'
+                ? 'bg-[#181D26] text-white border border-[#283140]'
+                : 'text-[#6B7687] hover:text-[#C2C9D6]'
             }`}
           >
-            <Utensils className="size-3.5 text-amber-400" />
+            <Utensils className="size-3 text-[#6B7687]" />
             <span>Sur place</span>
             {dineInCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-amber-500/30 text-amber-300">
+              <span className="font-mono text-[11px] text-[#8590A2]">
                 {dineInCount}
               </span>
             )}
           </button>
 
-          {/* Terminées */}
           <button
             type="button"
             onClick={() => setTypeFilter('delivered')}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
               typeFilter === 'delivered'
-                ? 'bg-[#1C2330] text-white border border-[#2F3C50]'
-                : 'text-[#8C9AA9] hover:text-white hover:bg-[#151A22]'
+                ? 'bg-[#181D26] text-white border border-[#283140]'
+                : 'text-[#6B7687] hover:text-[#C2C9D6]'
             }`}
           >
             <span>Terminées</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-[#1C2330] text-[#7E8B9E]">
+            <span className="font-mono text-[11px] text-[#6B7687]">
               {deliveredCount}
             </span>
           </button>
         </div>
 
-        {/* Sélecteur de vue : 3 Colonnes Pipeline vs Grille */}
-        <div className="flex items-center gap-1 bg-[#12161E] p-0.5 rounded-lg border border-[#222A37] shrink-0">
+        {/* Sélecteur de vue épuré */}
+        <div className="flex items-center gap-0.5 bg-[#12161E] p-0.5 rounded-lg border border-[#1E2532] shrink-0">
           <button
             type="button"
             onClick={() => setLayoutView('pipeline')}
-            className={`p-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors ${
+            className={`p-1.5 rounded text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors ${
               layoutView === 'pipeline'
-                ? 'bg-[#1C2330] text-white shadow-xs'
-                : 'text-[#8C9AA9] hover:text-white'
+                ? 'bg-[#1C2330] text-white'
+                : 'text-[#6B7687] hover:text-white'
             }`}
-            title="Vue 3 Colonnes Pipeline"
+            title="Vue 3 Colonnes"
           >
             <Columns3 className="size-3.5" />
             <span className="hidden sm:inline">Colonnes</span>
@@ -341,12 +328,12 @@ export const KdsPage: React.FC<KdsPageProps> = ({
           <button
             type="button"
             onClick={() => setLayoutView('grid')}
-            className={`p-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors ${
+            className={`p-1.5 rounded text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-colors ${
               layoutView === 'grid'
-                ? 'bg-[#1C2330] text-white shadow-xs'
-                : 'text-[#8C9AA9] hover:text-white'
+                ? 'bg-[#1C2330] text-white'
+                : 'text-[#6B7687] hover:text-white'
             }`}
-            title="Vue Grille compacte"
+            title="Vue Grille"
           >
             <LayoutGrid className="size-3.5" />
             <span className="hidden sm:inline">Grille</span>
@@ -354,10 +341,9 @@ export const KdsPage: React.FC<KdsPageProps> = ({
         </div>
       </div>
 
-      {/* 3. CONTENU PRINCIPAL : 3 COLONNES PIPELINE OU GRILLE COMPACTE */}
+      {/* 3. COLONNES KDS PRO */}
       <div className="flex-1 overflow-hidden p-3 w-full">
         {layoutView === 'pipeline' && typeFilter !== 'delivered' ? (
-          /* PIPELINE PURE CUISINE EN 3 COLONNES RÉPARTIES SUR 100% DE L'ÉCRAN */
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 h-full w-full overflow-hidden">
             {KDS_COLUMNS.map((col) => (
               <KanbanColumn
@@ -373,16 +359,12 @@ export const KdsPage: React.FC<KdsPageProps> = ({
             ))}
           </div>
         ) : (
-          /* VUE GRILLE COMPACTE */
           <div className="h-full overflow-y-auto pr-1 w-full">
             {gridOrders.length === 0 ? (
-              <div className="h-48 flex flex-col items-center justify-center text-center p-8 rounded-xl border border-dashed border-[#202734] bg-[#12161E]/40 text-[#5F6875] space-y-2">
-                <CheckCircle2 className="size-7 text-[#5F6875]" />
-                <p className="text-sm font-semibold text-[#8C9AA9]">
+              <div className="h-44 flex flex-col items-center justify-center text-center p-8 rounded-xl border border-dashed border-[#1C212B] bg-[#10131A]/40 text-[#556070] space-y-2">
+                <CheckCircle2 className="size-6 text-[#556070]" />
+                <p className="text-sm font-medium text-[#7A8699]">
                   Aucune commande dans cette section
-                </p>
-                <p className="text-xs text-[#5F6875]">
-                  Les commandes actives apparaîtront ici dès leur enregistrement.
                 </p>
               </div>
             ) : (
