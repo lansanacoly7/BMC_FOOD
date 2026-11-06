@@ -2,7 +2,12 @@ from django.urls import path
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from rest_framework.permissions import AllowAny
 
-from .auth_views import StaffTokenView
+from .auth_views import (
+    StaffTokenView,
+    CustomerRegisterView,
+    CustomerLoginView,
+    CustomerProfileView,
+)
 from .views import (
     HealthCheckView,
     MenuView,
@@ -50,6 +55,13 @@ urlpatterns = [
 
     # Authentification administration
     path('auth/token/', StaffTokenView.as_view(), name='auth-token'),
+
+    # Authentification et espace client
+    path('auth/customer/register/', CustomerRegisterView.as_view(), name='customer-register'),
+    path('auth/register/', CustomerRegisterView.as_view(), name='auth-register'),
+    path('auth/customer/login/', CustomerLoginView.as_view(), name='customer-login'),
+    path('auth/login/', CustomerLoginView.as_view(), name='auth-login'),
+    path('auth/customer/profile/', CustomerProfileView.as_view(), name='customer-profile'),
 
     # Documentation OpenAPI (accès réglé par SPECTACULAR_SETTINGS['SERVE_PERMISSIONS'])
     path('schema/', SpectacularAPIView.as_view(), name='schema'),

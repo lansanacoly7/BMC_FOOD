@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, MenuItem, Order, OrderItem
+from .models import Category, MenuItem, Order, OrderItem, Customer
 
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
@@ -24,3 +24,8 @@ class OrderAdmin(admin.ModelAdmin):
     list_filter = ['status', 'payment_method', 'created_at']
     search_fields = ['order_ref', 'customer_name', 'phone', 'address']
     inlines = [OrderItemInline]
+
+@admin.register(Customer)
+class CustomerAdmin(admin.ModelAdmin):
+    list_display = ['name', 'phone', 'address', 'created_at']
+    search_fields = ['name', 'phone', 'address']

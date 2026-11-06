@@ -90,24 +90,29 @@ class MenuView(APIView):
         }
     )
     def get(self, request):
-        categories = Category.objects.prefetch_related('items').all()
-        items = MenuItem.objects.filter(is_available=True).select_related('category')
+        from collections import defaultdict
+        categories = list(Category.objects.all().order_by('name'))
+        items = list(MenuItem.objects.filter(is_available=True).select_related('category').order_by('category', 'price'))
+
+        items_by_cat = defaultdict(list)
+        for item in items:
+            items_by_cat[item.category_id].append(item)
 
         categories_data = []
         for cat in categories:
-            cat_items = items.filter(category=cat)
+            cat_items = items_by_cat[cat.id]
             categories_data.append({
                 'id': cat.id,
                 'name': cat.name,
                 'slug': cat.slug,
                 'icon': cat.icon,
-                'items_count': cat_items.count(),
+                'items_count': len(cat_items),
                 'items': MenuItemSerializer(cat_items, many=True).data
             })
 
         return Response({
             'success': True,
-            'total_items': items.count(),
+            'total_items': len(items),
             'categories': categories_data,
             'items': MenuItemSerializer(items, many=True).data
         })
@@ -322,6 +327,7 @@ class OrderListCreateView(APIView):
                     }, status=status.HTTP_201_CREATED)
                 except OperationalError as e:
                     if 'locked' in str(e).lower() and attempt < 4:
+                        serializer.instance = None
                         time.sleep(0.05 + 0.05 * attempt)
                         continue
                     raise
