@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   Bike,
   Clock,
+  UtensilsCrossed,
   type LucideIcon,
 } from 'lucide-react'
 import type { ColumnDefinition, KdsOrder, KdsOrderStatus } from '../../types/kds'
@@ -39,63 +40,94 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
         )
       : 0
 
-  const getColumnIcon = (id: KdsOrderStatus): LucideIcon => {
+  const totalItemsCount = orders.reduce(
+    (sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0),
+    0,
+  )
+
+  const getColumnStyle = (id: KdsOrderStatus): { icon: LucideIcon; accent: string; badgeBg: string; text: string } => {
     switch (id) {
       case 'pending':
-        return Inbox
+        return {
+          icon: Inbox,
+          accent: 'text-[#F5B301]',
+          badgeBg: 'bg-[#F5B301] text-black',
+          text: 'text-[#F5B301]',
+        }
       case 'preparing':
-        return Flame
+        return {
+          icon: Flame,
+          accent: 'text-orange-400',
+          badgeBg: 'bg-orange-500 text-white',
+          text: 'text-orange-400',
+        }
       case 'ready':
-        return CheckCircle2
+        return {
+          icon: CheckCircle2,
+          accent: 'text-emerald-400',
+          badgeBg: 'bg-emerald-500 text-black',
+          text: 'text-emerald-400',
+        }
       case 'delivering':
-        return Bike
+        return {
+          icon: Bike,
+          accent: 'text-blue-400',
+          badgeBg: 'bg-blue-500 text-white',
+          text: 'text-blue-400',
+        }
       default:
-        return Inbox
+        return {
+          icon: Inbox,
+          accent: 'text-slate-400',
+          badgeBg: 'bg-slate-700 text-white',
+          text: 'text-slate-400',
+        }
     }
   }
 
-  const ColumnIcon = getColumnIcon(definition.id)
+  const { icon: ColumnIcon, accent, badgeBg } = getColumnStyle(definition.id)
 
   return (
     <section
-      className="flex flex-col rounded-2xl border border-[#1F242B] bg-[#0E1115] flex-1 min-w-0 w-full h-full overflow-hidden select-none"
+      className="flex flex-col rounded-xl border border-[#202734] bg-[#0E1218] flex-1 min-w-0 w-full h-full overflow-hidden select-none shadow-xs"
       aria-label={`${definition.title} (${orders.length} commandes)`}
     >
-      {/* En-tête de colonne */}
-      <header className="px-4 py-3 border-b border-[#1A1F26] bg-[#12151A] flex items-center justify-between gap-2 shrink-0">
-        <div className="flex items-center gap-2">
-          <ColumnIcon className="size-4 text-[#F5B301]" />
-          <h2 className="text-xs font-bold text-white uppercase tracking-wider">
+      {/* En-tête de colonne compact et haute lisibilité */}
+      <header className="px-3.5 py-2.5 border-b border-[#1E2532] bg-[#141922] flex items-center justify-between gap-2 shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <ColumnIcon className={`size-4 shrink-0 ${accent}`} />
+          <h2 className="text-xs font-black text-white uppercase tracking-wider truncate">
             {definition.title}
           </h2>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
+          {totalItemsCount > 0 && (
+            <span className="hidden xl:inline-flex items-center gap-1 text-[11px] font-mono text-[#8C9AA9]">
+              <UtensilsCrossed className="size-3" />
+              {totalItemsCount} plats
+            </span>
+          )}
+
           {orders.length > 0 && avgWaitMin > 0 && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-mono text-[#8A93A0]">
+            <span className="inline-flex items-center gap-1 text-[11px] font-mono text-[#8C9AA9]">
               <Clock className="size-3" />
               {avgWaitMin}m
             </span>
           )}
 
-          <span
-            className={`px-2 py-0.5 rounded-full text-xs font-bold font-mono ${
-              orders.length > 0
-                ? 'bg-[#F5B301] text-black'
-                : 'bg-[#1A1E24] text-[#5F6875]'
-            }`}
-          >
+          <span className={`px-2 py-0.5 rounded-full text-xs font-black font-mono ${badgeBg}`}>
             {orders.length}
           </span>
         </div>
       </header>
 
       {/* Liste des cartes défilable */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+      <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5">
         {orders.length === 0 ? (
-          <div className="h-44 flex flex-col items-center justify-center text-center p-4 rounded-xl border border-dashed border-[#1F242B] bg-[#12151A]/40 text-[#5F6875] space-y-1">
-            <ColumnIcon className="size-6 stroke-[1.5]" />
-            <p className="text-xs font-medium text-[#8A93A0]">{definition.emptyMessage}</p>
+          <div className="h-36 flex flex-col items-center justify-center text-center p-4 rounded-xl border border-dashed border-[#202734] bg-[#12161E]/40 text-[#5F6875] space-y-1.5">
+            <ColumnIcon className="size-5 stroke-[1.5] text-[#5F6875]" />
+            <p className="text-xs font-semibold text-[#8C9AA9]">{definition.emptyMessage}</p>
           </div>
         ) : (
           orders.map((order) => (

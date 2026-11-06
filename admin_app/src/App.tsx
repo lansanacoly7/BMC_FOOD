@@ -38,6 +38,7 @@ export default function App() {
   }
 
   const [headerTab, setHeaderTab] = useState<AdminTab>('kds')
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false)
   const [viewMode, setViewMode] = useState<'kanban' | 'history'>('kanban')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [selectedOrder, setSelectedOrder] = useState<KdsOrder | null>(null)
@@ -186,15 +187,21 @@ export default function App() {
       className="h-screen max-h-screen h-[100dvh] flex flex-row antialiased text-white select-none overflow-hidden kds-cuisine"
       style={{ backgroundColor: '#0B0D10' }}
     >
-      <AdminSidebar
-        currentTab={headerTab}
-        onTabChange={(tab) => setHeaderTab(tab)}
-        onLogout={handleLogout}
-        currentUser={currentUser}
-      />
+      {!isSidebarCollapsed && (
+        <AdminSidebar
+          currentTab={headerTab}
+          onTabChange={(tab) => setHeaderTab(tab)}
+          onLogout={handleLogout}
+          currentUser={currentUser}
+        />
+      )}
 
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        <AppHeader currentTab={headerTab} />
+        <AppHeader
+          currentTab={headerTab}
+          isSidebarCollapsed={isSidebarCollapsed}
+          onToggleSidebar={() => setIsSidebarCollapsed((prev) => !prev)}
+        />
 
         <ConnectionBanner
           connectionState={connectionState}

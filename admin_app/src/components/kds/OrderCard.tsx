@@ -1,15 +1,20 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   Printer,
   Eye,
   Check,
   ArrowRight,
-  AlertCircle,
+  AlertTriangle,
   Clock,
+  Bike,
+  Utensils,
+  ShoppingBag,
+  MoreVertical,
+  XCircle,
+  Phone,
 } from 'lucide-react'
-import { formatDuration, formatFcfa, getElapsedSeconds, getUrgencyLevel } from '../../lib/formatters'
-import type { KdsOrder, KdsOrderItem, KdsOrderStatus } from '../../types/kds'
-import { OrderTypePill } from '../common/StatusPills'
+import { formatDuration, getElapsedSeconds, getUrgencyLevel } from '../../lib/formatters'
+import type { KdsOrder, KdsOrderStatus, OrderType } from '../../types/kds'
 
 interface OrderCardProps {
   order: KdsOrder
@@ -20,69 +25,86 @@ interface OrderCardProps {
   onPrintTicket: (order: KdsOrder) => void
 }
 
-/**
- * Associe l'image réelle du produit en fonction du premier article commandé
- */
-function getOrderImage(items: KdsOrderItem[]): string {
-  if (!items || items.length === 0) return '/images/products/tacos-viande-pane.webp'
-  const name = (items[0].name || '').toLowerCase()
-
-  if (name.includes('burger')) {
-    if (name.includes('complet')) return '/images/products/burger-bmc-complet.webp'
-    if (name.includes('poulet') || name.includes('crispy')) return '/images/products/burger-poulet-crispy.webp'
-    return '/images/products/burger-cheese-simple.webp'
-  }
-  if (name.includes('wings') || name.includes('aile')) return '/images/products/chicken-wings-bbq.webp'
-  if (name.includes('tender')) return '/images/products/tenders-poulet.webp'
-  if (name.includes('chawarma') || name.includes('shawarma')) return '/images/products/sandwich-chawarma.webp'
-  if (name.includes('frite')) return '/images/products/frites-maison.webp'
-  if (name.includes('pastel')) return '/images/products/pastels-dakar.webp'
-  if (name.includes('boisson') || name.includes('coca') || name.includes('jus')) return '/images/products/boissons-fraiches.webp'
-  if (name.includes('cordon')) return '/images/products/tacos-cordon-bleu-pane.webp'
-  if (name.includes('mixte')) return '/images/products/tacos-mixte-pane.webp'
-  if (name.includes('poulet')) return '/images/products/tacos-poulet-pane.webp'
-  return '/images/products/tacos-viande-pane.webp'
+const TYPE_CONFIG: Record<
+  OrderType,
+  { label: string; icon: React.FC<{ className?: string }>; bg: string; text: string; border: string }
+> = {
+  delivery: {
+    label: 'Livraison',
+    icon: Bike,
+    bg: 'bg-blue-500/15',
+    text: 'text-blue-400',
+    border: 'border-blue-500/30',
+  },
+  takeaway: {
+    label: 'À emporter',
+    icon: ShoppingBag,
+    bg: 'bg-emerald-500/15',
+    text: 'text-emerald-400',
+    border: 'border-emerald-500/30',
+  },
+  dine_in: {
+    label: 'Sur place',
+    icon: Utensils,
+    bg: 'bg-amber-500/15',
+    text: 'text-amber-400',
+    border: 'border-amber-500/30',
+  },
 }
-
 
 export const OrderCard: React.FC<OrderCardProps> = ({
   order,
   nowMs,
   onTransition,
-  onCancel: _onCancel,
+  onCancel,
   onViewDetails,
   onPrintTicket,
 }) => {
+  // Bumplist tactile : permet au cuisinier de cocher chaque plat préparé
+  const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set())
+  const [showMenu, setShowMenu] = useState(false)
+
+  const toggleItem = (idx: number) => {
+    setCheckedItems((prev) => {
+      const next = new Set(prev)
+      if (next.has(idx)) next.delete(idx)
+      else next.add(idx)
+      return next
+    })
+  }
+
   const elapsedSec = getElapsedSeconds(order.createdAt, nowMs)
   const urgency = getUrgencyLevel(elapsedSec)
   const durationText = formatDuration(elapsedSec)
-  const orderImage = getOrderImage(order.items)
+
+  const typeInfo = TYPE_CONFIG[order.orderType] || TYPE_CONFIG.delivery
+  const TypeIcon = typeInfo.icon
 
   const getPrimaryAction = () => {
     switch (order.status) {
       case 'pending':
         return {
-          label: 'Lancer la cuisson',
+          label: 'Lancer cuisson',
           nextStatus: 'preparing' as KdsOrderStatus,
-          colorClass: 'bg-[#F5B301] hover:bg-[#ffc32b] text-black font-extrabold',
+          colorClass: 'bg-[#F5B301] hover:bg-[#ffc83b] text-black font-black',
         }
       case 'preparing':
         return {
-          label: 'Marquer prête',
+          label: 'Marquer prêt au comptoir',
           nextStatus: 'ready' as KdsOrderStatus,
-          colorClass: 'bg-[#F5B301] hover:bg-[#ffc32b] text-black font-extrabold',
+          colorClass: 'bg-orange-500 hover:bg-orange-400 text-white font-black',
         }
       case 'ready':
         return {
-          label: order.orderType === 'delivery' ? 'Remettre au livreur' : 'Servir / Remettre',
+          label: order.orderType === 'delivery' ? 'Remis au coursier' : 'Servi / Remis au client',
           nextStatus: 'delivered' as KdsOrderStatus,
-          colorClass: 'bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold',
+          colorClass: 'bg-emerald-500 hover:bg-emerald-400 text-black font-black',
         }
       case 'delivering':
         return {
           label: 'Confirmer livraison',
           nextStatus: 'delivered' as KdsOrderStatus,
-          colorClass: 'bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold',
+          colorClass: 'bg-emerald-500 hover:bg-emerald-400 text-black font-black',
         }
       default:
         return null
@@ -91,131 +113,219 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
   const primaryAction = getPrimaryAction()
   const isDanger = urgency === 'danger'
+  const isWarning = urgency === 'warning'
   const isDelivered = order.status === 'delivered'
+
+  // Calcul du taux d'avancement des plats
+  const totalItemsCount = order.items.length
+  const completedCount = checkedItems.size
+  const allChecked = totalItemsCount > 0 && completedCount === totalItemsCount
 
   return (
     <article
-      className={`rounded-2xl border bg-[#12151A] text-left transition-all duration-150 select-none overflow-hidden flex flex-col justify-between ${
+      className={`rounded-xl border text-left transition-all duration-150 select-none overflow-hidden flex flex-col justify-between bg-[#12161D] ${
         isDanger
-          ? 'border-red-500/70 shadow-lg shadow-red-500/10'
-          : 'border-[#1F242B] hover:border-[#2E3642] shadow-sm'
+          ? 'border-red-500 ring-2 ring-red-500/30 shadow-lg shadow-red-950/40'
+          : isWarning
+          ? 'border-amber-500/50 hover:border-amber-400/80 shadow-sm'
+          : 'border-[#222936] hover:border-[#323D4F] shadow-xs'
       }`}
       aria-label={`Commande ${order.orderRef}`}
     >
-      {/* 1. EN-TÊTE DU TICKET : Référence, Chrono & Badges sur 2 lignes nettes */}
-      <div className="p-4 border-b border-[#1A1F26] space-y-2.5">
-        {/* Ligne 1 : Référence (#BMC-XXXXXX) + Chrono d'attente */}
-        <div className="flex items-center justify-between gap-2">
-          <span className="font-mono text-base font-black text-white tracking-tight whitespace-nowrap">
+      {/* 1. EN-TÊTE COMPACT KDS : Référence en gros, Type, Chrono & Menu */}
+      <div className="px-3.5 py-2.5 border-b border-[#1E2430] bg-[#161B24] flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="font-mono text-base font-black text-white tracking-tight">
             {order.orderRef}
           </span>
-
-          <div className="flex items-center gap-2">
-            <span
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono font-bold tabular-nums whitespace-nowrap ${
-                isDanger
-                  ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                  : 'bg-[#1A1E24] text-[#8A93A0] border border-[#232830]'
-              }`}
-            >
-              <Clock className="size-3" />
-              {durationText}
-            </span>
-
-            <button
-              type="button"
-              onClick={() => onPrintTicket(order)}
-              className="p-1 rounded text-[#5F6875] hover:text-white transition-colors cursor-pointer"
-              title="Imprimer ticket"
-            >
-              <Printer className="size-3.5" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onViewDetails(order)}
-              className="p-1 rounded text-[#5F6875] hover:text-white transition-colors cursor-pointer"
-              title="Détails complets"
-            >
-              <Eye className="size-3.5" />
-            </button>
-          </div>
+          <span
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${typeInfo.bg} ${typeInfo.text} border ${typeInfo.border}`}
+          >
+            <TypeIcon className="size-3 shrink-0" />
+            <span>{typeInfo.label}</span>
+          </span>
         </div>
 
-        {/* Ligne 2 : Type de commande (Pill) + Nom du client */}
-        <div className="flex items-center gap-2">
-          <OrderTypePill type={order.orderType} />
-          <span className="text-xs text-[#8A93A0] font-medium truncate">
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Chronomètre dynamique */}
+          <span
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono font-black tabular-nums ${
+              isDanger
+                ? 'bg-red-500 text-white animate-pulse'
+                : isWarning
+                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                : 'bg-[#1C2330] text-[#9AA5B5] border border-[#263142]'
+            }`}
+          >
+            <Clock className="size-3" />
+            {durationText}
+          </span>
+
+          {/* Menu options discret */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-1 rounded text-[#727F93] hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              title="Options"
+            >
+              <MoreVertical className="size-4" />
+            </button>
+
+            {showMenu && (
+              <div
+                className="absolute right-0 top-full mt-1 w-44 rounded-xl shadow-xl border border-[#2B3545] bg-[#171D27] py-1 z-30 select-none text-xs"
+                onMouseLeave={() => setShowMenu(false)}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMenu(false)
+                    onViewDetails(order)
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-slate-200 hover:text-white hover:bg-white/10"
+                >
+                  <Eye className="size-3.5" />
+                  <span>Détail complet</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMenu(false)
+                    onPrintTicket(order)
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-slate-200 hover:text-white hover:bg-white/10"
+                >
+                  <Printer className="size-3.5" />
+                  <span>Imprimer ticket</span>
+                </button>
+                {order.phone && (
+                  <a
+                    href={`tel:${order.phone}`}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-slate-200 hover:text-white hover:bg-white/10"
+                  >
+                    <Phone className="size-3.5" />
+                    <span>Appeler client</span>
+                  </a>
+                )}
+                <div className="my-1 border-t border-[#2B3545]" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMenu(false)
+                    if (window.confirm(`Confirmer l'annulation de la commande ${order.orderRef} ?`)) {
+                      onCancel(order.orderRef)
+                    }
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 font-semibold"
+                >
+                  <XCircle className="size-3.5" />
+                  <span>Annuler commande</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 2. CONSIGNE CUISINE EN SURBRILLANCE ROUGE/OR (Si présente) */}
+      {order.notes && (
+        <div className="mx-3 mt-2.5 px-2.5 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/40 flex items-start gap-1.5 text-xs text-amber-200 font-bold">
+          <AlertTriangle className="size-3.5 text-amber-400 shrink-0 mt-0.5" />
+          <span className="leading-snug">« {order.notes} »</span>
+        </div>
+      )}
+
+      {/* 3. LISTE DES ARTICLES AVEC QUANTITÉS HAUTE VISIBILITÉ & BUMPLIST */}
+      <div className="p-3 space-y-1.5 flex-1">
+        <ul className="space-y-1.5" aria-label="Plats à préparer">
+          {order.items.map((item, idx) => {
+            const isDone = checkedItems.has(idx)
+            return (
+              <li
+                key={idx}
+                onClick={() => toggleItem(idx)}
+                className={`p-2 rounded-lg border transition-all cursor-pointer flex items-start justify-between gap-2 text-xs select-none ${
+                  isDone
+                    ? 'bg-[#151B22]/60 border-[#222934] opacity-50 line-through text-slate-400'
+                    : 'bg-[#181E29] border-[#263142] hover:border-[#38475E] text-white'
+                }`}
+                title="Cliquer pour marquer ce plat comme cuit"
+              >
+                <div className="flex items-start gap-2.5 min-w-0">
+                  {/* Badge quantité géant et lisible */}
+                  <span
+                    className={`px-1.5 py-0.5 rounded text-xs font-mono font-black shrink-0 ${
+                      isDone
+                        ? 'bg-slate-800 text-slate-500'
+                        : 'bg-[#F5B301] text-black font-extrabold shadow-xs'
+                    }`}
+                  >
+                    {item.quantity}×
+                  </span>
+                  <div className="min-w-0">
+                    <span className="font-bold text-sm leading-tight block truncate">
+                      {item.name}
+                    </span>
+                    {item.options && item.options.length > 0 && (
+                      <span className="text-[11px] text-[#A0AEC0] block truncate">
+                        + {item.options.join(', ')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="shrink-0 mt-0.5">
+                  <div
+                    className={`size-4 rounded flex items-center justify-center border ${
+                      isDone
+                        ? 'bg-emerald-500 border-emerald-500 text-black'
+                        : 'border-[#38475E] bg-[#12161F]'
+                    }`}
+                  >
+                    {isDone && <Check className="size-3 stroke-[3]" />}
+                  </div>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+
+        {/* Ligne discrète client & progression */}
+        <div className="pt-2 flex items-center justify-between text-[11px] text-[#7E8B9E]">
+          <span className="truncate max-w-[180px]">
             {order.customerName}
           </span>
+          {totalItemsCount > 1 && (
+            <span
+              className={`font-mono text-[10px] font-bold ${
+                allChecked ? 'text-emerald-400' : 'text-[#7E8B9E]'
+              }`}
+            >
+              {completedCount}/{totalItemsCount} prêts
+            </span>
+          )}
         </div>
       </div>
 
-      {/* 2. CORPS : VISUEL DU PLAT ET LISTE DES ARTICLES */}
-      <div className="p-4 flex-1 space-y-3">
-        <div className="flex items-start gap-3">
-          {/* Miniature photo haute définition du plat */}
-          <div className="relative size-14 rounded-xl overflow-hidden bg-black shrink-0 border border-white/10 shadow-xs">
-            <img
-              src={orderImage}
-              alt={order.orderRef}
-              className="size-full object-cover"
-              onError={(e) => {
-                e.currentTarget.src = '/images/products/tacos-viande-pane.webp'
-              }}
-            />
-          </div>
-
-          {/* Liste des articles */}
-          <ul className="flex-1 space-y-2 min-w-0" aria-label="Articles">
-            {order.items.map((item, idx) => (
-              <li key={idx} className="flex items-start gap-2 text-xs">
-                <span className="px-1.5 py-0.2 rounded text-[11px] font-mono font-black bg-[#1A1E24] text-[#F5B301] border border-[#232830] shrink-0 mt-0.5">
-                  {item.quantity}×
-                </span>
-                <span className="text-white font-semibold text-sm leading-snug">
-                  {item.name}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Consigne client discrète si présente */}
-        {order.notes && (
-          <div className="p-2 rounded-lg bg-[#18150C] border border-[#F5B301]/25 flex items-start gap-1.5 text-xs text-[#E5B54F]">
-            <AlertCircle className="size-3.5 shrink-0 mt-0.5" />
-            <span className="italic leading-relaxed">« {order.notes} »</span>
-          </div>
-        )}
-      </div>
-
-      {/* 3. BAS DE CARTE : MONTANT & GROS BOUTON PLEINE LARGEUR */}
-      <div className="p-4 border-t border-[#1A1F26] bg-[#0E1115] space-y-2.5">
-        <div className="flex items-center justify-between">
-          <span className="text-xs uppercase font-bold text-[#5F6875] tracking-wider">Total</span>
-          <span className="text-base font-black font-mono text-[#F5B301]">
-            {formatFcfa(order.totalAmount)}
-          </span>
-        </div>
-
+      {/* 4. GROS BOUTON TACTILE D'AVANCEMENT RAPIDE */}
+      <div className="p-2.5 border-t border-[#1E2430] bg-[#10141B]">
         {primaryAction && !isDelivered ? (
           <button
             type="button"
             onClick={() => onTransition(order.orderRef, primaryAction.nextStatus)}
-            className={`w-full py-2.5 px-4 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all shadow-sm ${primaryAction.colorClass}`}
+            className={`w-full py-2.5 px-3 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-[0.98] shadow-sm ${primaryAction.colorClass}`}
           >
             <span>{primaryAction.label}</span>
-            <ArrowRight className="size-4" />
+            <ArrowRight className="size-3.5" />
           </button>
         ) : isDelivered ? (
-          <div className="w-full py-2 px-3 rounded-xl bg-emerald-500/10 text-emerald-400 text-xs font-bold flex items-center justify-center gap-1.5 border border-emerald-500/20">
-            <Check className="size-3.5" />
-            <span>Commande clôturée</span>
+          <div className="w-full py-1.5 px-2 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-bold flex items-center justify-center gap-1 border border-emerald-500/20">
+            <Check className="size-3" />
+            <span>Clôturée</span>
           </div>
         ) : null}
       </div>
     </article>
   )
 }
-
