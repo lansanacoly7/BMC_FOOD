@@ -13,7 +13,7 @@ import {
   Phone,
   MessageSquare,
 } from 'lucide-react'
-import { formatDuration, getElapsedSeconds, getUrgencyLevel } from '../../lib/formatters'
+import { formatDuration, formatFcfa, getElapsedSeconds, getUrgencyLevel } from '../../lib/formatters'
 import type { KdsOrder, KdsOrderStatus, OrderType } from '../../types/kds'
 
 interface OrderCardProps {
@@ -27,23 +27,11 @@ interface OrderCardProps {
 
 const TYPE_CONFIG: Record<
   OrderType,
-  { label: string; icon: React.FC<{ className?: string }>; tagClass: string }
+  { label: string; icon: React.FC<{ className?: string }> }
 > = {
-  delivery: {
-    label: 'Livraison',
-    icon: Bike,
-    tagClass: 'text-[#94A3B8] bg-[#141A23] border-[#222B3A]',
-  },
-  takeaway: {
-    label: 'À emporter',
-    icon: ShoppingBag,
-    tagClass: 'text-[#94A3B8] bg-[#141A23] border-[#222B3A]',
-  },
-  dine_in: {
-    label: 'Sur place',
-    icon: Utensils,
-    tagClass: 'text-[#94A3B8] bg-[#141A23] border-[#222B3A]',
-  },
+  delivery: { label: 'Livraison', icon: Bike },
+  takeaway: { label: 'À emporter', icon: ShoppingBag },
+  dine_in: { label: 'Sur place', icon: Utensils },
 }
 
 export const OrderCard: React.FC<OrderCardProps> = ({
@@ -74,36 +62,31 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   const typeConfig = TYPE_CONFIG[order.orderType] || TYPE_CONFIG.delivery
   const TypeIcon = typeConfig.icon
 
-  // Définition de l'action principale du workflow
+  // Le rouge est réservé EXCLUSIVEMENT aux commandes en retard (> 15 min)
+  const isLate = urgency === 'danger'
+  const isDelivered = order.status === 'delivered'
+
+  // Action principale avec UNE SEULE couleur d'accent (#E8A33D)
   const getPrimaryAction = () => {
     switch (order.status) {
       case 'pending':
         return {
-          label: 'Lancer cuisson',
-          subLabel: 'Passer en cuisine',
+          label: 'Lancer la préparation',
           nextStatus: 'preparing' as KdsOrderStatus,
-          bgClass: 'bg-[#F5B301] hover:bg-[#E5A700] text-black font-extrabold',
+          isAccent: true,
         }
       case 'preparing':
         return {
-          label: 'Marquer prête',
-          subLabel: 'Envoyer au comptoir',
+          label: 'Marquer prêt',
           nextStatus: 'ready' as KdsOrderStatus,
-          bgClass: 'bg-[#22C55E] hover:bg-[#16A34A] text-black font-extrabold',
+          isAccent: true,
         }
       case 'ready':
-        return {
-          label: order.orderType === 'delivery' ? 'Remettre coursier' : 'Servir client',
-          subLabel: 'Clôturer la commande',
-          nextStatus: 'delivered' as KdsOrderStatus,
-          bgClass: 'bg-[#E2E8F0] hover:bg-white text-black font-bold',
-        }
       case 'delivering':
         return {
-          label: 'Confirmer livraison',
-          subLabel: 'Commande livrée',
+          label: order.orderType === 'delivery' ? 'Remettre au coursier' : 'Servir / Remettre',
           nextStatus: 'delivered' as KdsOrderStatus,
-          bgClass: 'bg-[#E2E8F0] hover:bg-white text-black font-bold',
+          isAccent: false,
         }
       default:
         return null
@@ -111,50 +94,39 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   }
 
   const primaryAction = getPrimaryAction()
-  const isDanger = urgency === 'danger'
-  const isDelivered = order.status === 'delivered'
-  const totalQuantity = order.items.reduce((s, i) => s + i.quantity, 0)
-  const allItemsChecked = order.items.length > 0 && checkedItems.size === order.items.length
-
-  // Raccourcir le numéro pour lisibilité cuisine : #0123 ou #849201
-  const displayRef = order.orderRef.replace(/^#?BMC-?/, '#')
 
   return (
     <article
-      className={`rounded-xl border transition-all duration-150 select-none overflow-hidden flex flex-col justify-between bg-[#0F131A] shadow-lg ${
-        isDanger
-          ? 'border-red-500/80 shadow-red-950/20'
-          : allItemsChecked
-          ? 'border-[#22C55E]/40'
-          : 'border-[#1E2533] hover:border-[#2D374A]'
+      className={`rounded-lg border text-left select-none overflow-hidden flex flex-col justify-between transition-colors bg-[#171A21] ${
+        isLate
+          ? 'border-[#E04848]'
+          : 'border-[#262A33]'
       }`}
-      aria-label={`Ticket ${order.orderRef}`}
+      aria-label={`Commande ${order.orderRef}`}
     >
-      {/* 1. EN-TÊTE DU TICKET : Référence géante, Destination, Chrono */}
-      <div className="px-3.5 py-2.5 border-b border-[#1A212D] bg-[#141923] flex items-center justify-between gap-2">
+      {/* 1. EN-TÊTE DE LA CARTE : Référence, Type, Chrono */}
+      <div className="px-3 py-2 border-b border-[#262A33] bg-[#12141A] flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="font-mono text-base font-black text-white tracking-tight shrink-0">
-            {displayRef}
+          <span className="font-mono text-sm font-bold text-[#E6E8EC] tracking-tight shrink-0">
+            {order.orderRef}
           </span>
-          <span
-            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold border ${typeConfig.tagClass}`}
-          >
-            <TypeIcon className="size-3 text-[#7E8B9F]" />
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-[#171A21] text-[#8B93A1] border border-[#262A33]">
+            <TypeIcon className="size-3 text-[#8B93A1]" />
             <span>{typeConfig.label}</span>
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
-          {/* Chronomètre épuré */}
+        <div className="flex items-center gap-1 shrink-0">
+          {/* Chronomètre : rouge uniquement si en retard, sinon secondaire */}
           <span
-            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono font-bold tabular-nums border ${
-              isDanger
-                ? 'bg-red-500/20 text-red-400 border-red-500/40'
-                : 'bg-[#181F2B] text-[#8C98AA] border-[#222C3C]'
+            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-mono font-medium border ${
+              isLate
+                ? 'text-[#E04848] bg-[#E04848]/10 border-[#E04848]/40 font-bold'
+                : 'text-[#8B93A1] bg-[#171A21] border-[#262A33]'
             }`}
-            title={`Passée à ${new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+            title={`Créée à ${new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
           >
-            <Clock className="size-3 text-[#64748B]" />
+            <Clock className="size-3" />
             {durationText}
           </span>
 
@@ -163,15 +135,15 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             <button
               type="button"
               onClick={() => setShowMenu(!showMenu)}
-              className="p-1 rounded text-[#64748B] hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
-              title="Options ticket"
+              className="p-1 rounded text-[#8B93A1] hover:text-[#E6E8EC] hover:bg-[#262A33] transition-colors cursor-pointer"
+              title="Options"
             >
               <MoreVertical className="size-3.5" />
             </button>
 
             {showMenu && (
               <div
-                className="absolute right-0 top-full mt-1 w-44 rounded-xl shadow-2xl border border-[#263143] bg-[#161C26] py-1 z-30 select-none text-xs"
+                className="absolute right-0 top-full mt-1 w-44 rounded-lg shadow-lg border border-[#262A33] bg-[#171A21] py-1 z-30 select-none text-xs"
                 onMouseLeave={() => setShowMenu(false)}
               >
                 <button
@@ -180,10 +152,10 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                     setShowMenu(false)
                     onViewDetails(order)
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-[#CBD5E1] hover:text-white hover:bg-white/5 cursor-pointer"
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-[#E6E8EC] hover:bg-[#262A33] cursor-pointer"
                 >
-                  <Eye className="size-3.5 text-[#64748B]" />
-                  <span>Détails commande</span>
+                  <Eye className="size-3.5 text-[#8B93A1]" />
+                  <span>Détails complets</span>
                 </button>
                 <button
                   type="button"
@@ -191,30 +163,30 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                     setShowMenu(false)
                     onPrintTicket(order)
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-[#CBD5E1] hover:text-white hover:bg-white/5 cursor-pointer"
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-[#E6E8EC] hover:bg-[#262A33] cursor-pointer"
                 >
-                  <Printer className="size-3.5 text-[#64748B]" />
+                  <Printer className="size-3.5 text-[#8B93A1]" />
                   <span>Imprimer le ticket</span>
                 </button>
                 {order.phone && (
                   <a
                     href={`tel:${order.phone}`}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-[#CBD5E1] hover:text-white hover:bg-white/5"
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-[#E6E8EC] hover:bg-[#262A33]"
                   >
-                    <Phone className="size-3.5 text-[#64748B]" />
-                    <span>Appeler {order.customerName}</span>
+                    <Phone className="size-3.5 text-[#8B93A1]" />
+                    <span>Appeler le client</span>
                   </a>
                 )}
-                <div className="my-1 border-t border-[#222B3B]" />
+                <div className="my-1 border-t border-[#262A33]" />
                 <button
                   type="button"
                   onClick={() => {
                     setShowMenu(false)
-                    if (window.confirm(`Annuler définitivement la commande ${order.orderRef} ?`)) {
+                    if (window.confirm(`Annuler la commande ${order.orderRef} ?`)) {
                       onCancel(order.orderRef)
                     }
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 font-semibold cursor-pointer"
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-[#E04848] hover:bg-[#E04848]/10 font-medium cursor-pointer"
                 >
                   <XCircle className="size-3.5" />
                   <span>Annuler commande</span>
@@ -225,51 +197,51 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         </div>
       </div>
 
-      {/* 2. NOTE DU CLIENT (Si présente) */}
+      {/* 2. NOTE CLIENT (Si renseignée) */}
       {order.notes && (
-        <div className="mx-3 mt-2 px-2.5 py-1.5 rounded-lg bg-[#151B24] border border-[#252E3E] text-xs text-[#E2E8F0] flex items-start gap-2">
-          <MessageSquare className="size-3 text-[#F5B301] shrink-0 mt-0.5" />
-          <span className="italic leading-snug">« {order.notes} »</span>
+        <div className="mx-3 mt-2 px-2 py-1.5 rounded border border-[#262A33] bg-[#12141A] text-xs text-[#E6E8EC] flex items-start gap-1.5">
+          <MessageSquare className="size-3 text-[#E8A33D] shrink-0 mt-0.5" />
+          <span className="italic leading-relaxed">« {order.notes} »</span>
         </div>
       )}
 
-      {/* 3. LISTE DES ARTICLES À PRÉPARER (Contraste maximal, tactile) */}
+      {/* 3. LISTE DES ARTICLES : Police Inter, contrastée, interactive */}
       <div className="p-3 space-y-1.5 flex-1">
-        <ul className="space-y-1.5" aria-label="Articles">
+        <ul className="space-y-1" aria-label="Articles à préparer">
           {order.items.map((item, idx) => {
             const isDone = checkedItems.has(idx)
             return (
               <li
                 key={idx}
                 onClick={(e) => toggleItem(idx, e)}
-                className={`p-2 rounded-lg border transition-all cursor-pointer flex items-start justify-between gap-2.5 text-xs select-none ${
+                className={`p-1.5 rounded border transition-colors cursor-pointer flex items-start justify-between gap-2 text-xs select-none ${
                   isDone
-                    ? 'bg-[#10141C] border-[#181F2B] opacity-40 line-through text-[#64748B]'
-                    : 'bg-[#141A23] border-[#202938] hover:border-[#2D394E] text-white'
+                    ? 'bg-[#12141A] border-[#1E222A] text-[#8B93A1] line-through opacity-50'
+                    : 'bg-[#12141A] border-[#262A33] text-[#E6E8EC] hover:border-[#363C4A]'
                 }`}
-                title="Cliquer pour pointer cet article"
+                title="Cliquer pour cocher cet article"
               >
-                <div className="flex items-start gap-2.5 min-w-0">
+                <div className="flex items-start gap-2 min-w-0">
                   <span
-                    className={`px-1.5 py-0.5 rounded text-xs font-mono font-black shrink-0 ${
+                    className={`px-1 py-0.2 rounded text-xs font-mono font-bold shrink-0 ${
                       isDone
-                        ? 'bg-[#181F2B] text-[#475569]'
-                        : 'bg-[#1E2736] text-white border border-[#2B3749]'
+                        ? 'bg-[#171A21] text-[#5D6472]'
+                        : 'bg-[#171A21] text-[#E8A33D] border border-[#262A33]'
                     }`}
                   >
                     {item.quantity}×
                   </span>
                   <div className="min-w-0">
-                    <span className="font-bold text-sm leading-snug block truncate text-[#F8FAFC]">
+                    <span className="font-medium text-xs leading-snug block truncate text-[#E6E8EC]">
                       {item.name}
                     </span>
                     {item.options && item.options.length > 0 && (
-                      <span className="text-[11px] text-[#94A3B8] block truncate mt-0.5">
+                      <span className="text-[11px] text-[#8B93A1] block truncate">
                         • {item.options.join(' · ')}
                       </span>
                     )}
                     {item.notes && (
-                      <span className="text-[11px] text-[#F5B301] block italic truncate mt-0.5">
+                      <span className="text-[11px] text-[#E8A33D] block italic truncate">
                         * {item.notes}
                       </span>
                     )}
@@ -278,13 +250,13 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
                 <div className="shrink-0 mt-0.5">
                   <div
-                    className={`size-4 rounded flex items-center justify-center border transition-colors ${
+                    className={`size-3.5 rounded flex items-center justify-center border ${
                       isDone
-                        ? 'bg-[#22C55E] border-[#22C55E] text-black'
-                        : 'border-[#2D384B] bg-[#0F131A]'
+                        ? 'bg-[#262A33] border-[#363C4A] text-[#E6E8EC]'
+                        : 'border-[#262A33] bg-[#171A21]'
                     }`}
                   >
-                    {isDone && <Check className="size-3 stroke-[3]" />}
+                    {isDone && <Check className="size-2.5 stroke-[3]" />}
                   </div>
                 </div>
               </li>
@@ -292,32 +264,35 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           })}
         </ul>
 
-        {/* Pied de ticket : Infos client & progression */}
-        <div className="pt-2 flex items-center justify-between text-[11px] text-[#717E91]">
-          <span className="truncate max-w-[210px] font-medium text-[#8C98AA]">
+        {/* Détails bas de carte : Client, progression et Montant F CFA */}
+        <div className="pt-2 flex items-center justify-between text-xs text-[#8B93A1] border-t border-[#1E222A]">
+          <span className="truncate max-w-[140px]">
             {order.customerName}
           </span>
-          <span className="font-mono text-[10px] text-[#64748B]">
-            {totalQuantity} {totalQuantity > 1 ? 'plats' : 'plat'}
-            {checkedItems.size > 0 && ` (${checkedItems.size}/${order.items.length} faits)`}
+          <span className="font-mono text-xs font-semibold text-[#E6E8EC]">
+            {formatFcfa(order.totalAmount)}
           </span>
         </div>
       </div>
 
-      {/* 4. BOUTON D'ACTION DU WORKFLOW (Grand, tactile, unique) */}
-      <div className="p-2.5 border-t border-[#1A212D] bg-[#0D1016]">
+      {/* 4. BOUTON D'ACTION DU WORKFLOW : Accent #E8A33D ou neutre */}
+      <div className="p-2 border-t border-[#262A33] bg-[#12141A]">
         {primaryAction && !isDelivered ? (
           <button
             type="button"
             onClick={() => onTransition(order.orderRef, primaryAction.nextStatus)}
-            className={`w-full py-2.5 px-3 rounded-lg text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all duration-150 shadow-md active:scale-[0.98] ${primaryAction.bgClass}`}
+            className={`w-full py-2 px-3 rounded text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
+              primaryAction.isAccent
+                ? 'bg-[#E8A33D] hover:bg-[#D69330] text-[#0F1115]'
+                : 'bg-[#171A21] hover:bg-[#262A33] text-[#E6E8EC] border border-[#262A33]'
+            }`}
           >
             <span>{primaryAction.label}</span>
-            <ArrowRight className="size-3.5 stroke-[2.5]" />
+            <ArrowRight className="size-3" />
           </button>
         ) : isDelivered ? (
-          <div className="w-full py-2 px-3 rounded-lg bg-[#141A23] text-[#7E8B9F] text-xs font-semibold flex items-center justify-center gap-1.5 border border-[#1E2533]">
-            <Check className="size-3.5 text-[#22C55E]" />
+          <div className="w-full py-1.5 px-2 rounded bg-[#171A21] text-[#8B93A1] text-xs font-medium flex items-center justify-center gap-1 border border-[#262A33]">
+            <Check className="size-3 text-[#8B93A1]" />
             <span>Commande terminée</span>
           </div>
         ) : null}

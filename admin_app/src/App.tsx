@@ -178,8 +178,8 @@ export default function App() {
 
   return (
     <div
-      className="h-screen max-h-screen h-[100dvh] flex flex-row antialiased text-white select-none overflow-hidden kds-cuisine"
-      style={{ backgroundColor: '#080A0E' }}
+      className="h-screen max-h-screen h-[100dvh] flex flex-row antialiased text-[#E6E8EC] select-none overflow-hidden kds-cuisine font-sans"
+      style={{ backgroundColor: '#0F1115' }}
     >
       {!isSidebarCollapsed && (
         <AdminSidebar

@@ -22,7 +22,7 @@ interface AppHeaderProps {
 }
 
 const TITLES: Record<AdminTab, string> = {
-  kds: 'Cuisine KDS',
+  kds: 'Commandes / Cuisine KDS',
   promotions: 'Promotions',
   transactions: 'Caisse & Transactions',
   special: 'Plat du jour',
@@ -57,14 +57,14 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   }
 
   return (
-    <header className="h-11 min-h-11 flex items-center justify-between px-3 border-b border-[#1A212D] bg-[#0A0D12] select-none shrink-0 gap-3">
-      {/* GAUCHE : Bascule Sidebar + Titre de page + Indicateur En direct */}
+    <header className="h-10 min-h-10 flex items-center justify-between px-3 border-b border-[#262A33] bg-[#171A21] text-[#E6E8EC] font-sans select-none shrink-0 gap-3">
+      {/* GAUCHE : Bascule Sidebar + Titre de page */}
       <div className="flex items-center gap-2.5 shrink-0">
         {onToggleSidebar && (
           <button
             type="button"
             onClick={onToggleSidebar}
-            className="p-1.5 rounded-lg text-[#7E8B9F] hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            className="p-1 rounded text-[#8B93A1] hover:text-[#E6E8EC] hover:bg-[#262A33] transition-colors cursor-pointer"
             title={
               isSidebarCollapsed
                 ? 'Afficher la barre latérale'
@@ -72,36 +72,35 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             }
           >
             {isSidebarCollapsed ? (
-              <PanelLeftOpen className="size-4 text-[#F5B301]" />
+              <PanelLeftOpen className="size-4 text-[#E8A33D]" />
             ) : (
               <PanelLeftClose className="size-4" />
             )}
           </button>
         )}
         <div className="flex items-center gap-2">
-          <h1 className="text-sm font-black text-white tracking-tight">
+          <h1 className="text-xs font-bold text-[#E6E8EC] tracking-tight uppercase">
             {TITLES[currentTab]}
           </h1>
           {currentTab === 'kds' && (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#141A23] text-[#CBD5E1] border border-[#222B3A]">
-              <span className="size-1.5 rounded-full bg-[#22C55E] animate-pulse" />
-              <span>Service en direct</span>
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-mono text-[#8B93A1] bg-[#0F1115] border border-[#262A33]">
+              <span>Direct</span>
             </span>
           )}
         </div>
       </div>
 
-      {/* CENTRE : Champ de recherche discret (En mode KDS) */}
+      {/* CENTRE : Champ de recherche discret (Mode KDS) */}
       {currentTab === 'kds' && onSearchChange !== undefined && (
-        <div className="flex-1 max-w-sm hidden sm:block">
+        <div className="flex-1 max-w-xs hidden sm:block">
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-[#5A6779]" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3 text-[#8B93A1]" />
             <input
               type="text"
               value={searchQuery || ''}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Rechercher #ticket, client, plat..."
-              className="w-full h-7.5 pl-8 pr-3 rounded-lg bg-[#12161E] border border-[#1E2634] text-xs text-white placeholder-[#5A6779] focus:outline-none focus:border-[#F5B301]/60 transition-colors"
+              placeholder="Rechercher réf, client, plat..."
+              className="w-full h-7 pl-7 pr-2.5 rounded bg-[#0F1115] border border-[#262A33] text-xs text-[#E6E8EC] placeholder-[#8B93A1] focus:outline-none focus:border-[#E8A33D] transition-colors"
             />
           </div>
         </div>
@@ -113,21 +112,21 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           <button
             type="button"
             onClick={onToggleMute}
-            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+            className={`p-1 rounded transition-colors cursor-pointer ${
               isMuted
-                ? 'text-red-400 hover:bg-red-500/10'
-                : 'text-[#7E8B9F] hover:text-white hover:bg-white/10'
+                ? 'text-[#E04848] hover:bg-[#E04848]/10'
+                : 'text-[#8B93A1] hover:text-[#E6E8EC] hover:bg-[#262A33]'
             }`}
-            title={isMuted ? 'Activer le son des commandes' : 'Couper le son des commandes'}
+            title={isMuted ? 'Activer le son' : 'Couper le son'}
           >
-            {isMuted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+            {isMuted ? <VolumeX className="size-3.5" /> : <Volume2 className="size-3.5" />}
           </button>
         )}
 
         <button
           type="button"
           onClick={toggleFullscreen}
-          className="p-1.5 rounded-lg text-[#7E8B9F] hover:text-white hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+          className="p-1 rounded text-[#8B93A1] hover:text-[#E6E8EC] hover:bg-[#262A33] transition-colors cursor-pointer flex items-center gap-1 text-xs"
           title="Basculer en plein écran"
         >
           {isFullscreen ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}

@@ -1,105 +1,86 @@
 /**
- * BMC FOOD KDS CUISINE - Styles et tokens scopés strictement à l'onglet Cuisine & Commandes
- * N'affecte aucunement la page / onglet Plat du Jour.
+ * BMC FOOD KDS CUISINE - Tokens officiels du design system Cuisine
+ * Respect strict de la charte demandée :
+ * - Fond : #0F1115
+ * - Surfaces : #171A21
+ * - Bordures : #262A33
+ * - Texte principal : #E6E8EC
+ * - Texte secondaire : #8B93A1
+ * - Accent unique : #E8A33D
+ * - Rouge (strictement réservé aux retards) : #E04848
+ * - Police : Inter
+ * - Zéro dégradé, zéro animation décorative, zéro bordure colorée sur cartes normales
  */
 
+:root,
 .kds-cuisine {
-  /* Palette stricte (Neutres + Ambre + Rouge alerte + Vert point API) */
-  --kds-c-bg: #0B0D10;
-  --kds-c-surface: #14171C;
-  --kds-c-surface-raised: #1C2128;
-  --kds-c-border: #232830;
-  --kds-c-border-subtle: #1C2128;
-  --kds-c-text-primary: #F2F4F7;
-  --kds-c-text-secondary: #9AA3AF;
-  --kds-c-text-muted: #6C7684;
+  /* COULEURS */
+  --kds-bg: #0F1115;
+  --kds-surface: #171A21;
+  --kds-surface-hover: #1E222C;
+  --kds-surface-subtle: #12141A;
+  --kds-border: #262A33;
+  --kds-border-strong: #323744;
 
-  /* Accent unique de marque */
-  --kds-c-amber: #F5B301;
-  --kds-c-amber-hover: #DDA101;
-  --kds-c-amber-bg: rgba(245, 179, 1, 0.12);
-  --kds-c-amber-border: rgba(245, 179, 1, 0.35);
+  --kds-text-primary: #E6E8EC;
+  --kds-text-secondary: #8B93A1;
+  --kds-text-muted: #5D6472;
 
-  /* Alertes et statut */
-  --kds-c-red: #EF4444;
-  --kds-c-red-bg: rgba(239, 68, 68, 0.14);
-  --kds-c-red-border: rgba(239, 68, 68, 0.4);
-  --kds-c-green: #22C55E;
+  /* ACCENT UNIQUE */
+  --kds-accent: #E8A33D;
+  --kds-accent-hover: #D69330;
+  --kds-accent-contrast: #0F1115;
+  --kds-accent-muted: rgba(232, 163, 61, 0.12);
 
-  /* Tailles et rayons */
-  --kds-c-radius: 12px;
+  /* RETARD (ROUGE RÉSERVÉ EXCLUSIVEMENT AUX COMMANDES EN RETARD) */
+  --kds-late-red: #E04848;
+  --kds-late-bg: rgba(224, 72, 72, 0.12);
+  --kds-late-border: #E04848;
+  --kds-late-text: #FF7878;
+
+  /* ESPACEMENTS */
+  --kds-space-xs: 4px;
+  --kds-space-sm: 8px;
+  --kds-space-md: 12px;
+  --kds-space-lg: 16px;
+  --kds-space-xl: 20px;
+
+  /* RAYONS */
+  --kds-radius-sm: 6px;
+  --kds-radius-md: 8px;
+  --kds-radius-lg: 12px;
+
+  /* TYPOGRAPHIE */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Scrollbar horizontale personnalisée pour le Kanban */
-.kds-kanban-scroll {
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-}
-
-.kds-kanban-scroll::-webkit-scrollbar {
-  height: 10px;
-}
-
-.kds-kanban-scroll::-webkit-scrollbar-track {
-  background: #14171C;
-  border-radius: 9999px;
-  border: 1px solid #232830;
-}
-
-.kds-kanban-scroll::-webkit-scrollbar-thumb {
-  background: #3A414C;
-  border-radius: 9999px;
-  border: 2px solid #14171C;
-  transition: background-color 0.2s ease;
-}
-
-.kds-kanban-scroll::-webkit-scrollbar-thumb:hover {
-  background: #F5B301;
-}
-
-/* Scrollbar verticale discrète pour chaque colonne */
-.kds-col-scroll {
+/* Scrollbar verticale discrète et indépendante pour chaque colonne (aucune barre horizontale) */
+.kds-column-scroll {
   scrollbar-width: thin;
-  scrollbar-color: #232830 transparent;
+  scrollbar-color: #262A33 transparent;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-.kds-col-scroll::-webkit-scrollbar {
-  width: 6px;
+.kds-column-scroll::-webkit-scrollbar {
+  width: 5px;
 }
 
-.kds-col-scroll::-webkit-scrollbar-track {
+.kds-column-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.kds-col-scroll::-webkit-scrollbar-thumb {
-  background: #232830;
-  border-radius: 9999px;
+.kds-column-scroll::-webkit-scrollbar-thumb {
+  background: #262A33;
+  border-radius: 4px;
 }
 
-.kds-col-scroll::-webkit-scrollbar-thumb:hover {
-  background: #3A414C;
+.kds-column-scroll::-webkit-scrollbar-thumb:hover {
+  background: #363C4A;
 }
 
-/* Pulsation douce réservée au retard critique (> 15 min) */
-@keyframes kds-pulse-danger-soft {
-  0%, 100% {
-    border-color: #EF4444;
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
-  }
-  50% {
-    border-color: rgba(239, 68, 68, 0.6);
-    box-shadow: 0 0 14px 2px rgba(239, 68, 68, 0.25);
-  }
-}
-
-.kds-pulse-danger-soft {
-  animation: kds-pulse-danger-soft 2s infinite ease-in-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .kds-pulse-danger-soft {
-    animation: none;
-    border-color: #EF4444 !important;
-  }
+/* Empêche formellement tout débordement horizontal */
+.kds-no-hscroll {
+  overflow-x: hidden !important;
+  max-width: 100vw;
 }
