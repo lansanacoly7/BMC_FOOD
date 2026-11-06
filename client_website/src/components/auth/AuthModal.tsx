@@ -1,7 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { AlertCircle, ArrowLeft, Check, Eye, EyeOff, KeyRound, Lock, LogOut, Phone, User, X } from 'lucide-react'
-import { API_BASE_URL } from '../../services/api'
 import { loadProfile } from '../../services/clientData'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
 
@@ -30,7 +29,7 @@ const MIN_PASSWORD_LENGTH = 4
  */
 const SIMULATED_OTP = '454647'
 
-/** Adresse de l'application cuisine (administration), pour les comptes du personnel. */
+/** Adresse de l'application du personnel : la connexion du personnel se fait uniquement là-bas. */
 const ADMIN_URL: string | undefined = import.meta.env.VITE_ADMIN_URL ?? (import.meta.env.DEV ? 'http://localhost:5174/' : undefined)
 
 const inputClass =
@@ -84,7 +83,7 @@ const linkButton = 'cursor-pointer font-semibold text-bmc-gold underline-offset-
 /**
  * Connexion et inscription du client : connexion unique (téléphone + mot de passe), inscription avec
  * confirmation du mot de passe puis code OTP, déconnexion avec confirmation.
- * Les comptes du personnel sont reconnus par l'API (jeton staff) et orientés vers l'application cuisine.
+ * Le personnel a sa propre page de connexion dans l'application d'administration.
  */
 export function AuthModal({ isOpen, onClose, onSuccess, onLogout }: AuthModalProps) {
   const baseId = useId()
@@ -107,7 +106,6 @@ export function AuthModal({ isOpen, onClose, onSuccess, onLogout }: AuthModalPro
   const [confirmLogout, setConfirmLogout] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const [staffRecognized, setStaffRecognized] = useState(false)
 
   // À chaque ouverture : on relit le compte (il a pu changer depuis la page profil) et on repart d'un écran propre
   useEffect(() => {
@@ -121,7 +119,6 @@ export function AuthModal({ isOpen, onClose, onSuccess, onLogout }: AuthModalPro
     setError(null)
     setSuccess(null)
     setOtpCode('')
-    setStaffRecognized(false)
     setView('login')
   }, [isOpen])
 
@@ -156,38 +153,18 @@ export function AuthModal({ isOpen, onClose, onSuccess, onLogout }: AuthModalPro
       return
     }
 
-    setIsLoading(true)
-
-    // 1. Compte du personnel : l'API vérifie les identifiants (jeton staff, débit limité)
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/token/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ username: cleanId, password }),
-      })
-      if (response.ok) {
-        setIsLoading(false)
-        setStaffRecognized(true)
-        setSuccess('Compte du personnel reconnu. Connectez-vous depuis l’application cuisine.')
-        return
-      }
-    } catch {
-      /* serveur injoignable : on poursuit avec la connexion client */
-    }
-
-    // 2. Compte client : le numéro doit être un numéro sénégalais valide
+    // Le numéro doit être un numéro sénégalais valide
     const cleanPhone = cleanId.replace(/\s+/g, '')
     if (!PHONE_PATTERN.test(cleanPhone)) {
-      setIsLoading(false)
-      setError('Identifiant ou mot de passe incorrect. Pour un compte client, saisissez votre numéro (ex. 77 856 13 13).')
+      setError('Numéro invalide (ex. 77 856 13 13).')
       return
     }
     if (password.length < MIN_PASSWORD_LENGTH) {
-      setIsLoading(false)
       setError(`Le mot de passe doit comporter au moins ${MIN_PASSWORD_LENGTH} caractères.`)
       return
     }
 
+    setIsLoading(true)
     window.setTimeout(() => {
       setIsLoading(false)
       // On reprend le nom déjà enregistré pour ce numéro, sinon un nom générique
@@ -328,13 +305,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, onLogout }: AuthModalPro
                 </p>
               )}
 
-              {staffRecognized ? (
-                ADMIN_URL ? (
-                  <a href={ADMIN_URL} className={primaryButton}>
-                    Ouvrir l’application cuisine
-                  </a>
-                ) : null
-              ) : currentUser && !success ? (
+              {currentUser && !success ? (
                 /* Déjà connecté */
                 <div className="space-y-4">
                   <div className="rounded-xl border border-white/10 bg-zinc-950 p-4 text-center">
@@ -401,6 +372,15 @@ export function AuthModal({ isOpen, onClose, onSuccess, onLogout }: AuthModalPro
                       Créer un compte
                     </button>
                   </p>
+
+                  {ADMIN_URL && (
+                    <p className="text-center text-[13px] text-zinc-500">
+                      Vous travaillez chez BMC Food ?{' '}
+                      <a href={ADMIN_URL} className="underline underline-offset-4 transition-colors hover:text-white">
+                        Espace personnel
+                      </a>
+                    </p>
+                  )}
                 </form>
               ) : view === 'register' ? (
                 <form onSubmit={handleRegister} className="space-y-4" noValidate>

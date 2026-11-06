@@ -13,31 +13,12 @@ import type {
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api').replace(/\/+$/, '')
 
 const TOKEN_KEY = 'bmc_admin_token'
-/** Jeton staff DRF par défaut pour le développement local (admin / admin123). */
-export const DEV_DEFAULT_TOKEN = '5950ee892e2812d22579dfb9527874765235f85e'
 
 export function getAdminToken(): string | null {
   try {
     return localStorage.getItem(TOKEN_KEY)
   } catch {
     return null
-  }
-}
-
-
-export function setAdminToken(token: string): void {
-  try {
-    localStorage.setItem(TOKEN_KEY, token)
-  } catch {
-    // Ignore storage errors in private browsing
-  }
-}
-
-export function clearAdminToken(): void {
-  try {
-    localStorage.removeItem(TOKEN_KEY)
-  } catch {
-    // Ignore storage errors in private browsing
   }
 }
 
@@ -78,18 +59,6 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
     throw new ApiError(`${init.method ?? 'GET'} ${path} a échoué (HTTP ${response.status})`, response.status, payload)
   }
   return payload as T
-}
-
-/** Connexion administrateur par identifiants (POST /api/auth/token/). */
-export async function loginAdmin(username: string, password: string): Promise<{ token: string }> {
-  const res = await apiRequest<{ token: string }>('/auth/token/', {
-    method: 'POST',
-    body: JSON.stringify({ username, password }),
-  })
-  if (res.token) {
-    setAdminToken(res.token)
-  }
-  return res
 }
 
 /** Commandes pas encore signalées à la cuisine : leur présence déclenche la sonnerie. */
