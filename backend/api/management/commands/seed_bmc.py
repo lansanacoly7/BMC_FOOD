@@ -113,7 +113,21 @@ class Command(BaseCommand):
                     {"code": "ts-18", "name": "Tacos poulet hot dog royal", "price": 4500, "desc": "Poulet, saucisse hot dog et garniture royale.", "popular": False, "special": False},
                     {"code": "ts-19", "name": "Tacos XL simple", "price": 5000, "desc": "Format géant classique pour les gros appétits.", "popular": False, "special": False},
                 ]
-            }
+            },
+            # 8. Boissons : boissons 33cl et canettes BMC Food.
+            # Prix indicatif de 800 F (repris du site), à confirmer avec BMC puis à ajuster dans l'admin.
+            # "image" : nom du visuel existant dans client_website/public/images/products (sinon : nom slugifié).
+            {
+                "category": "Boissons",
+                "icon": "Coffee",
+                "items": [
+                    {"code": "bv-1", "name": "Boissons fraîches au choix (33cl)", "price": 800, "desc": "Coca-Cola, Fanta, Sprite ou eau minérale gazeuse, bien fraîche.", "popular": False, "special": False, "image": "boissons-fraiches"},
+                    {"code": "bv-2", "name": "Bissap glacé", "price": 800, "desc": "Canette BMC Food au bissap, servie bien fraîche.", "popular": False, "special": False, "image": "canette-bissap-bmc"},
+                    {"code": "bv-3", "name": "Bouye glacé", "price": 800, "desc": "Canette BMC Food au bouye, servie bien fraîche.", "popular": False, "special": False, "image": "canette-bouye-bmc"},
+                    {"code": "bv-4", "name": "Mangue glacée", "price": 800, "desc": "Canette BMC Food à la mangue, servie bien fraîche.", "popular": False, "special": False, "image": "canette-mangue-bmc"},
+                    {"code": "bv-5", "name": "Tamarin glacé", "price": 800, "desc": "Canette BMC Food au tamarin, servie bien fraîche.", "popular": False, "special": False, "image": "canette-tamarin-bmc"},
+                ]
+            },
         ]
 
         cats_created = 0
@@ -136,7 +150,7 @@ class Command(BaseCommand):
                     cats_updated += 1
 
                 for item_data in group["items"]:
-                    image_slug = slugify(item_data["name"])
+                    image_slug = item_data.get("image") or slugify(item_data["name"])
                     image_url = f"/images/products/{image_slug}.webp"
 
                     if reset:
