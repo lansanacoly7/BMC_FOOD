@@ -221,6 +221,10 @@ class OrderCreateSerializer(serializers.Serializer):
                     continue
                 raise
 
+    def update(self, instance, validated_data):
+        """Permet la réexécution en cas de nouvelle tentative (retry)."""
+        return self.create(validated_data)
+
 
 # ============================================================================
 # Sérialiseurs de documentation et de schéma OpenAPI (Tâche P7)

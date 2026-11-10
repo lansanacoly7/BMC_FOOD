@@ -1,4 +1,5 @@
 import django
+from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import F, Q
 
@@ -113,3 +114,19 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.quantity}x {self.item_name} ({self.subtotal} F CFA)"
+
+
+class Customer(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='customer_profile', null=True, blank=True)
+    name = models.CharField(max_length=120)
+    phone = models.CharField(max_length=30, unique=True, db_index=True)
+    address = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Client'
+        verbose_name_plural = 'Clients'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.name} ({self.phone})"

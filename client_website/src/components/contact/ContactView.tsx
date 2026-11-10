@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { AlertCircle, ArrowUpRight, ChevronDown, Clock, MapPin, MessageCircle, Phone } from 'lucide-react'
+import { AlertCircle, ArrowUpRight, ChevronDown, Clock, MapPin, Phone } from 'lucide-react'
+import { WhatsAppIcon } from '../brand/WhatsAppIcon'
 import { DELIVERY_ZONES, type DeliveryZone, findDeliveryArea } from '../../lib/delivery'
 import { Select } from '../ui/Select'
 
@@ -244,7 +245,7 @@ export function ContactView({ onExploreMenu }: ContactViewProps) {
               ))}
               <div className="flex items-center justify-between gap-3 p-4">
                 <div className="flex items-center gap-3">
-                  <MessageCircle className="size-5 shrink-0 text-[#25D366]" aria-hidden="true" />
+                  <WhatsAppIcon className="size-5 shrink-0 text-[#25D366]" />
                   <span className="text-sm font-medium text-white">WhatsApp</span>
                 </div>
                 <a
@@ -541,7 +542,7 @@ export function ContactView({ onExploreMenu }: ContactViewProps) {
                     type="submit"
                     className="inline-flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-bmc-gold text-base font-semibold text-black transition-colors hover:bg-amber-400 sm:w-auto sm:px-8"
                   >
-                    <MessageCircle className="size-4" aria-hidden="true" />
+                    <WhatsAppIcon className="size-4" />
                     Envoyer sur WhatsApp
                   </button>
                 </motion.form>

@@ -24,6 +24,7 @@ import { AuthModal, type ClientUser } from './components/auth/AuthModal'
 import { useDailySpecials } from './hooks/useDailySpecials'
 import { useMenu } from './hooks/useMenu'
 import { useCart } from './hooks/useCart'
+import { IntroSplash } from './components/brand/IntroSplash'
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<'home' | 'menu' | 'contact' | 'profile'>('home')
@@ -42,11 +43,27 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState('all')
   const searchQuery = ''
   const [isCheckingOut, setIsCheckingOut] = useState(false)
+  // Animation d'entrée : jouée à chaque arrivée sur le site et à chaque rechargement.
+  const [isIntroDone, setIsIntroDone] = useState(false)
+  // Famille sur laquelle ouvrir la carte (spécialités du pied de page). nonce : rouvre la carte à neuf à chaque clic.
+  const [menuFocus, setMenuFocus] = useState<{ keyword: string; nonce: number } | null>(null)
 
   // Navigation fluide entre Accueil, la page Menu d'El Hadji et la page Contact
   const handleNavigate = (page: 'home' | 'menu' | 'contact' | 'profile') => {
+    setMenuFocus(null)
     setCurrentPage(page)
     window.scrollTo({ top: 0, behavior: 'auto' })
+  }
+
+  // Ouvre la carte directement sur une famille et amène le client à la grille, sous l'en-tête fixe.
+  const openMenuOn = (keyword: string) => {
+    setMenuFocus({ keyword, nonce: Date.now() })
+    setCurrentPage('menu')
+    window.setTimeout(() => {
+      const heading = document.getElementById('menu-heading')
+      if (!heading) return
+      window.scrollTo({ top: heading.getBoundingClientRect().top + window.scrollY - 96, behavior: 'auto' })
+    }, 60)
   }
 
   // Lien direct vers la connexion (#login), par exemple depuis l'application cuisine
@@ -119,8 +136,11 @@ export default function App() {
     )
   }
 
+  // L'espace sous la barre panier flottante est réservé dans le pied de page, dernier élément de la page.
   return (
-    <div className="min-h-dvh text-zinc-100 pb-28 selection:bg-bmc-gold selection:text-black">
+    <div className="min-h-dvh text-zinc-100 selection:bg-bmc-gold selection:text-black">
+      {!isIntroDone && <IntroSplash onFinish={() => setIsIntroDone(true)} />}
+
       {/* 
         1. EN-TÊTE NOIR ET LOGO
         Menu hamburger à gauche, logo BMC Food centré, navigation Accueil / Menu & La Carte, bouton Connexion / Inscription avec Logo BMC, panier à droite.
@@ -206,7 +226,7 @@ export default function App() {
 
             {/* LES PLUS COMMANDÉS — GRILLE DU MENU AVEC BANNIÈRE PROMO PLEINE LARGEUR */}
             <FeaturedGrid
-              products={menuProducts}
+              products={searchProducts}
               isLoading={isMenuLoading}
               activeCategory={activeCategory}
               searchQuery={searchQuery}
@@ -217,7 +237,7 @@ export default function App() {
           </main>
 
           {/* Capsule Vidéo Culinaire Immersive (« L'Art du Tacos Pané » - 5 Scènes Vidéo) */}
-          <CulinaryVideoShowcase onExploreMenu={() => handleNavigate('menu')} />
+          <CulinaryVideoShowcase />
         </>
       )}
 
@@ -235,7 +255,7 @@ export default function App() {
 
           {/* 2. Vue du Menu complète d'El Hadji Diop */}
           <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <MenuView onAddToCart={addToCart} />
+            <MenuView key={menuFocus?.nonce ?? 'carte'} focusKeyword={menuFocus?.keyword} onAddToCart={addToCart} />
           </main>
         </div>
       )}
@@ -289,7 +309,13 @@ export default function App() {
       />
 
       {/* Footer Institutionnel BMC Food Dakar (Univers Dark Luxury) */}
-      <Footer onExploreMenu={() => handleNavigate('menu')} onNavigate={handleNavigate} />
+      <Footer
+        onExploreMenu={() => handleNavigate('menu')}
+        onNavigate={handleNavigate}
+        onSelectSpecialty={openMenuOn}
+        onOpenAccount={openAccount}
+        reserveCartSpace={itemCount > 0 && !isCartOpen}
+      />
     </div>
   )
 }

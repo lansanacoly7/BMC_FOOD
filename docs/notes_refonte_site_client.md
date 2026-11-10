@@ -27,7 +27,7 @@ Version locale de Lansana Coly (site client uniquement : `client_website/`). Le 
 2. **OTP simulé.** Le code est `454647` et il est affiché à l'écran : aucun SMS n'est envoyé. Les comptes clients sont simulés dans le navigateur (aucune vérification du mot de passe). À remplacer par une vraie vérification côté serveur.
 3. **Deux grilles de livraison.** La page contact et la commande utilisent maintenant la même grille (`lib/delivery.ts`, 9 zones). Les délais par zone n'existent plus ; « 20 à 45 min » reste en texte général (FAQ, footer) sans source.
 4. **Retrait sur place.** À remplacer par un vrai champ côté serveur (mode de réception) plutôt que la mention dans l'adresse et les notes.
-5. **Boissons.** Les 6 canettes BMC (bissap, bouye, mangue, tamarin, thé glacé, chocolat) sont définies dans `data/mockMenu.ts` à 800 F (prix à confirmer). Si le serveur renvoie sa propre carte, ces boissons doivent y être créées, sinon elles ne sont pas commandables (le serveur répond « article introuvable »).
+5. **Boissons.** Les 4 canettes BMC (bissap, bouye, mangue, tamarin) sont définies dans `data/mockMenu.ts` à 800 F (prix à confirmer). Si le serveur renvoie sa propre carte, ces boissons doivent y être créées, sinon elles ne sont pas commandables (le serveur répond « article introuvable »).
 6. **Port 8000.** Sur la machine de Lansana, ce port est pris par un autre projet. Le site client est lancé avec `VITE_API_BASE_URL=http://localhost:8001/api` (fichier `client_website/.env.local`, non versionné). Pour `admin_app`, le proxy de `vite.config.ts` vise 8000 : à adapter si besoin.
 
 ## Lancer en local

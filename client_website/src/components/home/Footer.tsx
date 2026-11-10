@@ -1,21 +1,24 @@
-import { ArrowUp, MapPin, MessageCircle } from 'lucide-react'
+import { ArrowRight, ArrowUp, ArrowUpRight, ChevronRight, Clock3, MapPin, Phone } from 'lucide-react'
+import { motion, useReducedMotion, type Variants } from 'motion/react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { isOpenAt } from '../../lib/greeting'
+import { WHATSAPP_GREEN, WhatsAppIcon } from '../brand/WhatsAppIcon'
 
 type Page = 'home' | 'menu' | 'contact' | 'profile'
 
 interface FooterProps {
   onExploreMenu?: () => void
   onNavigate?: (page: Page) => void
+  /** Ouvre la carte directement sur une famille (mot-clé du nom de catégorie : « pane », « burger »…). */
+  onSelectSpecialty?: (keyword: string) => void
+  /** « Mon compte » : la page profil si le client est connecté, sinon la fenêtre de connexion. */
+  onOpenAccount?: () => void
+  /** Vrai quand la barre panier flottante est affichée : on lui garde de la place sous la dernière ligne. */
+  reserveCartSpace?: boolean
 }
 
 const WHATSAPP_URL = 'https://wa.me/221778561313'
 const MAPS_URL = 'https://maps.google.com/?q=PGXV%2B6R7,+Dakar'
-
-const PAYMENTS = [
-  { name: 'Wave', src: '/images/payments/wave.png' },
-  { name: 'Orange Money', src: '/images/payments/orange_money.png' },
-  { name: 'Espèces', src: '/images/payments/cash.png' },
-]
 
 const NAV_LINKS: { page: Page; label: string }[] = [
   { page: 'home', label: 'Accueil' },
@@ -24,172 +27,468 @@ const NAV_LINKS: { page: Page; label: string }[] = [
   { page: 'profile', label: 'Mon compte' },
 ]
 
-/** Semaine affichée dans la colonne Horaires (index = Date.getDay()). Le lundi est fermé. */
-const WEEK = [
-  { day: 1, letter: 'L', name: 'Lundi', open: false },
-  { day: 2, letter: 'M', name: 'Mardi', open: true },
-  { day: 3, letter: 'M', name: 'Mercredi', open: true },
-  { day: 4, letter: 'J', name: 'Jeudi', open: true },
-  { day: 5, letter: 'V', name: 'Vendredi', open: true },
-  { day: 6, letter: 'S', name: 'Samedi', open: true },
-  { day: 0, letter: 'D', name: 'Dimanche', open: true },
+/** Les familles de la carte BMC (mêmes intitulés que les rondelles de la carte, qu'elles ouvrent directement). */
+const SPECIALTIES = [
+  { icon: 'taco', label: 'Tacos panés', keyword: 'pane' },
+  { icon: 'wrap', label: 'Tacos simples', keyword: 'simple' },
+  { icon: 'burger', label: 'Burgers', keyword: 'burger' },
+  { icon: 'chicken', label: 'Poulet & finger food', keyword: 'poulet' },
+  { icon: 'drink', label: 'Boissons', keyword: 'boisson' },
+] as const
+
+const PAYMENTS = [
+  { name: 'Wave', src: '/images/payments/wave.png' },
+  { name: 'Orange Money', src: '/images/payments/orange_money.png' },
+  { name: 'Espèces', src: '/images/payments/cash.png' },
 ]
 
-const columnTitle = 'font-display text-sm font-semibold text-white'
-const linkClass = 'cursor-pointer text-left text-sm text-zinc-300 transition-colors hover:text-white'
+const EASE_OUT_EXPO = [0.16, 1, 0.3, 1] as const
 
-export function Footer({ onNavigate }: FooterProps) {
-  const isOpen = isOpenAt()
-  const now = new Date()
-  const today = now.getHours() < 2 ? (now.getDay() + 6) % 7 : now.getDay()
+/** Heure courante, rafraîchie chaque minute : le statut d'ouverture reste juste sans recharger. */
+function useMinuteClock(): Date {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60_000)
+    return () => window.clearInterval(timer)
+  }, [])
+  return now
+}
+
+/* ---------- Pictogrammes ---------- */
+
+function SpecialtyIcon({ type }: { type: (typeof SPECIALTIES)[number]['icon'] }) {
+  const paths: Record<typeof type, ReactNode> = {
+    burger: (
+      <>
+        <rect x="3" y="10" width="18" height="7" rx="3.5" />
+        <path d="M4 10c1-5 4-7 8-7s7 2 8 7M4 14h16M7 18v2m10-2v2" />
+      </>
+    ),
+    taco: (
+      <>
+        <path d="M3 17c1-7 6-12 12-12 3 0 5 2 6 5L6 20c-2 1-4-1-3-3Z" />
+        <path d="m8 14 2 2m2-5 2 2m2-5 2 2" />
+      </>
+    ),
+    chicken: (
+      <>
+        <path d="M7 7c-2-2-5 0-4 3l4 4c-1 3 2 6 5 5l6-6c2-2 1-5-2-6-2-3-7-3-9 0Z" />
+        <path d="m5 5-2-2m16 16 2 2" />
+      </>
+    ),
+    wrap: (
+      <>
+        <path d="M6.5 20.5 3.5 17.5 15 6a4.24 4.24 0 0 1 6 6Z" />
+        <path d="M15 6c1.7 1 2.6 2.6 3 4.4M7 14l3 3m1-7 3 3" />
+      </>
+    ),
+    drink: (
+      <>
+        <path d="M6 7h12l-1 14H7L6 7Z" />
+        <path d="M9 3h6l2 4H7l2-4Zm4 4 3-5" />
+      </>
+    ),
+  }
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="size-7 shrink-0 text-bmc-gold transition-transform duration-300 group-hover:scale-110"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {paths[type]}
+    </svg>
+  )
+}
+
+function InstagramIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="size-4" aria-hidden="true">
+      <path d="M12 2.2c3.2 0 3.6 0 4.8.1 1.2.1 1.8.2 2.2.4.6.2 1 .5 1.4.9.4.4.7.8.9 1.4.2.4.4 1 .4 2.2.1 1.3.1 1.6.1 4.8s0 3.6-.1 4.8c-.1 1.2-.2 1.8-.4 2.2-.2.6-.5 1-.9 1.4-.4.4-.8.7-1.4.9-.4.2-1 .4-2.2.4-1.3.1-1.6.1-4.8.1s-3.6 0-4.8-.1c-1.2-.1-1.8-.2-2.2-.4-.6-.2-1-.5-1.4-.9-.4-.4-.7-.8-.9-1.4-.2-.4-.4-1-.4-2.2-.1-1.3-.1-1.6-.1-4.8s0-3.6.1-4.8c.1-1.2.2-1.8.4-2.2.2-.6.5-1 .9-1.4.4-.4.8-.7 1.4-.9.4-.2 1-.4 2.2-.4 1.3-.1 1.6-.1 4.8-.1Zm0 4.9a4.9 4.9 0 1 0 0 9.8 4.9 4.9 0 0 0 0-9.8Zm0 8.1a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4Zm5.1-9.4a1.1 1.1 0 1 0 0 2.3 1.1 1.1 0 0 0 0-2.3Z" />
+    </svg>
+  )
+}
+
+function TikTokIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="size-4" aria-hidden="true">
+      <path d="M16.6 5.8A4.3 4.3 0 0 1 15.5 3h-3.1v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.7a5.7 5.7 0 0 0-.8-.1 5.7 5.7 0 1 0 5.7 5.7V9a7.4 7.4 0 0 0 4.3 1.4V7.3a4.3 4.3 0 0 1-3.2-1.5Z" />
+    </svg>
+  )
+}
+
+/** Comptes officiels uniquement (charte page 14 et enseigne du restaurant), plus le WhatsApp de commande. */
+const SOCIALS = [
+  { name: 'TikTok', label: 'TikTok @bmctacos', href: 'https://www.tiktok.com/@bmctacos', icon: <TikTokIcon /> },
+  { name: 'Instagram', label: 'Instagram @bmctacos_senegal', href: 'https://www.instagram.com/bmctacos_senegal/', icon: <InstagramIcon /> },
+  { name: 'WhatsApp', label: 'WhatsApp 77 856 13 13', href: WHATSAPP_URL, icon: <WhatsAppIcon className="size-4" /> },
+]
+
+/* ---------- Briques ---------- */
+
+function ColumnTitle({ children, rule }: { children: ReactNode; rule: Variants }) {
+  return (
+    <>
+      <h3 className="font-display text-base font-bold text-white">{children}</h3>
+      <motion.span variants={rule} aria-hidden="true" className="mb-5 mt-2.5 block h-[3px] w-12 origin-left rounded-full bg-bmc-gold" />
+    </>
+  )
+}
+
+function ContactRow({ icon, iconColor, children }: { icon: ReactNode; iconColor?: string; children: ReactNode }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span
+        style={iconColor ? { color: iconColor } : undefined}
+        className="grid size-10 shrink-0 place-items-center rounded-full text-bmc-gold ring-1 ring-bmc-gold/45 [&_svg]:size-[17px]"
+      >
+        {icon}
+      </span>
+      <div className="min-w-0 text-sm leading-snug">{children}</div>
+    </div>
+  )
+}
+
+/** Aperçu de la commande en ligne sur un téléphone, avec les vrais visuels du site. */
+function PhonePreview({ float }: { float: boolean }) {
+  return (
+    <motion.div
+      aria-hidden="true"
+      animate={float ? { y: [0, -6, 0] } : undefined}
+      transition={float ? { duration: 5, repeat: Infinity, ease: 'easeInOut' } : undefined}
+      className="absolute right-2 top-1/2 z-0 w-[5.5rem] -translate-y-1/2 sm:right-4 sm:w-[6.25rem] lg:right-2 lg:w-[5.5rem]"
+    >
+      <div className="rotate-[7deg] rounded-[1.15rem] border-2 border-zinc-600 bg-[#050505] p-[5px] shadow-[0_14px_32px_rgb(0_0_0/0.8)]">
+        <div className="relative overflow-hidden rounded-[0.8rem] bg-bmc-charcoal px-1.5 pb-2 pt-4">
+          <span className="absolute left-1/2 top-1.5 h-1 w-6 -translate-x-1/2 rounded-full bg-black" />
+          <img src="/images/brand/logo-principal.webp" alt="" width={640} height={483} loading="lazy" className="mx-auto h-6 w-auto" />
+          <img
+            src="/images/hero/tacos_signature_slate.webp"
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="mt-2 aspect-[4/3] w-full rounded-md object-cover"
+          />
+          <p className="mt-1.5 font-display text-[0.45rem] font-bold leading-none text-white">Nos incontournables</p>
+          <span className="mt-1.5 block h-1 rounded-full bg-bmc-gold/60" />
+          <span className="mt-1 block h-1 w-3/5 rounded-full bg-white/20" />
+          <span className="mt-2 block rounded-md bg-bmc-gold py-1 text-center font-display text-[0.45rem] font-bold leading-none text-bmc-charcoal">
+            Commander
+          </span>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+/**
+ * Pied de page BMC Food, d'après la maquette validée :
+ * 1. une grande photo de cuisine (le gobelet noir BMC est posé sur le comptoir) avec la signature de la marque ;
+ * 2. cinq colonnes : marque, navigation, nos familles de produits, contact, carte « Commandez en ligne » ;
+ * 3. une barre finale filetée d'or : droits, réseaux officiels, « À très bientôt ! ».
+ * Adapté à la charte : logo officiel blanc et or (jamais recoloré), Bricolage Grotesque et Inter, or #FCB800,
+ * aucun orange braise (réservé à la barre panier), uniquement les vraies coordonnées et les comptes officiels.
+ */
+export function Footer({ onExploreMenu, onNavigate, onSelectSpecialty, onOpenAccount, reserveCartSpace = false }: FooterProps) {
+  const now = useMinuteClock()
+  const isOpen = isOpenAt(now)
+  const reduceMotion = useReducedMotion() ?? false
+  const exploreMenu = onExploreMenu ?? (() => onNavigate?.('menu'))
+
+  // Avec « réduire les animations », tout apparaît en fondu, sans déplacement.
+  const reveal: Variants = {
+    hidden: { opacity: 0, y: reduceMotion ? 0 : 22 },
+    visible: { opacity: 1, y: 0, transition: { duration: reduceMotion ? 0.3 : 0.75, ease: EASE_OUT_EXPO } },
+  }
+  const cascade: Variants = { hidden: {}, visible: { transition: { staggerChildren: reduceMotion ? 0 : 0.09 } } }
+  const rule: Variants = {
+    hidden: { scaleX: reduceMotion ? 1 : 0 },
+    visible: { scaleX: 1, transition: { duration: 0.8, ease: EASE_OUT_EXPO, delay: 0.25 } },
+  }
+  // L'arabesque se dévoile de haut en bas (découpe animée : le trait garde son épaisseur, sans pointillés).
+  const sweep: Variants = {
+    hidden: { clipPath: reduceMotion ? 'inset(0% 0% 0% 0%)' : 'inset(0% 0% 100% 0%)', opacity: reduceMotion ? 0 : 1 },
+    visible: { clipPath: 'inset(0% 0% 0% 0%)', opacity: 1, transition: { duration: reduceMotion ? 0.3 : 1.8, ease: [0.65, 0, 0.35, 1], delay: 0.4 } },
+  }
+  // Le déclencheur est toujours un conteneur visible : un élément à l'échelle 0 n'est jamais « vu » par le navigateur.
+  const inView = { initial: 'hidden', whileInView: 'visible', viewport: { once: true, amount: 0.25 } } as const
 
   return (
-    <footer aria-label="Pied de page" className="mt-16 border-t border-white/10 bg-zinc-900 sm:mt-24">
-      {/* ===== Colonnes ===== */}
-      <div className="mx-auto max-w-7xl px-4 pt-12 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-12">
-          <div className="col-span-2 space-y-4 lg:col-span-4">
-            <div className="flex items-center gap-3">
-              <img src="/images/brand/logo.png" alt="BMC Food" width={64} height={64} className="size-14 object-contain" />
-              <p className="font-display text-xl font-bold text-white">BMC Food</p>
-            </div>
-            <p className="max-w-xs text-sm leading-relaxed text-zinc-300">
-              Tacos, burgers et poulet crispy, préparés à la commande à Dakar.
-            </p>
-            <a
-              href={MAPS_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm text-zinc-300 transition-colors hover:text-white"
-            >
-              <MapPin className="size-4 shrink-0 text-bmc-gold" aria-hidden="true" />
-              PGXV+6R7, Dakar
-              <span className="text-bmc-gold underline underline-offset-4">Itinéraire</span>
-            </a>
-          </div>
+    <footer aria-label="Pied de page" className="relative mt-16 overflow-hidden bg-bmc-black text-zinc-100 sm:mt-24">
+      {/* ===== 1. LA PHOTO ===== */}
+      <motion.div {...inView} variants={cascade} className="relative h-[26rem] overflow-hidden sm:h-[clamp(22rem,44vw,40rem)]">
+        <motion.img
+          src="/images/footer/footer-gobelet.webp"
+          srcSet="/images/footer/footer-gobelet-960.webp 960w, /images/footer/footer-gobelet.webp 1679w"
+          sizes="100vw"
+          alt="Un cuisinier BMC saupoudre d'épices un tacos pané servi avec des frites, à côté d'un gobelet noir BMC Food."
+          width={1679}
+          height={937}
+          loading="lazy"
+          decoding="async"
+          variants={{
+            hidden: { scale: reduceMotion ? 1 : 1.08 },
+            visible: { scale: 1, transition: { duration: 2.4, ease: EASE_OUT_EXPO } },
+          }}
+          className="absolute inset-0 size-full object-cover object-[95%_70%]"
+        />
+        {/* Lisibilité du texte à gauche, et fondu vers le noir sous la photo */}
+        <div aria-hidden="true" className="absolute inset-0 bg-linear-to-r from-black/90 via-black/45 to-transparent sm:via-black/35" />
+        <div aria-hidden="true" className="absolute inset-0 bg-linear-to-t from-bmc-black via-bmc-black/30 to-transparent" />
 
-          <nav aria-label="Navigation du pied de page" className="space-y-3 lg:col-span-2">
-            <h3 className={columnTitle}>Naviguer</h3>
-            <ul className="space-y-2.5">
-              {NAV_LINKS.map((link) => (
-                <li key={link.page}>
-                  <button type="button" onClick={() => onNavigate?.(link.page)} className={linkClass}>
-                    {link.label}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </nav>
+        {/* Arabesque d'or de la maquette : elle descend du coin et contourne le gobelet (grand écran) */}
+        <motion.svg
+          aria-hidden="true"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          variants={sweep}
+          className="pointer-events-none absolute inset-0 hidden size-full lg:block"
+        >
+          <path
+            d="M 99 -1 C 86 6, 78 22, 78 46 C 78 66, 80 80, 84 96"
+            fill="none"
+            stroke="#FCB800"
+            strokeOpacity="0.7"
+            strokeWidth="1.5"
+            vectorEffect="non-scaling-stroke"
+          />
+        </motion.svg>
 
-          <div className="space-y-3 lg:col-span-2">
-            <h3 className={columnTitle}>Horaires</h3>
-            <p className="flex items-center gap-2 text-sm text-zinc-300">
-              <span className={`size-2 shrink-0 rounded-full ${isOpen ? 'bg-bmc-success' : 'bg-zinc-500'}`} />
-              {isOpen ? 'Ouvert maintenant' : 'Fermé pour le moment'}
-            </p>
-            <p className="text-sm text-zinc-300">
-              Mardi – dimanche
-              <br />
-              <span className="tabular-nums">11h – 02h</span>
-            </p>
-            <ol className="flex gap-1.5 pt-1" aria-label="Jours d'ouverture">
-              {WEEK.map((d) => (
-                <li
-                  key={d.day}
-                  title={`${d.name} : ${d.open ? '11h – 02h' : 'fermé'}`}
-                  aria-current={d.day === today ? 'date' : undefined}
-                  className={`grid size-7 place-items-center rounded-full text-xs font-semibold ${
-                    d.day === today
-                      ? 'bg-bmc-gold text-black'
-                      : d.open
-                        ? 'bg-white/10 text-zinc-200'
-                        : 'border border-dashed border-white/20 text-zinc-500'
-                  }`}
-                >
-                  {d.letter}
-                </li>
-              ))}
-            </ol>
-            <p className="text-sm text-zinc-400">Fermé le lundi</p>
-          </div>
-
-          <div className="space-y-3 lg:col-span-2">
-            <h3 className={columnTitle}>Livraison</h3>
-            <p className="text-sm text-zinc-300">
-              À partir de <span className="font-semibold tabular-nums text-white">1 000 F</span>
-            </p>
-            <p className="text-sm text-zinc-400">20 à 45 min selon le quartier</p>
+        <div className="relative mx-auto flex h-full max-w-7xl flex-col justify-start px-4 pt-12 sm:px-6 sm:pt-16 lg:justify-center lg:px-8 lg:pb-24 lg:pt-0">
+          <motion.p variants={reveal} className="text-xs font-bold uppercase tracking-[0.22em] text-bmc-gold">
+            BMC Food · Dakar
+          </motion.p>
+          <motion.h2
+            variants={reveal}
+            className="mt-4 font-display text-[2.6rem] font-extrabold leading-[0.95] tracking-[-0.04em] text-white sm:text-6xl lg:text-7xl"
+          >
+            Le goût du
+            <span className="block text-bmc-gold">vrai plaisir.</span>
+          </motion.h2>
+          <motion.div variants={reveal}>
             <button
               type="button"
-              onClick={() => onNavigate?.('contact')}
-              className={`${linkClass} text-bmc-gold underline underline-offset-4`}
+              onClick={exploreMenu}
+              className="group mt-6 inline-flex min-h-11 cursor-pointer items-center gap-2 border-b border-bmc-gold pb-1.5 text-sm font-bold text-white transition-colors hover:text-bmc-gold focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-bmc-gold"
             >
-              Zones et tarifs
+              Découvrir notre carte
+              <ArrowUpRight
+                className="size-4 text-bmc-gold transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                aria-hidden="true"
+              />
             </button>
-          </div>
-
-          <div className="space-y-3 lg:col-span-2">
-            <h3 className={columnTitle}>Nous joindre</h3>
-            <p className="flex flex-col gap-2 text-sm text-zinc-300">
-              <a href="tel:778561313" className="tabular-nums transition-colors hover:text-white">
-                77 856 13 13
-              </a>
-              <a href="tel:771067575" className="tabular-nums transition-colors hover:text-white">
-                77 106 75 75
-              </a>
-            </p>
-            <a
-              href={WHATSAPP_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm font-medium text-bmc-gold underline underline-offset-4 transition-colors hover:text-white"
-            >
-              <MessageCircle className="size-4" aria-hidden="true" />
-              WhatsApp
-            </a>
-          </div>
+          </motion.div>
         </div>
+      </motion.div>
 
-        {/* Paiements */}
-        <div className="mt-10 border-t border-white/10 pt-6 sm:flex sm:items-center sm:gap-6">
-          <p className="mb-3 text-sm text-zinc-400 sm:mb-0">Paiement</p>
-          <ul className="grid grid-cols-3 gap-2 sm:flex sm:gap-6">
-            {PAYMENTS.map((payment) => (
-              <li
-                key={payment.name}
-                className="flex flex-col items-center gap-2 rounded-xl bg-white/5 px-2 py-3 text-center text-xs text-zinc-200 sm:flex-row sm:gap-2 sm:bg-transparent sm:p-0 sm:text-sm"
-              >
-                <img
-                  src={payment.src}
-                  alt=""
-                  width={32}
-                  height={32}
-                  loading="lazy"
-                  className="size-8 rounded-md object-contain sm:size-7 sm:bg-white/5 sm:p-0.5"
-                />
-                {payment.name}
+      {/* ===== 2. LES COLONNES ===== */}
+      <motion.div
+        {...inView}
+        viewport={{ once: true, amount: 0.12 }}
+        variants={cascade}
+        className="relative z-10 mx-auto -mt-10 grid max-w-7xl grid-cols-2 gap-x-6 gap-y-10 px-4 pb-12 sm:-mt-14 sm:px-6 md:grid-cols-3 lg:-mt-20 lg:grid-cols-[1.2fr_0.8fr_1.1fr_1.15fr_1.45fr] lg:gap-x-0 lg:px-8"
+      >
+        {/* Marque */}
+        <motion.section
+          variants={reveal}
+          aria-label="BMC Food"
+          className="col-span-2 border-b border-white/15 pb-8 md:col-span-3 lg:col-span-1 lg:border-b-0 lg:pb-0 lg:pr-7"
+        >
+          <img src="/images/brand/logo-principal.webp" alt="BMC Food" width={640} height={483} loading="lazy" className="h-20 w-auto" />
+          <p className="mt-6 font-display text-base font-bold leading-snug text-white sm:text-lg lg:text-base">
+            Le goût du vrai plaisir.
+            <span className="block text-bmc-gold">Excellence in every bite.</span>
+          </p>
+          <p className="mt-3 max-w-xs text-sm leading-relaxed text-zinc-400">
+            Tacos panés, burgers et boissons maison, préparés à la commande dans notre cuisine de Dakar.
+          </p>
+          <motion.span variants={rule} aria-hidden="true" className="mt-5 block h-[3px] w-20 origin-left rounded-full bg-bmc-gold" />
+        </motion.section>
+
+        {/* Navigation */}
+        <motion.nav variants={reveal} aria-label="Navigation du pied de page" className="col-span-2 md:col-span-1 lg:border-l lg:border-white/15 lg:px-7">
+          <ColumnTitle rule={rule}>Navigation</ColumnTitle>
+          <ul className="grid grid-cols-2 gap-x-6 gap-y-1 md:grid-cols-1">
+            {NAV_LINKS.map((link) => (
+              <li key={link.page}>
+                <button
+                  type="button"
+                  onClick={() => (link.page === 'profile' && onOpenAccount ? onOpenAccount() : onNavigate?.(link.page))}
+                  className="group flex min-h-10 w-full cursor-pointer items-center justify-between gap-2 whitespace-nowrap text-left text-sm text-zinc-300 transition-colors hover:text-bmc-gold"
+                >
+                  {link.label}
+                  <ChevronRight className="size-4 text-zinc-500 transition-[transform,color] duration-300 group-hover:translate-x-1 group-hover:text-bmc-gold" aria-hidden="true" />
+                </button>
               </li>
             ))}
           </ul>
-        </div>
+        </motion.nav>
 
-        {/* Barre du bas */}
-        <div className="mt-6 flex flex-col-reverse items-center justify-between gap-4 border-t border-white/10 py-6 text-sm text-zinc-400 sm:flex-row">
-          <div className="text-center sm:text-left">
-            <p>© {new Date().getFullYear()} BMC Food Dakar</p>
-            <p className="mt-0.5">
-              Site réalisé par <span className="whitespace-nowrap text-zinc-300">Teranga Labs</span>
-            </p>
+        {/* Nos familles de produits */}
+        <motion.section variants={reveal} aria-label="Nos spécialités" className="col-span-2 border-t border-white/15 pt-8 md:col-span-1 md:border-l md:border-t-0 md:pl-6 md:pt-0 lg:px-7">
+          <ColumnTitle rule={rule}>Nos spécialités</ColumnTitle>
+          <ul className="grid grid-cols-2 gap-x-4 gap-y-1 md:grid-cols-1">
+            {SPECIALTIES.map((item) => (
+              <li key={item.keyword}>
+                <button
+                  type="button"
+                  onClick={() => (onSelectSpecialty ? onSelectSpecialty(item.keyword) : exploreMenu())}
+                  className="group flex min-h-10 cursor-pointer items-center gap-3 whitespace-nowrap text-left text-sm text-zinc-200 transition-colors hover:text-bmc-gold"
+                >
+                  <SpecialtyIcon type={item.icon} />
+                  {item.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </motion.section>
+
+        {/* Contact */}
+        <motion.section
+          variants={reveal}
+          aria-label="Contact"
+          className="col-span-2 border-t border-white/15 pt-8 md:col-span-1 md:border-l md:border-t-0 md:pl-6 md:pt-0 lg:px-6"
+        >
+          <ColumnTitle rule={rule}>Contact</ColumnTitle>
+          <div className="flex flex-col gap-4">
+            <ContactRow icon={<Phone aria-hidden="true" />}>
+              <a href="tel:+221778561313" className="block font-semibold tabular-nums text-white transition-colors hover:text-bmc-gold">
+                77 856 13 13
+              </a>
+              <a href="tel:+221771067575" className="block text-xs tabular-nums text-zinc-400 transition-colors hover:text-bmc-gold">
+                ou 77 106 75 75
+              </a>
+            </ContactRow>
+            <ContactRow icon={<MapPin aria-hidden="true" />}>
+              <p className="font-semibold text-white">Dakar, Sénégal</p>
+              <a
+                href={MAPS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-xs text-zinc-400 transition-colors hover:text-bmc-gold"
+              >
+                PGXV+6R7 · Itinéraire<span className="sr-only"> (ouvre Google Maps)</span>
+              </a>
+            </ContactRow>
+            <ContactRow icon={<WhatsAppIcon />} iconColor={WHATSAPP_GREEN}>
+              <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="block font-semibold text-white transition-colors hover:text-bmc-gold">
+                WhatsApp
+              </a>
+              <p className="text-xs text-zinc-400">Commandez par message</p>
+            </ContactRow>
+            <ContactRow icon={<Clock3 aria-hidden="true" />}>
+              <p className="font-semibold tabular-nums text-white">11h – 02h</p>
+              <p className="text-xs text-zinc-400">Mardi au dimanche, fermé le lundi</p>
+              <p className="text-xs">
+                <span className={`inline-flex items-center gap-1 font-semibold ${isOpen ? 'text-emerald-400' : 'text-zinc-400'}`}>
+                  <span className={`size-1.5 rounded-full ${isOpen ? 'bg-emerald-400' : 'bg-zinc-500'}`} aria-hidden="true" />
+                  {isOpen ? 'ouvert maintenant' : 'fermé maintenant'}
+                </span>
+              </p>
+            </ContactRow>
           </div>
-          <button
-            type="button"
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-lg border border-white/15 px-4 text-sm font-medium text-zinc-200 transition-colors hover:border-white/30 hover:text-white"
-          >
-            Retour en haut
-            <ArrowUp className="size-4" aria-hidden="true" />
-          </button>
-        </div>
+        </motion.section>
+
+        {/* Commande en ligne (à la place de l'application de la maquette : le site est le canal de commande) */}
+        <motion.section
+          variants={reveal}
+          aria-labelledby="footer-order-title"
+          className="col-span-2 md:col-span-3 lg:col-span-1 lg:ml-7"
+        >
+          <div className="relative flex min-h-[16.5rem] items-center overflow-hidden rounded-3xl bg-linear-to-br from-[#141414] to-[#050505] py-6 pl-5 pr-3 ring-1 ring-bmc-gold/40">
+            <div aria-hidden="true" className="absolute -right-10 -top-16 size-48 rounded-full [background:radial-gradient(circle,rgb(252_184_0/0.16),transparent_70%)]" />
+            <div className="relative z-10 w-[64%] lg:w-[62%]">
+              <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-bmc-gold">BMC Food en ligne</p>
+              <h3 id="footer-order-title" className="mt-3 font-display text-xl font-bold leading-tight tracking-[-0.02em] text-white">
+                Commandez
+                <span className="block">en ligne,</span>
+                <span className="block text-bmc-gold">on vous livre.</span>
+              </h3>
+              <button
+                type="button"
+                onClick={exploreMenu}
+                className="group mt-4 inline-flex h-11 cursor-pointer items-center gap-2.5 rounded-full py-1 pl-4 pr-1 text-xs font-semibold text-white ring-1 ring-bmc-gold transition-colors hover:bg-bmc-gold/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold"
+              >
+                <span>
+                  Commander<span className="lg:hidden"> maintenant</span>
+                </span>
+                <span className="grid size-8 place-items-center rounded-full bg-bmc-gold text-bmc-charcoal transition-transform duration-300 group-hover:translate-x-0.5">
+                  <ArrowRight className="size-4" aria-hidden="true" />
+                </span>
+              </button>
+              <p className="mt-3 text-[0.7rem] leading-relaxed text-zinc-400">
+                Livraison dès 1 000 F
+                <span className="block">20 à 45 min, partout à Dakar</span>
+              </p>
+              <ul className="mt-2.5 flex gap-1.5" aria-label="Moyens de paiement acceptés">
+                {PAYMENTS.map((payment) => (
+                  <li key={payment.name} title={payment.name}>
+                    <img src={payment.src} alt={payment.name} width={28} height={28} loading="lazy" className="size-7 rounded-md bg-white object-contain p-0.5" />
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <PhonePreview float={!reduceMotion} />
+          </div>
+        </motion.section>
+      </motion.div>
+
+      {/* ===== 3. LA BARRE FINALE ===== */}
+      <div className="border-t border-bmc-gold/50">
+        <motion.div
+          {...inView}
+          variants={cascade}
+          className={`mx-auto flex max-w-7xl flex-col gap-5 px-4 pt-6 text-xs text-zinc-400 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:gap-6 lg:px-8 ${
+            reserveCartSpace ? 'pb-28' : 'pb-8'
+          }`}
+        >
+          <motion.p variants={reveal}>
+            © {now.getFullYear()} BMC Food. Tous droits réservés.
+          </motion.p>
+
+          <motion.div variants={reveal} className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <span className="lg:border-l lg:border-bmc-gold/60 lg:pl-5">
+              Site réalisé par <span className="text-zinc-200">Teranga Labs</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' })}
+              className="group inline-flex min-h-10 cursor-pointer items-center gap-1.5 border-l border-bmc-gold/60 pl-5 text-zinc-300 transition-colors hover:text-bmc-gold"
+            >
+              Retour en haut
+              <ArrowUp className="size-3.5 transition-transform duration-300 group-hover:-translate-y-0.5" aria-hidden="true" />
+            </button>
+          </motion.div>
+
+          <motion.div variants={reveal} className="flex items-center gap-3">
+            <span>Suivez-nous</span>
+            <ul className="flex gap-2">
+              {SOCIALS.map((social) => (
+                <li key={social.name}>
+                  <a
+                    href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={social.label}
+                    title={social.label}
+                    className="grid size-10 place-items-center rounded-full text-zinc-100 ring-1 ring-white/50 transition-[color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:text-bmc-gold hover:ring-bmc-gold"
+                  >
+                    {social.icon}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+
+          <motion.p variants={reveal} className="self-end font-display text-2xl font-semibold tracking-[-0.02em] text-white lg:self-auto">
+            À très bientôt&nbsp;!
+            <motion.span variants={rule} aria-hidden="true" className="ml-auto mt-1 block h-0.5 w-3/4 origin-right -rotate-3 rounded-full bg-bmc-gold" />
+          </motion.p>
+        </motion.div>
       </div>
     </footer>
   )

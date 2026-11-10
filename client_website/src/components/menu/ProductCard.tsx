@@ -34,7 +34,6 @@ export function ProductCard({ product, onAdd, onSelect, badge, originalPrice }: 
 
   return (
     <article
-      onClick={() => onSelect?.(product)}
       className={`group relative flex h-full select-none flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-1 hover:border-bmc-gold/60 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${
         onSelect ? 'cursor-pointer' : ''
       }`}
@@ -79,7 +78,20 @@ export function ProductCard({ product, onAdd, onSelect, badge, originalPrice }: 
 
       <div className="flex flex-1 flex-col justify-between p-3.5 text-left">
         <div>
-          <h3 className="line-clamp-1 font-display text-sm font-bold text-white sm:text-base">{product.name}</h3>
+          <h3 className="line-clamp-1 font-display text-sm font-bold text-white sm:text-base">
+            {onSelect ? (
+              // Lien étiré : toute la carte ouvre la fiche, à la souris comme au clavier.
+              <button
+                type="button"
+                onClick={() => onSelect(product)}
+                className="cursor-pointer text-left after:absolute after:inset-0 after:rounded-2xl after:content-[''] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-bmc-gold"
+              >
+                {product.name}
+              </button>
+            ) : (
+              product.name
+            )}
+          </h3>
           <p className="mt-0.5 line-clamp-1 text-xs leading-relaxed text-zinc-400 sm:text-sm">{product.description}</p>
         </div>
 
@@ -98,7 +110,7 @@ export function ProductCard({ product, onAdd, onSelect, badge, originalPrice }: 
             onClick={handleAddClick}
             disabled={!product.is_available}
             aria-label={`Ajouter ${product.name} au panier`}
-            className={`flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-black transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+            className={`relative z-10 flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-black transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
               justAdded ? 'bg-bmc-success text-white' : 'bg-bmc-gold hover:bg-amber-400'
             }`}
           >

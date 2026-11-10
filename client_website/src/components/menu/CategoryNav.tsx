@@ -77,6 +77,7 @@ export function CategoryNav({
             key={cat.id}
             type="button"
             onClick={() => onSelectCategory(cat.id)}
+            aria-pressed={isActive}
             className={`group flex shrink-0 flex-col items-center gap-2 transition-all cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-bmc-gold rounded-full p-1
               ${isActive ? 'scale-105' : 'opacity-85 hover:opacity-100'}`}
           >

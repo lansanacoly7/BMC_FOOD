@@ -1,4 +1,4 @@
-import { useCallback, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ArrowRight, Check, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { getProductImageUrl } from '../../lib/productImages'
 import type { Product } from '../../types'
@@ -39,6 +39,7 @@ export function DailySpecialBanner({
   const headingId = useId()
   const listRef = useRef<HTMLUListElement>(null)
   const [activeIndex, setActiveIndex] = useState(0)
+  const [edges, setEdges] = useState({ canPrev: false, canNext: false })
 
   const items = useMemo<FeaturedItem[]>(() => {
     const special = specials.map((product) => ({ product, isSpecial: true }))
@@ -58,10 +59,28 @@ export function DailySpecialBanner({
     return (first?.offsetWidth ?? 280) + CARD_GAP_PX
   }, [])
 
+  const updateEdges = useCallback(() => {
+    const list = listRef.current
+    if (!list) return
+    const canPrev = list.scrollLeft > 4
+    const canNext = list.scrollLeft < list.scrollWidth - list.clientWidth - 4
+    setEdges((prev) => (prev.canPrev === canPrev && prev.canNext === canNext ? prev : { canPrev, canNext }))
+  }, [])
+
+  useEffect(() => {
+    const list = listRef.current
+    if (!list) return
+    const observer = new ResizeObserver(updateEdges)
+    observer.observe(list)
+    updateEdges()
+    return () => observer.disconnect()
+  }, [updateEdges, items.length])
+
   const handleScroll = () => {
     const list = listRef.current
     if (!list) return
     setActiveIndex(Math.min(items.length - 1, Math.max(0, Math.round(list.scrollLeft / step()))))
+    updateEdges()
   }
 
   const goTo = (index: number) => {
@@ -100,38 +119,44 @@ export function DailySpecialBanner({
               <ArrowRight className="size-4" aria-hidden="true" />
             </button>
           )}
-          {items.length > 2 && (
-            <div className="hidden items-center gap-1.5 sm:flex">
-              <button
-                type="button"
-                onClick={() => goTo(Math.max(0, activeIndex - 1))}
-                aria-label="Plat précédent"
-                className="grid size-10 cursor-pointer place-items-center rounded-full border border-white/15 text-white transition-colors hover:border-white/40"
-              >
-                <ChevronLeft className="size-5" aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                onClick={() => goTo(Math.min(items.length - 1, activeIndex + 1))}
-                aria-label="Plat suivant"
-                className="grid size-10 cursor-pointer place-items-center rounded-full border border-white/15 text-white transition-colors hover:border-white/40"
-              >
-                <ChevronRight className="size-5" aria-hidden="true" />
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
-      <ul
-        ref={listRef}
-        onScroll={handleScroll}
-        className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:scroll-px-0 sm:px-0"
-      >
-        {items.map((item, index) => (
-          <FeaturedCard key={item.product.code} item={item} rank={index + 1} priority={index < 2} onAdd={onAdd} onSelect={onSelect} />
-        ))}
-      </ul>
+      <div className="relative">
+        <ul
+          ref={listRef}
+          onScroll={handleScroll}
+          className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:scroll-px-0 sm:px-0"
+        >
+          {items.map((item, index) => (
+            <FeaturedCard key={item.product.code} item={item} rank={index + 1} priority={index < 2} onAdd={onAdd} onSelect={onSelect} />
+          ))}
+        </ul>
+
+        {/* Flèches posées sur le carrousel (grands écrans) : « suivant » au départ, « précédent » une fois avancé */}
+        <button
+          type="button"
+          onClick={() => goTo(Math.max(0, activeIndex - 1))}
+          aria-label="Plats précédents"
+          tabIndex={edges.canPrev ? 0 : -1}
+          className={`absolute left-3 top-1/2 z-10 hidden size-12 -translate-y-1/2 cursor-pointer place-items-center rounded-full border border-white/20 bg-zinc-950/80 text-white shadow-lg backdrop-blur-sm transition-[opacity,background-color,border-color] duration-200 hover:border-bmc-gold hover:bg-bmc-gold hover:text-black sm:grid ${
+            edges.canPrev ? 'opacity-100' : 'pointer-events-none opacity-0'
+          }`}
+        >
+          <ChevronLeft className="size-6" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          onClick={() => goTo(Math.min(items.length - 1, activeIndex + 1))}
+          aria-label="Plats suivants"
+          tabIndex={edges.canNext ? 0 : -1}
+          className={`absolute right-3 top-1/2 z-10 hidden size-12 -translate-y-1/2 cursor-pointer place-items-center rounded-full border border-white/20 bg-zinc-950/80 text-white shadow-lg backdrop-blur-sm transition-[opacity,background-color,border-color] duration-200 hover:border-bmc-gold hover:bg-bmc-gold hover:text-black sm:grid ${
+            edges.canNext ? 'opacity-100' : 'pointer-events-none opacity-0'
+          }`}
+        >
+          <ChevronRight className="size-6" aria-hidden="true" />
+        </button>
+      </div>
 
       {items.length > 1 && (
         <div className="mt-4 flex items-center justify-center gap-1.5" role="group" aria-label="Position dans le carrousel">
@@ -184,7 +209,7 @@ function FeaturedCard({
   return (
     <li className="w-[80%] shrink-0 snap-start sm:w-[300px] lg:w-[330px]">
       <article
-        className={`group relative isolate flex aspect-4/5 flex-col justify-between overflow-hidden rounded-2xl bg-[#0c0c0d] p-4 text-[#ffffff] transition-transform duration-300 hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${
+        className={`group relative isolate flex aspect-4/5 cursor-pointer flex-col justify-between overflow-hidden rounded-2xl bg-[#0c0c0d] p-4 text-[#ffffff] transition-transform duration-300 hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${
           isSpecial ? 'ring-2 ring-inset ring-bmc-gold' : ''
         }`}
       >
@@ -217,7 +242,13 @@ function FeaturedCard({
 
         <div>
           <h3 className="font-display text-xl font-bold leading-tight">
-            <button type="button" onClick={() => onSelect?.(product)} className="cursor-pointer text-left underline-offset-4 hover:underline">
+            {/* Lien étiré : sa zone de clic couvre toute la carte (photo comprise), au clavier comme à la souris. */}
+            <button
+              type="button"
+              onClick={() => onSelect?.(product)}
+              aria-label={`Voir ${product.name}`}
+              className="cursor-pointer rounded-2xl text-left underline-offset-4 after:absolute after:inset-0 after:rounded-2xl after:content-[''] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-bmc-gold group-hover:underline"
+            >
               {product.name}
             </button>
           </h3>
@@ -231,7 +262,7 @@ function FeaturedCard({
               type="button"
               onClick={handleAdd}
               aria-label={`Ajouter ${product.name} au panier`}
-              className={`grid size-12 shrink-0 cursor-pointer place-items-center rounded-full text-black transition-colors ${
+              className={`relative z-10 grid size-12 shrink-0 cursor-pointer place-items-center rounded-full text-black transition-colors ${
                 justAdded ? 'bg-bmc-success text-white' : 'bg-bmc-gold hover:bg-amber-400'
               }`}
             >
