@@ -6,7 +6,6 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
-  ShieldCheck,
   Loader2,
   Flame,
   Zap,
@@ -133,20 +132,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
         {/* CARTE DE CONNEXION LUXE & ÉPURÉE */}
         <div className="w-full max-w-[440px] rounded-3xl bg-[#12151E]/90 border border-white/[0.1] border-t-2 border-t-[#FCB800] p-8 sm:p-10 shadow-[0_30px_90px_-15px_rgba(0,0,0,0.9),0_0_50px_rgba(252,184,0,0.06)] backdrop-blur-2xl relative z-10 animate-card-enter">
-          {/* En-tête de la carte : Badge officiel BMC Food */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#FCB800]/15 border border-[#FCB800]/30 shadow-sm">
-              <Flame className="size-4 text-[#FCB800]" />
-              <span className="text-xs font-black text-[#FCB800] uppercase tracking-wider">
-                BMC Food · Back-Office
-              </span>
-            </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.05] border border-white/10 text-xs font-semibold text-neutral-300">
-              <ShieldCheck className="size-3.5 text-emerald-400" />
-              <span>Accès Sécurisé</span>
-            </div>
-          </div>
-
           <h1 className="text-3xl font-extrabold text-white tracking-tight">
             Connexion
           </h1>
