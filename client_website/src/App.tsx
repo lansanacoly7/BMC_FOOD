@@ -45,6 +45,8 @@ export default function App() {
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   // Animation d'entrée : jouée à chaque arrivée sur le site et à chaque rechargement.
   const [isIntroDone, setIsIntroDone] = useState(false)
+  // Le hero entre en scène dès que le rideau de l'intro se lève, pas à la toute fin.
+  const [isIntroLifting, setIsIntroLifting] = useState(false)
   // Famille sur laquelle ouvrir la carte (spécialités du pied de page). nonce : rouvre la carte à neuf à chaque clic.
   const [menuFocus, setMenuFocus] = useState<{ keyword: string; nonce: number } | null>(null)
 
@@ -139,7 +141,7 @@ export default function App() {
   // L'espace sous la barre panier flottante est réservé dans le pied de page, dernier élément de la page.
   return (
     <div className="min-h-dvh text-zinc-100 selection:bg-bmc-gold selection:text-black">
-      {!isIntroDone && <IntroSplash onFinish={() => setIsIntroDone(true)} />}
+      {!isIntroDone && <IntroSplash onReveal={() => setIsIntroLifting(true)} onFinish={() => setIsIntroDone(true)} />}
 
       {/* 
         1. EN-TÊTE NOIR ET LOGO
@@ -202,7 +204,7 @@ export default function App() {
            ========================================================================= */
         <>
           {/* ÉTAPE 1 : LE HERO CINÉMATIQUE PLEINE LARGEUR SANS CARTE */}
-          <HeroCinematic onExploreMenu={() => handleNavigate('menu')} />
+          <HeroCinematic onExploreMenu={() => handleNavigate('menu')} isRevealed={isIntroDone || isIntroLifting} />
 
           {/* BANDEAU VEDETTE HYBRIDE PLAT DU JOUR & BEST-SELLERS */}
           <DailySpecialBanner

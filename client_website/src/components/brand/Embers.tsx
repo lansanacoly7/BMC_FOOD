@@ -46,6 +46,7 @@ function createEmbers(count: number, seed: number): Ember[] {
 
 const EMBER_SETS = {
   intro: createEmbers(26, 20261021),
+  hero: createEmbers(18, 20261110),
 } as const
 
 interface EmbersProps {
