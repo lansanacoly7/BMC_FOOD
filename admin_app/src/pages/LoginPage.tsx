@@ -11,7 +11,6 @@ import {
   Flame,
   Zap,
   Bike,
-  Clock,
   CheckCircle2,
 } from 'lucide-react'
 import { loginAdmin } from '../api/client'
@@ -91,8 +90,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           />
         </div>
 
-        {/* Slogan officiel et éléments interactifs remis */}
-        <div className="relative z-10 space-y-5 max-w-xl">
+        {/* Slogan officiel et piliers de service */}
+        <div className="relative z-10 space-y-6 max-w-xl">
           <div className="space-y-2">
             <h2 className="text-4xl xl:text-5xl font-black text-white tracking-tight drop-shadow-lg">
               Le goût du <span className="text-[#FCB800]">vrai plaisir</span>.
@@ -100,31 +99,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             <p className="text-sm text-neutral-300 font-medium">
               Dakar · Ouvert tous les jours de 11h à 02h
             </p>
-          </div>
-
-          {/* Mini-widget KDS dynamique en direct */}
-          <div className="p-4 rounded-2xl bg-black/50 border border-white/10 backdrop-blur-md shadow-xl flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-[#FCB800]/15 border border-[#FCB800]/30 flex items-center justify-center shrink-0">
-                <Zap className="size-5 text-[#FCB800]" />
-              </div>
-              <div>
-                <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                  <span>Cuisine KDS connectée</span>
-                  <span className="size-1.5 rounded-full bg-emerald-400" />
-                </div>
-                <div className="text-[11px] text-neutral-400 mt-0.5">
-                  Synchronisation temps réel & alertes de cuisson
-                </div>
-              </div>
-            </div>
-            <div className="text-right shrink-0">
-              <div className="text-xs font-bold text-[#FCB800] flex items-center justify-end gap-1">
-                <Clock className="size-3.5" />
-                <span>&lt; 12 min</span>
-              </div>
-              <div className="text-[11px] text-neutral-400">Temps moyen</div>
-            </div>
           </div>
 
           {/* Piliers de service */}
