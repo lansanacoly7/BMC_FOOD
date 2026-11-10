@@ -260,3 +260,63 @@
 .timer-warning { color: #FCB800; }
 .timer-urgent { color: #CF4A08; }
 .timer-critical { color: #EF4444; animation: pulse 1s ease-in-out infinite; }
+
+/* ─── ANIMATIONS DE LA PAGE DE CONNEXION ET AUTH ─── */
+@keyframes ambient-glow-slow {
+  0%, 100% {
+    transform: scale(1) translate(0, 0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.18) translate(-20px, 15px);
+    opacity: 0.95;
+  }
+}
+
+@keyframes ambient-glow-warm {
+  0%, 100% {
+    transform: scale(1) translate(0, 0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.22) translate(15px, -20px);
+    opacity: 0.85;
+  }
+}
+
+@keyframes kenburns-slow {
+  0%, 100% {
+    transform: scale(1.04) translate(0, 0);
+  }
+  50% {
+    transform: scale(1.09) translate(-1.5%, -1%);
+  }
+}
+
+@keyframes card-float-enter {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-ambient-glow {
+  animation: ambient-glow-slow 9s ease-in-out infinite;
+}
+
+.animate-ambient-warm {
+  animation: ambient-glow-warm 11s ease-in-out infinite;
+}
+
+.animate-kenburns {
+  animation: kenburns-slow 22s ease-in-out infinite;
+}
+
+.animate-card-enter {
+  animation: card-float-enter 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
