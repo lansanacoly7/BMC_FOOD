@@ -5,6 +5,7 @@ import type { Product } from '../../types'
 import { useMenu } from '../../hooks/useMenu'
 import { CategoryNav } from './CategoryNav'
 import { ProductCard } from './ProductCard'
+import { ProductCarousel } from './ProductCarousel'
 import { ProductDetailModal } from './ProductDetailModal'
 import { Skeleton } from '../ui/Loader'
 import { ErrorMessage } from '../ui/ErrorMessage'
@@ -19,12 +20,14 @@ export interface MenuViewProps {
    * (null = toute la carte). Chaque nouvelle demande (nonce) remplace le choix fait dans les rondelles.
    */
   focus?: { keyword: string | null; nonce: number } | null
+  /** Carrousel « Les incontournables de Dakar » en tête de carte (page « La carte » sur ordinateur). */
+  showHighlights?: boolean
 }
 
 /** Une boisson (catégorie « Boissons » ou code bv-…) : elle n'apparaît que dans la section Boissons. */
 const isDrink = (p: Product) => Boolean(p.category_name?.toLowerCase().includes('boisson') || p.code.toLowerCase().startsWith('bv'))
 
-export function MenuView({ onAddToCart, focus }: MenuViewProps) {
+export function MenuView({ onAddToCart, focus, showHighlights = false }: MenuViewProps) {
   const { categories, items, isLoading, error, refetch } = useMenu()
   const focusKeyword = focus?.keyword ?? undefined
   // Choix fait dans les rondelles, valable pour une demande extérieure donnée (nonce) :
@@ -86,7 +89,11 @@ export function MenuView({ onAddToCart, focus }: MenuViewProps) {
     })
   }, [menuItems, selectedCategoryId])
 
-  // Groupes de produits de la carte complète : tacos panés, burgers et tacos simples, boissons
+  // Groupes de produits de la carte complète : incontournables, tacos panés, burgers et tacos simples, boissons
+  const popularItems = useMemo(
+    () => menuItems.filter((p) => p.popular || p.is_daily_special).slice(0, 6),
+    [menuItems],
+  )
   const tacosPanesItems = useMemo(
     () =>
       menuItems.filter(
@@ -125,7 +132,20 @@ export function MenuView({ onAddToCart, focus }: MenuViewProps) {
 
   return (
     <section aria-labelledby="menu-heading" className="w-full flex flex-col gap-8">
-      {/* 1. En-tête de la carte (cible des liens « La carte » de tout le site) */}
+      {/* Carrousel « Les Incontournables de Dakar » (page « La carte » sur ordinateur) */}
+      {showHighlights && !isLoading && !error && isFullCatalogView && (
+        <ProductCarousel
+          id="popular"
+          title="Les Incontournables de Dakar"
+          subtitle="Les recettes les plus commandées ce mois-ci"
+          badgeText="★ TOP VENTES"
+          products={popularItems}
+          onAddToCart={(p) => onAddToCart(p, 1)}
+          onSelectProduct={(p) => setSelectedProduct(p)}
+        />
+      )}
+
+      {/* En-tête de la carte (cible des liens « La carte » de tout le site) */}
       <div className="border-t border-zinc-800/80 pt-6">
         <div>
           <h2

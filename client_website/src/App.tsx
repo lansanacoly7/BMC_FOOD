@@ -12,7 +12,9 @@ import { StickyCartBar } from './components/home/StickyCartBar'
 import { NavMenuDrawer } from './components/home/NavMenuDrawer'
 import { Footer } from './components/home/Footer'
 import { CulinaryVideoShowcase } from './components/home/CulinaryVideoShowcase'
+import { MenuHero } from './components/home/MenuHero'
 import { MenuView } from './components/menu/MenuView'
+import { useIsDesktop } from './hooks/useIsDesktop'
 import { ContactView } from './components/contact/ContactView'
 import { ProfileView } from './components/profile/ProfileView'
 import { type OrderSummary, USER_KEY } from './services/clientData'
@@ -24,9 +26,9 @@ import { useMenu } from './hooks/useMenu'
 import { useCart } from './hooks/useCart'
 import { IntroSplash } from './components/brand/IntroSplash'
 
-type Page = 'home' | 'contact' | 'profile'
+type Page = 'home' | 'menu' | 'contact' | 'profile'
 
-/** Familles du menu latéral → mot-clé du nom de catégorie, pour filtrer la carte de l'accueil (« all » : tout). */
+/** Familles du menu latéral → mot-clé du nom de catégorie, pour filtrer la carte (« all » : tout). */
 const DRAWER_FAMILY_KEYWORDS: Record<string, string | null> = {
   all: null,
   'tacos-panes': 'tacos panes',
@@ -36,7 +38,8 @@ const DRAWER_FAMILY_KEYWORDS: Record<string, string | null> = {
 }
 
 export default function App() {
-  // La carte n'est plus une page : elle fait partie de l'accueil (« La carte » y fait défiler).
+  // « La carte » : une page à part sur ordinateur ; sur téléphone et tablette, elle fait partie de l'accueil.
+  const isDesktop = useIsDesktop()
   const [currentPage, setCurrentPage] = useState<Page>('home')
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
@@ -59,20 +62,20 @@ export default function App() {
   // Famille sur laquelle filtrer la carte (pied de page, menu latéral). nonce : chaque clic réapplique le filtre.
   const [menuFocus, setMenuFocus] = useState<{ keyword: string | null; nonce: number } | null>(null)
 
-  // Amène le client à la carte de l'accueil, juste sous l'en-tête fixe.
-  const scrollToMenu = () => {
+  // Amène le client aux plats de la carte, juste sous l'en-tête fixe.
+  const scrollToMenu = (behavior: ScrollBehavior) => {
     window.setTimeout(() => {
       const heading = document.getElementById('menu-heading')
       if (!heading) return
-      window.scrollTo({ top: heading.getBoundingClientRect().top + window.scrollY - 96, behavior: 'smooth' })
+      window.scrollTo({ top: heading.getBoundingClientRect().top + window.scrollY - 96, behavior })
     }, 60)
   }
 
-  // Navigation : Accueil, Contact, Mon compte ; « La carte » ramène sur l'accueil, au niveau de la carte.
-  const handleNavigate = (page: Page | 'menu') => {
-    if (page === 'menu') {
+  // Navigation. « La carte » : la page Carte sur ordinateur ; sur téléphone, l'accueil au niveau de la carte.
+  const handleNavigate = (page: Page) => {
+    if (page === 'menu' && !isDesktop) {
       setCurrentPage('home')
-      scrollToMenu()
+      scrollToMenu('smooth')
       return
     }
     setMenuFocus(null)
@@ -80,11 +83,11 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'auto' })
   }
 
-  // Filtre la carte sur une famille (mot-clé du nom de catégorie, null = tout) et y amène le client.
+  // Filtre la carte sur une famille (mot-clé du nom de catégorie, null = tout) et amène le client aux plats.
   const openMenuOn = (keyword: string | null) => {
     setMenuFocus({ keyword, nonce: Date.now() })
-    setCurrentPage('home')
-    scrollToMenu()
+    setCurrentPage(isDesktop ? 'menu' : 'home')
+    scrollToMenu(isDesktop ? 'auto' : 'smooth')
   }
 
   // Lien direct vers la connexion (#login), par exemple depuis l'application cuisine
@@ -247,15 +250,35 @@ export default function App() {
               onSelectProduct={setSelectedProduct}
             />
 
-            {/* TOUTE LA CARTE : filtres par famille et tous les plats (l'ancienne page « La carte ») */}
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-              <MenuView focus={menuFocus} onAddToCart={addToCart} />
-            </div>
+            {/* TÉLÉPHONE ET TABLETTE : toute la carte, filtres et plats, directement sur l'accueil */}
+            {!isDesktop && (
+              <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <MenuView focus={menuFocus} onAddToCart={addToCart} />
+              </div>
+            )}
           </main>
 
           {/* Capsule Vidéo Culinaire Immersive (« L'Art du Tacos Pané » - 5 Scènes Vidéo) */}
           <CulinaryVideoShowcase />
         </>
+      )}
+
+      {currentPage === 'menu' && (
+        /* =========================================================================
+           PAGE « LA CARTE » (ordinateur) : bannière panoramique, incontournables,
+           filtres par famille et tous les plats
+           ========================================================================= */
+        <div className="space-y-8">
+          <MenuHero
+            onExploreMenu={() => {
+              const target = document.getElementById('menu-heading')
+              target?.scrollIntoView({ behavior: 'smooth' })
+            }}
+          />
+          <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <MenuView focus={menuFocus} onAddToCart={addToCart} showHighlights />
+          </main>
+        </div>
       )}
 
       {currentPage === 'contact' && (
