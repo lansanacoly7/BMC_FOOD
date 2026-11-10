@@ -180,19 +180,6 @@ const CATALOG_PRODUCTS: Product[] = [
     is_daily_special: false,
     popular: false,
   },
-  {
-    id: 12,
-    code: 'bb-fraiches',
-    name: 'Boissons Fraîches',
-    category: 7,
-    category_name: 'Boissons',
-    description: 'Sélection de sodas 33cl bien frais, jus locaux et eau minérale.',
-    price: 800,
-    image_url: '/images/products/boissons-fraiches.webp',
-    is_available: true,
-    is_daily_special: false,
-    popular: false,
-  },
 ]
 
 interface FeaturedGridProps {

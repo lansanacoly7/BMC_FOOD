@@ -1,7 +1,10 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils.text import slugify
-from api.models import Category, MenuItem
+from api.models import Category, MenuItem, OrderItem
+
+# Codes d'articles retirés de la carte (bv-1 : « Boissons fraîches au choix (33cl) », retiré à la demande de BMC).
+RETIRED_CODES = ["bv-1"]
 
 class Command(BaseCommand):
     help = "Charge le menu complet et authentique de BMC FOOD avec le Plat du Jour de façon idempotente et non-destructive."
@@ -114,14 +117,12 @@ class Command(BaseCommand):
                     {"code": "ts-19", "name": "Tacos XL simple", "price": 5000, "desc": "Format géant classique pour les gros appétits.", "popular": False, "special": False},
                 ]
             },
-            # 8. Boissons : boissons 33cl et canettes BMC Food.
-            # Prix indicatif de 800 F (repris du site), à confirmer avec BMC puis à ajuster dans l'admin.
+            # 8. Boissons : les canettes BMC Food, 800 F l'unité.
             # "image" : nom du visuel existant dans client_website/public/images/products (sinon : nom slugifié).
             {
                 "category": "Boissons",
                 "icon": "Coffee",
                 "items": [
-                    {"code": "bv-1", "name": "Boissons fraîches au choix (33cl)", "price": 800, "desc": "Coca-Cola, Fanta, Sprite ou eau minérale gazeuse, bien fraîche.", "popular": False, "special": False, "image": "boissons-fraiches"},
                     {"code": "bv-2", "name": "Bissap glacé", "price": 800, "desc": "Canette BMC Food au bissap, servie bien fraîche.", "popular": False, "special": False, "image": "canette-bissap-bmc"},
                     {"code": "bv-3", "name": "Bouye glacé", "price": 800, "desc": "Canette BMC Food au bouye, servie bien fraîche.", "popular": False, "special": False, "image": "canette-bouye-bmc"},
                     {"code": "bv-4", "name": "Mangue glacée", "price": 800, "desc": "Canette BMC Food à la mangue, servie bien fraîche.", "popular": False, "special": False, "image": "canette-mangue-bmc"},
@@ -198,6 +199,19 @@ class Command(BaseCommand):
                     else:
                         items_updated += 1
 
+            # Articles retirés de la carte : supprimés des bases existantes. Un article déjà commandé est seulement
+            # rendu indisponible, car l'historique des commandes le référence (suppression interdite).
+            items_retired = 0
+            for item in MenuItem.objects.filter(code__in=RETIRED_CODES):
+                if OrderItem.objects.filter(menu_item=item).exists():
+                    if item.is_available or item.is_daily_special:
+                        item.is_available = False
+                        item.is_daily_special = False
+                        item.save(update_fields=["is_available", "is_daily_special"])
+                else:
+                    item.delete()
+                items_retired += 1
+
         total_categories = Category.objects.count()
         total_items = MenuItem.objects.count()
 
@@ -205,6 +219,6 @@ class Command(BaseCommand):
             self.style.SUCCESS(
                 f"Succès : Seed {mode_label} terminé. "
                 f"Catégories (créées: {cats_created}, màj: {cats_updated}, total: {total_categories}) | "
-                f"Articles (créés: {items_created}, màj: {items_updated}, total: {total_items})."
+                f"Articles (créés: {items_created}, màj: {items_updated}, retirés: {items_retired}, total: {total_items})."
             )
         )
