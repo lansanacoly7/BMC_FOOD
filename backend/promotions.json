@@ -1,0 +1,13 @@
+[
+  {
+    "id": 5,
+    "code": "bg-1",
+    "name": "Burger BMC Complet",
+    "category": "Burgers",
+    "price": 2500,
+    "discountPercent": 15,
+    "isPromo": true,
+    "image_url": "/images/products/burger-bmc-complet.webp",
+    "description": "Steak pur bœuf braisé minute, cheddar fondant, œuf à cheval, oignons et sauce secrète."
+  }
+]

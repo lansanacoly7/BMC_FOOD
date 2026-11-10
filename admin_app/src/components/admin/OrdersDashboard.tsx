@@ -286,7 +286,7 @@ export function OrdersDashboard({ onRefreshEvents }: OrdersDashboardProps) {
                     order={order}
                     isUpdating={updatingRef === order.order_ref}
                     onOpenDetail={() => setSelectedOrder(order)}
-                    actionLabel="👨‍🍳 Lancer la préparation ➔"
+                    actionLabel="Lancer la préparation ➔"
                     actionClass="bg-gradient-to-r from-bmc-gold to-amber-400 text-black shadow-md shadow-bmc-gold/25 hover:brightness-110"
                     onAction={() => void advanceOrderStatus(order, 'preparing')}
                   />
@@ -326,7 +326,7 @@ export function OrdersDashboard({ onRefreshEvents }: OrdersDashboardProps) {
                     order={order}
                     isUpdating={updatingRef === order.order_ref}
                     onOpenDetail={() => setSelectedOrder(order)}
-                    actionLabel="🛵 Prêt pour livraison ➔"
+                    actionLabel="Prêt pour livraison ➔"
                     actionClass="bg-gradient-to-r from-amber-500 to-amber-600 text-black shadow-md hover:brightness-110"
                     onAction={() => void advanceOrderStatus(order, 'delivering')}
                   />

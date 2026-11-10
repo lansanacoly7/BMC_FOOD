@@ -1,13 +1,15 @@
 import React, { useState } from 'react'
 import {
-  Lock,
+  AlertCircle,
   User,
+  Lock,
   Eye,
   EyeOff,
-  AlertCircle,
   ArrowRight,
-  ShieldCheck,
-  Sparkles,
+  Loader2,
+  Flame,
+  Zap,
+  Bike,
 } from 'lucide-react'
 import { loginAdmin } from '../api/client'
 
@@ -25,7 +27,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!username.trim() || !password.trim()) {
-      setErrorMessage('Veuillez renseigner votre identifiant et votre mot de passe.')
+      setErrorMessage('Renseignez votre identifiant et votre mot de passe.')
       return
     }
 
@@ -45,222 +47,191 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         } else if (typeof val === 'string') {
           setErrorMessage(val)
         } else {
-          setErrorMessage('Identifiants invalides ou compte non autorisé.')
+          setErrorMessage('Identifiant ou mot de passe incorrect.')
         }
       } else {
-        setErrorMessage(
-          error?.message || 'Connexion impossible. Vérifiez vos identifiants ou l’état du serveur.',
-        )
+        setErrorMessage(error?.message || 'Connexion impossible. Réessayez dans un instant.')
       }
     } finally {
       setIsLoading(false)
     }
   }
 
-  const fillDemoCredentials = () => {
-    setUsername('admin')
-    setPassword('admin123')
-    setErrorMessage(null)
-  }
-
   return (
-    <div
-      className="min-h-screen w-full flex flex-col items-center justify-center p-4 relative overflow-hidden select-none"
-      style={{ backgroundColor: '#0B0D10' }}
-    >
-      {/* Halo lumineux ambre d'arrière-plan */}
-      <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] rounded-full pointer-events-none opacity-20 blur-[120px]"
-        style={{ backgroundColor: '#F5B301' }}
-        aria-hidden="true"
-      />
+    <div className="min-h-[100dvh] w-full bg-[#08090D] text-left text-[#F2F4F7] font-sans antialiased grid lg:grid-cols-[1.15fr_1fr] selection:bg-[#FCB800]/30 selection:text-white overflow-hidden">
+      {/* ─── PANNEAU GAUCHE : IDENTITÉ VISUELLE & HERO RESTAURANT BMC ─── */}
+      <aside className="relative hidden overflow-hidden bg-[#0A0C10] border-r border-white/[0.08] lg:flex flex-col justify-between p-12">
+        {/* Photographie culinaire signature BMC Food fixe */}
+        <img
+          src="/images/hero/hero_cheeseburger.webp"
+          alt="BMC Food Spécialité"
+          className="absolute inset-0 size-full object-cover opacity-80 pointer-events-none"
+        />
 
-      {/* CARTE DE CONNEXION */}
-      <div
-        className="w-full max-w-md rounded-2xl border p-8 flex flex-col gap-6 relative z-10 shadow-2xl backdrop-blur-md"
-        style={{
-          backgroundColor: '#14171C',
-          borderColor: '#232830',
-          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.7), 0 0 1px rgba(255, 255, 255, 0.1)',
-        }}
-      >
-        {/* EN-TÊTE : LOGO OFFICIEL + TITRE */}
-        <div className="flex flex-col items-center text-center gap-2.5">
-          <div className="relative inline-block mb-1">
-            <div
-              className="absolute -inset-2 rounded-full blur-md opacity-30"
-              style={{ backgroundColor: '#F5B301' }}
-            />
-            <img
-              src="/images/brand/logo.png"
-              alt="BMC Food"
-              width={80}
-              height={80}
-              className="relative h-14 w-auto object-contain mx-auto"
-            />
-          </div>
+        {/* Dégradés cinématiques superposés pour fondre avec le panneau droit */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#08090D] via-[#08090D]/40 to-[#08090D]/60 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#08090D]/30 to-[#08090D] pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(252,184,0,0.22),transparent_55%)] pointer-events-none" />
 
-          <div>
-            <div className="flex items-center justify-center gap-2">
-              <h1 className="text-2xl font-black tracking-tight" style={{ color: '#F2F4F7' }}>
-                BMC FOOD
-              </h1>
-              <span
-                className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded border"
-                style={{
-                  backgroundColor: '#0B0D10',
-                  borderColor: '#232830',
-                  color: '#F5B301',
-                }}
-              >
-                ADMIN
-              </span>
-            </div>
-            <p className="text-xs font-semibold mt-1" style={{ color: '#9AA3AF' }}>
-              Portail d’administration & KDS Cuisine
+        {/* Logo officiel en haut à gauche */}
+        <div className="relative z-10 transition-transform duration-300 hover:scale-[1.02]">
+          <img
+            src="/images/brand/logo.png"
+            alt="BMC Food"
+            className="h-20 w-auto object-contain drop-shadow-[0_4px_24px_rgba(0,0,0,0.9)]"
+          />
+        </div>
+
+        {/* Slogan officiel et piliers de service */}
+        <div className="relative z-10 space-y-6 max-w-xl">
+          <div className="space-y-2">
+            <h2 className="text-4xl xl:text-5xl font-black text-white tracking-tight drop-shadow-lg">
+              Le goût du <span className="text-[#FCB800]">vrai plaisir</span>.
+            </h2>
+            <p className="text-sm text-neutral-300 font-medium">
+              Dakar · Ouvert tous les jours de 11h à 02h
             </p>
           </div>
-        </div>
 
-        {/* MESSAGE D'ERREUR */}
-        {errorMessage && (
-          <div
-            className="p-3.5 rounded-xl border flex items-start gap-2.5 text-xs font-bold animate-in fade-in duration-200"
-            style={{
-              backgroundColor: 'rgba(239, 68, 68, 0.12)',
-              borderColor: 'rgba(239, 68, 68, 0.35)',
-              color: '#FCA5A5',
-            }}
-            role="alert"
-          >
-            <AlertCircle size={16} className="text-red-400 shrink-0 mt-0.5" />
-            <span className="leading-snug">{errorMessage}</span>
-          </div>
-        )}
-
-        {/* FORMULAIRE */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {/* Identifiant */}
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="username"
-              className="text-xs font-bold uppercase tracking-wider"
-              style={{ color: '#9AA3AF' }}
-            >
-              Identifiant / Utilisateur
-            </label>
-            <div className="relative">
-              <User
-                size={16}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                style={{ color: '#6C7684' }}
-              />
-              <input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                autoFocus
-                autoComplete="username"
-                placeholder="Ex. admin"
-                className="w-full h-11 pl-10 pr-4 rounded-xl text-sm font-semibold transition-all border focus:outline-none"
-                style={{
-                  backgroundColor: '#0B0D10',
-                  borderColor: username ? '#F5B301' : '#232830',
-                  color: '#F2F4F7',
-                }}
-              />
+          {/* Piliers de service */}
+          <div className="flex flex-wrap items-center gap-2.5 pt-2 border-t border-white/10 text-xs text-neutral-300">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08]">
+              <Flame className="size-3.5 text-[#FCB800] shrink-0" />
+              <span>Grillades & Braise</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08]">
+              <Zap className="size-3.5 text-[#FCB800] shrink-0" />
+              <span>Écran Cuisine KDS</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08]">
+              <Bike className="size-3.5 text-[#FCB800] shrink-0" />
+              <span>Livraison Dakar</span>
             </div>
           </div>
+        </div>
+      </aside>
 
-          {/* Mot de passe */}
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="password"
-              className="text-xs font-bold uppercase tracking-wider"
-              style={{ color: '#9AA3AF' }}
-            >
-              Mot de passe
-            </label>
-            <div className="relative">
-              <Lock
-                size={16}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                style={{ color: '#6C7684' }}
-              />
-              <input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-                placeholder="••••••••"
-                className="w-full h-11 pl-10 pr-11 rounded-xl text-sm font-semibold transition-all border focus:outline-none"
-                style={{
-                  backgroundColor: '#0B0D10',
-                  borderColor: password ? '#F5B301' : '#232830',
-                  color: '#F2F4F7',
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-white"
-                title={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+      {/* ─── PANNEAU DROIT : FORMULAIRE ÉLÉGANT AVEC BOUTON JAUNE BMC ─── */}
+      <main className="relative flex flex-col justify-center items-center px-6 py-12 bg-[#090A0E] bg-grid-pattern overflow-y-auto">
+        {/* Halos d'ambiance respirants en arrière-plan */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] bg-[radial-gradient(circle,rgba(252,184,0,0.12),transparent_70%)] animate-ambient-glow pointer-events-none" />
+        <div className="absolute bottom-8 right-8 w-72 h-72 bg-[radial-gradient(circle,rgba(252,184,0,0.06),transparent_70%)] animate-ambient-warm pointer-events-none" />
+
+        {/* Logo mobile uniquement */}
+        <div className="flex flex-col items-center mb-8 lg:hidden animate-fade-in-up">
+          <img src="/images/brand/logo.png" alt="BMC Food" className="h-16 w-auto object-contain" />
+          <span className="mt-2 text-xs font-semibold text-[#FCB800]">Portail d'Administration</span>
+        </div>
+
+        {/* CARTE DE CONNEXION LUXE & ÉPURÉE */}
+        <div className="w-full max-w-[440px] rounded-3xl bg-[#12151E]/90 border border-white/[0.1] border-t-2 border-t-[#FCB800] p-8 sm:p-10 shadow-[0_30px_90px_-15px_rgba(0,0,0,0.9),0_0_50px_rgba(252,184,0,0.06)] backdrop-blur-2xl relative z-10 animate-card-enter">
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">
+            Connexion
+          </h1>
+          <p className="mt-2 text-sm text-[#94A3B8] leading-relaxed">
+            Accédez à la gestion des commandes, à la cuisine KDS et aux opérations.
+          </p>
+
+          <form onSubmit={handleSubmit} className="mt-7 space-y-4">
+            {/* Alerte d'erreur */}
+            {errorMessage && (
+              <div
+                role="alert"
+                className="flex items-start gap-2.5 rounded-xl bg-[#2D1214] border border-[#EF4444]/40 px-3.5 py-3 text-xs text-[#EF4444] animate-fade-in-up"
               >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-
-          {/* Bouton Se connecter */}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full h-12 mt-2 rounded-xl flex items-center justify-center gap-2 font-black text-sm uppercase tracking-wider transition-all transform active:scale-[0.98] select-none shadow-md disabled:opacity-50 cursor-pointer"
-            style={{
-              backgroundColor: '#F5B301',
-              color: '#0B0D10',
-            }}
-          >
-            {isLoading ? (
-              <span className="flex items-center gap-2">
-                <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                <span>Connexion en cours…</span>
-              </span>
-            ) : (
-              <>
-                <span>Se connecter</span>
-                <ArrowRight size={16} strokeWidth={2.5} />
-              </>
+                <AlertCircle className="size-4 shrink-0 mt-0.5" />
+                <span className="font-medium leading-snug">{errorMessage}</span>
+              </div>
             )}
-          </button>
-        </form>
 
-        {/* RACCOURCI DÉMO / DEV */}
-        <div className="pt-2 border-t flex flex-col items-center gap-2" style={{ borderColor: '#232830' }}>
-          <button
-            type="button"
-            onClick={fillDemoCredentials}
-            className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-amber-400 transition-colors"
-          >
-            <Sparkles size={13} className="text-amber-400" />
-            <span>Remplir les identifiants démo (admin / admin123)</span>
-          </button>
+            {/* Champ Identifiant */}
+            <div className="space-y-1.5 group">
+              <label
+                htmlFor="username"
+                className="block text-xs font-semibold text-[#CBD5E1] group-focus-within:text-[#FCB800] transition-colors duration-200"
+              >
+                Identifiant
+              </label>
+              <div className="relative flex items-center">
+                <User className="absolute left-3.5 size-4 text-[#64748B] group-focus-within:text-[#FCB800] transition-colors duration-200 pointer-events-none" />
+                <input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="admin, gerant, cuisine..."
+                  required
+                  autoFocus
+                  autoComplete="username"
+                  className="w-full h-12 pl-10 pr-4 rounded-xl bg-[#0B0D14] border border-white/[0.12] text-sm text-[#F2F4F7] placeholder:text-[#5E6676] transition-all duration-200 focus:outline-none focus:border-[#FCB800] focus:ring-4 focus:ring-[#FCB800]/20 hover:border-white/25"
+                />
+              </div>
+            </div>
 
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-1">
-            <ShieldCheck size={13} />
-            <span>Accès restreint au personnel autorisé BMC FOOD</span>
+            {/* Champ Mot de passe */}
+            <div className="space-y-1.5 pt-1 group">
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="password"
+                  className="block text-xs font-semibold text-[#CBD5E1] group-focus-within:text-[#FCB800] transition-colors duration-200"
+                >
+                  Mot de passe
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-xs font-semibold text-[#FCB800] hover:text-[#FFE066] flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                  <span>{showPassword ? 'Masquer' : 'Afficher'}</span>
+                </button>
+              </div>
+
+              <div className="relative flex items-center">
+                <Lock className="absolute left-3.5 size-4 text-[#64748B] group-focus-within:text-[#FCB800] transition-colors duration-200 pointer-events-none" />
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  required
+                  autoComplete="current-password"
+                  className="w-full h-12 pl-10 pr-4 rounded-xl bg-[#0B0D14] border border-white/[0.12] text-sm text-[#F2F4F7] placeholder:text-[#5E6676] transition-all duration-200 focus:outline-none focus:border-[#FCB800] focus:ring-4 focus:ring-[#FCB800]/20 hover:border-white/25"
+                />
+              </div>
+            </div>
+
+            {/* ─── BOUTON JAUNE BMC FOOD (Sans effet lumineux) ─── */}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full h-12 !mt-6 rounded-xl bg-[#FCB800] hover:bg-[#E5A700] active:bg-[#CC9400] text-[#090A0E] font-black text-sm uppercase tracking-wider transition-colors duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin text-[#090A0E]" />
+                  <span>Connexion en cours…</span>
+                </>
+              ) : (
+                <>
+                  <span>Se connecter</span>
+                  <ArrowRight className="size-4 text-[#090A0E]" />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Pied de carte avec icône de sécurité et copyright */}
+          <div className="mt-8 pt-5 border-t border-white/[0.08] flex items-center justify-between text-[11px] text-[#64748B]">
+            <span>BMC Food Dakar © 2026</span>
+            <span className="flex items-center gap-1 text-[#94A3B8]">
+              <Lock className="size-3 text-[#FCB800]" />
+              Connexion sécurisée SSL
+            </span>
           </div>
         </div>
-      </div>
-
-      {/* PIED DE PAGE DISCRET */}
-      <footer className="mt-6 text-center text-xs font-medium text-slate-500">
-        BMC FOOD · Grillades & Cuisine Dakar · Système KDS v2.0
-      </footer>
+      </main>
     </div>
   )
 }

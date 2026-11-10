@@ -1,81 +1,54 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import type { ColumnDefinition, KdsOrder, KdsOrderStatus } from '../types/kds'
-import { KanbanColumn } from '../components/kds/KanbanColumn'
+import React, { useMemo, useState } from 'react'
+import type { ChronoThresholds, KdsOrder, KdsOrderStatus, OrderType } from '../types/kds'
+import { DEFAULT_KDS_THRESHOLDS } from '../styles/kdsTokens'
+import { getElapsedSeconds } from '../lib/formatters'
+import { KdsProduceBar } from '../components/kds/KdsProduceBar'
+import { KdsTopBar } from '../components/kds/KdsTopBar'
+import { KdsBoard } from '../components/kds/KdsBoard'
+import { OrderHistoryDrawer } from '../components/kds/OrderHistoryDrawer'
 
 interface KdsPageProps {
   orders: KdsOrder[]
   nowMs: number
   searchQuery: string
+  onSearchChange: (query: string) => void
+  typeFilter: 'all' | OrderType
+  onTypeFilterChange: (type: 'all' | OrderType) => void
+  newOrdersSet?: Set<string>
+  isAudioMuted?: boolean
+  onToggleAudio?: () => void
+  isSidebarCollapsed?: boolean
+  onToggleSidebar?: () => void
+  thresholds?: ChronoThresholds
   onTransition: (orderRef: string, nextStatus: KdsOrderStatus) => void
   onCancel: (orderRef: string) => void
   onViewDetails: (order: KdsOrder) => void
   onPrintTicket: (order: KdsOrder) => void
 }
 
-export const KDS_COLUMNS: ColumnDefinition[] = [
-  {
-    id: 'pending',
-    title: 'À PRÉPARER',
-    subtitle: 'Nouvelles commandes',
-    badgeColor: '#F5B301',
-    borderColor: '#232830',
-    actionLabel: 'Lancer la cuisson',
-    actionClass: '',
-    nextStatus: 'preparing',
-    emptyMessage: 'Aucune commande en attente',
-  },
-  {
-    id: 'preparing',
-    title: 'EN CUISINE',
-    subtitle: 'Au gril et braisage',
-    badgeColor: '#F5B301',
-    borderColor: '#232830',
-    actionLabel: 'Marquer prêt',
-    actionClass: '',
-    nextStatus: 'ready',
-    emptyMessage: 'Aucune commande au gril',
-  },
-  {
-    id: 'ready',
-    title: 'PRÊT À RÉCUPÉRER',
-    subtitle: 'Attente départ / comptoir',
-    badgeColor: '#F5B301',
-    borderColor: '#232830',
-    actionLabel: 'Remettre au livreur',
-    actionClass: '',
-    nextStatus: 'delivering',
-    emptyMessage: 'Toutes les commandes sont remises',
-  },
-  {
-    id: 'delivering',
-    title: 'EN LIVRAISON',
-    subtitle: 'Livreurs sur la route',
-    badgeColor: '#F5B301',
-    borderColor: '#232830',
-    actionLabel: 'Confirmer livraison',
-    actionClass: '',
-    nextStatus: 'delivered',
-    emptyMessage: 'Aucun livreur sur la route',
-  },
-]
-
 export const KdsPage: React.FC<KdsPageProps> = ({
   orders,
   nowMs,
   searchQuery,
+  onSearchChange,
+  typeFilter,
+  onTypeFilterChange,
+  isAudioMuted = false,
+  onToggleAudio = () => {},
+  isSidebarCollapsed = false,
+  onToggleSidebar = () => {},
+  thresholds = DEFAULT_KDS_THRESHOLDS,
   onTransition,
   onCancel,
   onViewDetails,
   onPrintTicket,
 }) => {
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const [activeColumnIndex, setActiveColumnIndex] = useState<number>(0)
+  const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false)
 
-  // Filtrage par recherche (#réf, nom, téléphone, articles)
-  const filteredOrders = useMemo(() => {
+  // 1. Filtrage par recherche textuelle (#ticket, client, plat, etc.)
+  const searchedOrders = useMemo(() => {
     if (!searchQuery.trim()) return orders
-    const q = searchQuery.toLowerCase()
+    const q = searchQuery.toLowerCase().trim()
     return orders.filter((o) => {
       const matchRef = o.orderRef.toLowerCase().includes(q)
       const matchName = o.customerName.toLowerCase().includes(q)
@@ -86,163 +59,99 @@ export const KdsPage: React.FC<KdsPageProps> = ({
     })
   }, [orders, searchQuery])
 
-  // Regroupement par statut
-  const ordersByStatus = useMemo(() => {
-    const map: Record<KdsOrderStatus, KdsOrder[]> = {
-      pending: [],
-      preparing: [],
-      ready: [],
-      delivering: [],
-      delivered: [],
-      cancelled: [],
+  // 2. Compteurs par type de commande pour la barre supérieure (sur commandes non clôturées)
+  const countsByType = useMemo(() => {
+    const active = searchedOrders.filter(
+      (o) => o.status !== 'delivered' && o.status !== 'cancelled',
+    )
+    return {
+      all: active.length,
+      delivery: active.filter((o) => o.orderType === 'delivery').length,
+      takeaway: active.filter((o) => o.orderType === 'takeaway').length,
+      dine_in: active.filter((o) => o.orderType === 'dine_in').length,
     }
+  }, [searchedOrders])
 
-    filteredOrders.forEach((o) => {
-      if (map[o.status]) {
-        map[o.status].push(o)
-      }
-    })
+  // 3. Filtrage par type sélectionné
+  const filteredOrders = useMemo(() => {
+    if (typeFilter === 'all') return searchedOrders
+    return searchedOrders.filter((o) => o.orderType === typeFilter)
+  }, [searchedOrders, typeFilter])
 
-    // Tri FIFO : les plus anciennes en premier
-    Object.keys(map).forEach((k) => {
-      map[k as KdsOrderStatus].sort(
-        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-      )
-    })
-
-    return map
+  // 4. Commandes actives (pending + preparing) pour calculs d'attente et retards
+  const activeOrders = useMemo(() => {
+    return filteredOrders.filter(
+      (o) => o.status === 'pending' || o.status === 'preparing',
+    )
   }, [filteredOrders])
 
-  // Prise en charge de la molette pour le défilement horizontal (Shift + molette ou molette directe)
-  useEffect(() => {
-    const el = scrollContainerRef.current
-    if (!el) return
+  // Retards sur les 3 colonnes : le compteur correspond aux tickets rouges affichés
+  const lateCount = useMemo(() => {
+    const dangerSec = thresholds.dangerMinutes * 60
+    return filteredOrders.filter(
+      (o) =>
+        o.status !== 'delivered' &&
+        o.status !== 'cancelled' &&
+        getElapsedSeconds(o.createdAt, nowMs) >= dangerSec,
+    ).length
+  }, [filteredOrders, nowMs, thresholds])
 
-    const handleWheel = (e: WheelEvent) => {
-      if (el.scrollWidth <= el.clientWidth) return
-      // Si défilement vertical, converti en défilement horizontal
-      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-        e.preventDefault()
-        el.scrollBy({ left: e.deltaY * 1.5, behavior: 'auto' })
-      }
-    }
+  const avgWaitMinutes = useMemo(() => {
+    if (activeOrders.length === 0) return 0
+    const totalMs = activeOrders.reduce((sum, o) => {
+      const diff = nowMs - new Date(o.createdAt).getTime()
+      return sum + (isNaN(diff) ? 0 : Math.max(0, diff))
+    }, 0)
+    return Math.round(totalMs / (activeOrders.length * 60000))
+  }, [activeOrders, nowMs])
 
-    const handleScroll = () => {
-      if (!el) return
-      const scrollLeft = el.scrollLeft
-      const colWidth = el.scrollWidth / KDS_COLUMNS.length
-      const index = Math.round(scrollLeft / colWidth)
-      setActiveColumnIndex(Math.max(0, Math.min(KDS_COLUMNS.length - 1, index)))
-    }
-
-    el.addEventListener('wheel', handleWheel, { passive: false })
-    el.addEventListener('scroll', handleScroll, { passive: true })
-
-    return () => {
-      el.removeEventListener('wheel', handleWheel)
-      el.removeEventListener('scroll', handleScroll)
-    }
-  }, [])
-
-  const scrollToColumn = (index: number) => {
-    const el = scrollContainerRef.current
-    if (!el) return
-    const colWidth = el.scrollWidth / KDS_COLUMNS.length
-    el.scrollTo({ left: index * colWidth, behavior: 'smooth' })
-    setActiveColumnIndex(index)
-  }
-
-  const scrollLeft = () => {
-    scrollToColumn(Math.max(0, activeColumnIndex - 1))
-  }
-
-  const scrollRight = () => {
-    scrollToColumn(Math.min(KDS_COLUMNS.length - 1, activeColumnIndex + 1))
-  }
+  // 5. Historique (commandes livrées ou annulées)
+  const historyCount = useMemo(() => {
+    return searchedOrders.filter(
+      (o) => o.status === 'delivered' || o.status === 'cancelled',
+    ).length
+  }, [searchedOrders])
 
   return (
-    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden p-4 pb-2">
-      {/* CONTENEUR KANBAN AVEC SCROLL-SNAP HORIZONTAL ET HAUTEUR 100% */}
-      <div
-        ref={scrollContainerRef}
-        className="flex-1 flex items-stretch gap-4 overflow-x-auto min-h-0 kds-kanban-scroll pb-2"
-        style={{ scrollSnapType: 'x mandatory' }}
-      >
-        {KDS_COLUMNS.map((col) => (
-          <KanbanColumn
-            key={col.id}
-            definition={col}
-            orders={ordersByStatus[col.id] || []}
-            nowMs={nowMs}
-            onTransition={onTransition}
-            onCancel={onCancel}
-            onViewDetails={onViewDetails}
-            onPrintTicket={onPrintTicket}
-          />
-        ))}
-      </div>
+    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden bg-[#0F1115] text-[#F2F4F7] font-sans select-none kds-no-hscroll">
+      {/* 1. BARRE DU HAUT SIMPLIFIÉE (UNE LIGNE) */}
+      <KdsTopBar
+        isSidebarCollapsed={isSidebarCollapsed}
+        onToggleSidebar={onToggleSidebar}
+        searchQuery={searchQuery}
+        onSearchChange={onSearchChange}
+        typeFilter={typeFilter}
+        onTypeFilterChange={onTypeFilterChange}
+        countsByType={countsByType}
+        lateCount={lateCount}
+        avgWaitMinutes={avgWaitMinutes}
+        historyCount={historyCount}
+        onOpenHistory={() => setIsHistoryOpen(true)}
+        isAudioMuted={isAudioMuted}
+        onToggleAudio={onToggleAudio}
+      />
 
-      {/* SLIDE BAR DE NAVIGATION EN BAS DU TABLEAU */}
-      <footer
-        className="h-9 min-h-[36px] flex items-center justify-between px-3 pt-1 border-t select-none shrink-0"
-        style={{
-          borderColor: '#232830',
-          backgroundColor: '#0B0D10',
-        }}
-        aria-label="Navigation du Kanban"
-      >
-        {/* Flèche gauche */}
-        <button
-          type="button"
-          onClick={scrollLeft}
-          disabled={activeColumnIndex === 0}
-          className="p-1 rounded-lg border text-slate-300 hover:text-white hover:border-[#F5B301] disabled:opacity-30 disabled:hover:border-[#232830] transition-colors"
-          style={{
-            backgroundColor: '#14171C',
-            borderColor: '#232830',
-          }}
-          title="Faire défiler vers la gauche"
-        >
-          <ChevronLeft size={16} />
-        </button>
+      <KdsProduceBar orders={filteredOrders} />
 
-        {/* 4 Indicateurs de position de colonne */}
-        <div className="flex items-center gap-2">
-          {KDS_COLUMNS.map((col, idx) => {
-            const isActive = activeColumnIndex === idx
-            return (
-              <button
-                key={col.id}
-                type="button"
-                onClick={() => scrollToColumn(idx)}
-                className="transition-all rounded-full"
-                style={{
-                  height: '8px',
-                  width: isActive ? '24px' : '8px',
-                  backgroundColor: isActive ? '#F5B301' : '#3A414C',
-                }}
-                title={`Aller à : ${col.title}`}
-                aria-label={`Colonne ${idx + 1} : ${col.title}`}
-              />
-            )
-          })}
-        </div>
+      {/* 2. ZONE PRINCIPALE : UN ONGLET PAR ÉTAPE, TICKETS SUR TOUTE LA LARGEUR */}
+      <KdsBoard
+        orders={filteredOrders}
+        nowMs={nowMs}
+        thresholds={thresholds}
+        onTransition={onTransition}
+        onCancel={onCancel}
+        onViewDetails={onViewDetails}
+        onPrintTicket={onPrintTicket}
+      />
 
-        {/* Flèche droite */}
-        <button
-          type="button"
-          onClick={scrollRight}
-          disabled={activeColumnIndex === KDS_COLUMNS.length - 1}
-          className="p-1 rounded-lg border text-slate-300 hover:text-white hover:border-[#F5B301] disabled:opacity-30 disabled:hover:border-[#232830] transition-colors"
-          style={{
-            backgroundColor: '#14171C',
-            borderColor: '#232830',
-          }}
-          title="Faire défiler vers la droite"
-        >
-          <ChevronRight size={16} />
-        </button>
-      </footer>
+      {/* 3. TIROIR HISTORIQUE (COMMANDES LIVRÉES ET ANNULÉES) */}
+      <OrderHistoryDrawer
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        orders={searchedOrders}
+        onViewDetails={onViewDetails}
+        onPrintTicket={onPrintTicket}
+      />
     </div>
   )
 }

@@ -1,10 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { clearAuthToken, getAuthToken, getAuthUser } from './api/client'
-import { calculateTodayKpis } from './api/orders'
+import { useEffect, useRef, useState } from 'react'
+import {
+  clearAuthToken,
+  getAuthToken,
+  getAuthUser,
+  SESSION_EXPIRED_EVENT,
+} from './api/client'
 import { AppHeader, type AdminTab } from './components/common/AppHeader'
+import { AdminSidebar } from './components/common/AdminSidebar'
 import { ConnectionBanner } from './components/common/ConnectionBanner'
-import { KpiBar } from './components/common/KpiBar'
 import { Toast } from './components/common/Toast'
+import { Notice } from './components/ui/primitives'
 import { OrderDetailDrawer } from './components/kds/OrderDetailDrawer'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { useNow } from './hooks/useNow'
@@ -12,21 +17,24 @@ import { useOrders } from './hooks/useOrders'
 import { useWakeLock } from './hooks/useWakeLock'
 import { audioAlert } from './lib/audioAlert'
 import { DailySpecialPage } from './pages/DailySpecialPage'
-import { HistoryPage } from './pages/HistoryPage'
 import { KdsPage } from './pages/KdsPage'
 import { LoginPage } from './pages/LoginPage'
 import { PromotionsPage } from './pages/PromotionsPage'
+import { StaffPage } from './pages/StaffPage'
 import { TransactionsPage } from './pages/TransactionsPage'
-import type { KdsOrder, KdsOrderStatus } from './types/kds'
+import type { KdsOrder, KdsOrderStatus, OrderType } from './types/kds'
 
 export default function App() {
   // 0. État d'authentification administrateur
-  const [authToken, setAuthTokenState] = useState<string | null>(() => getAuthToken())
+  const [authToken, setAuthTokenState] = useState<string | null>(() => {
+    return getAuthToken()
+  })
   const [currentUser, setCurrentUserState] = useState<string | null>(() => getAuthUser() || 'admin')
 
   const handleLoginSuccess = (user: string) => {
     setAuthTokenState(getAuthToken())
     setCurrentUserState(user)
+    void refresh()
   }
 
   const handleLogout = () => {
@@ -36,8 +44,10 @@ export default function App() {
   }
 
   const [headerTab, setHeaderTab] = useState<AdminTab>('kds')
-  const [viewMode, setViewMode] = useState<'kanban' | 'history'>('kanban')
+  // Sur tablette, la cuisine garde toute la largeur : le menu démarre replié.
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => window.innerWidth < 1280)
   const [searchQuery, setSearchQuery] = useState<string>('')
+  const [typeFilter, setTypeFilter] = useState<'all' | OrderType>('all')
   const [selectedOrder, setSelectedOrder] = useState<KdsOrder | null>(null)
 
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -48,18 +58,31 @@ export default function App() {
   // 2. Anti-veille écran de cuisine automatique (Screen Wake Lock API)
   useWakeLock()
 
-  // 3. Cycle de vie temps réel et polling des commandes
+  // 3. Cycle de vie temps réel et polling des commandes (5s)
   const {
     orders,
     isLoading,
-    lastSyncTime,
     connectionState,
+    actionError,
+    newOrdersSet,
+    isAudioMuted,
+    toggleAudio,
     refresh,
     transitionOrder,
     undoTransition,
     activeUndoAction,
     acknowledgeNewOrders,
-  } = useOrders()
+  } = useOrders(nowMs)
+
+  // Jeton refusé par le serveur : retour à la page de connexion
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setAuthTokenState(null)
+      setCurrentUserState(null)
+    }
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired)
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired)
+  }, [])
 
   // 4. Déverrouillage audio sur la première interaction utilisateur
   useEffect(() => {
@@ -90,21 +113,12 @@ export default function App() {
       else if (searchQuery) setSearchQuery('')
     },
     onRefresh: () => void refresh(),
-    onToggleSound: () => audioAlert.toggleMute(),
+    onToggleSound: () => {
+      toggleAudio()
+    },
   })
 
-  // 6. Calcul des KPI et séparation En cours / Historique
-  const { activeOrders, historyOrders } = useMemo(() => {
-    const active = orders.filter(
-      (o) => o.status === 'pending' || o.status === 'preparing' || o.status === 'ready' || o.status === 'delivering',
-    )
-    const history = orders.filter((o) => o.status === 'delivered' || o.status === 'cancelled')
-    return { activeOrders: active, historyOrders: history }
-  }, [orders])
-
-  const kpis = useMemo(() => calculateTodayKpis(orders), [orders])
-
-  // 7. Handlers de commande
+  // 6. Handlers de commande
   const handleTransition = async (orderRef: string, nextStatus: KdsOrderStatus) => {
     await transitionOrder(orderRef, nextStatus)
   }
@@ -182,78 +196,81 @@ export default function App() {
 
   return (
     <div
-      className="h-screen max-h-screen h-[100dvh] flex flex-col antialiased text-white select-none overflow-hidden kds-cuisine"
-      style={{ backgroundColor: '#0B0D10' }}
+      className={`flex h-[100dvh] flex-row overflow-hidden bg-canvas font-sans text-ink antialiased ${
+        headerTab === 'kds' ? 'theme-dark select-none' : 'theme-light'
+      }`}
     >
-      <AppHeader
+      <AdminSidebar
         currentTab={headerTab}
         onTabChange={(tab) => setHeaderTab(tab)}
-        connectionState={connectionState}
-        lastSyncTime={lastSyncTime}
-        onManualRefresh={() => void refresh()}
         onLogout={handleLogout}
         currentUser={currentUser}
+        isCollapsed={isSidebarCollapsed}
+        liveCount={orders.filter((o) => o.status !== 'delivered' && o.status !== 'cancelled').length}
       />
 
-      <ConnectionBanner
-        connectionState={connectionState}
-        onRetry={() => void refresh()}
-        isRetrying={isLoading}
-      />
-
-      {headerTab === 'kds' && (
-        <KpiBar
-          viewMode={viewMode}
-          onViewModeChange={(mode) => setViewMode(mode)}
-          activeCount={activeOrders.length}
-          historyCount={historyOrders.length}
-          kpis={kpis}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onRefresh={() => void refresh()}
-          isRefreshing={isLoading}
-          lastSyncTime={lastSyncTime}
-          searchInputRef={searchInputRef}
-        />
-      )}
-
-      {/* ZONE PRINCIPALE (100% de la hauteur restante) */}
-      <main className="flex-1 flex flex-col min-h-0 overflow-hidden" role="main">
-        {headerTab === 'special' ? (
-          <DailySpecialPage />
-        ) : headerTab === 'promotions' ? (
-          <PromotionsPage />
-        ) : headerTab === 'transactions' ? (
-          <TransactionsPage
-            orders={orders}
-            onRefresh={() => void refresh()}
-            isRefreshing={isLoading}
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        {/* L'écran cuisine porte sa propre barre (filtres et indicateurs de service). */}
+        {headerTab !== 'kds' && (
+          <AppHeader
+            currentTab={headerTab}
+            isSidebarCollapsed={isSidebarCollapsed}
+            onToggleSidebar={() => setIsSidebarCollapsed((prev) => !prev)}
+            isAudioMuted={isAudioMuted}
+            onToggleAudio={toggleAudio}
           />
-        ) : viewMode === 'kanban' ? (
-          <KdsPage
-            orders={orders}
-            nowMs={nowMs}
-            searchQuery={searchQuery}
-            onTransition={handleTransition}
-            onCancel={handleCancelOrder}
-            onViewDetails={(order) => setSelectedOrder(order)}
-            onPrintTicket={handlePrintTicket}
-          />
-        ) : (
-          <HistoryPage orders={historyOrders} onSelectOrder={(order) => setSelectedOrder(order)} />
         )}
-      </main>
+
+        <ConnectionBanner
+          connectionState={connectionState}
+          onRetry={() => void refresh()}
+          isRetrying={isLoading}
+        />
+
+                <main className="flex-1 flex flex-col min-h-0 overflow-hidden" role="main">
+          {headerTab === 'special' ? (
+            <DailySpecialPage />
+          ) : headerTab === 'promotions' ? (
+            <PromotionsPage />
+          ) : headerTab === 'transactions' ? (
+            <TransactionsPage orders={orders} />
+          ) : headerTab === 'staff' ? (
+            <StaffPage />
+          ) : (
+            <KdsPage
+              orders={orders}
+              nowMs={nowMs}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              typeFilter={typeFilter}
+              onTypeFilterChange={setTypeFilter}
+              newOrdersSet={newOrdersSet}
+              isAudioMuted={isAudioMuted}
+              onToggleAudio={toggleAudio}
+              isSidebarCollapsed={isSidebarCollapsed}
+              onToggleSidebar={() => setIsSidebarCollapsed((prev) => !prev)}
+              onTransition={handleTransition}
+              onCancel={handleCancelOrder}
+              onViewDetails={(order) => setSelectedOrder(order)}
+              onPrintTicket={handlePrintTicket}
+            />
+          )}
+        </main>
+      </div>
 
       <OrderDetailDrawer
         order={selectedOrder}
         onClose={() => setSelectedOrder(null)}
         onPrintTicket={handlePrintTicket}
+        onTransition={handleTransition}
+        onCancel={handleCancelOrder}
       />
+
+      <Notice notice={actionError ? { message: actionError, type: 'error' } : null} />
 
       <Toast
         undoAction={activeUndoAction}
         onUndo={(orderRef) => undoTransition(orderRef)}
-        onDismiss={() => {}}
       />
     </div>
   )

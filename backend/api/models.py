@@ -55,6 +55,7 @@ class Order(models.Model):
         ('pending', 'En attente'),
         ('confirmed', 'Confirmée'),
         ('preparing', 'En préparation (Cuisine)'),
+        ('ready', 'Prête (Comptoir)'),
         ('delivering', 'En cours de livraison'),
         ('delivered', 'Livrée'),
         ('cancelled', 'Annulée'),

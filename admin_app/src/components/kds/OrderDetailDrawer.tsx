@@ -5,25 +5,38 @@ import {
   Phone,
   MapPin,
   Clock,
-  AlertCircle,
+  Bike,
+  Utensils,
+  ShoppingBag,
+  MessageSquare,
 } from 'lucide-react'
 import { formatDateTime, formatFcfa } from '../../lib/formatters'
-import type { KdsOrder } from '../../types/kds'
-import { OrderTypePill, PaymentPill } from '../common/StatusPills'
+import type { KdsOrder, KdsOrderStatus, OrderType } from '../../types/kds'
 
 interface OrderDetailDrawerProps {
   order: KdsOrder | null
   onClose: () => void
   onPrintTicket: (order: KdsOrder) => void
+  onTransition?: (orderRef: string, nextStatus: KdsOrderStatus) => void
+  onCancel?: (orderRef: string) => void
+}
+
+const TYPE_CONFIG: Record<
+  OrderType,
+  { label: string; icon: React.FC<{ className?: string }> }
+> = {
+  delivery: { label: 'Livraison', icon: Bike },
+  takeaway: { label: 'À emporter', icon: ShoppingBag },
+  dine_in: { label: 'Sur place', icon: Utensils },
 }
 
 export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
   order,
   onClose,
   onPrintTicket,
+  onTransition,
+  onCancel,
 }) => {
-
-  // Raccourci Échap pour fermer
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -34,43 +47,48 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
 
   if (!order) return null
 
+  const typeConfig = TYPE_CONFIG[order.orderType] || TYPE_CONFIG.delivery
+  const TypeIcon = typeConfig.icon
+
+  const paymentMethodLabel =
+    order.paymentMethod === 'wave'
+      ? 'Wave'
+      : order.paymentMethod === 'orange_money'
+      ? 'Orange Money'
+      : 'Espèces'
+
+  const paymentStatusLabel =
+    order.paymentStatus === 'paid' ? 'Payée' : 'Non payée'
+
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex justify-end bg-black/60 select-none"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="drawer-title"
     >
       <div
-        className="w-full max-w-lg h-full flex flex-col border-l shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-200"
-        style={{
-          backgroundColor: 'var(--kds-bg-surface)',
-          borderColor: 'var(--kds-border-default)',
-        }}
+        className="w-full max-w-md h-full flex flex-col border-l border-line bg-canvas text-ink font-sans shadow-xl overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* EN-TÊTE DU TIROIR */}
-        <div
-          className="p-6 border-b flex items-start justify-between gap-4 sticky top-0 z-10"
-          style={{
-            backgroundColor: 'var(--kds-bg-surface-raised)',
-            borderColor: 'var(--kds-border-default)',
-          }}
-        >
+        <div className="p-4 border-b border-line bg-surface flex items-start justify-between gap-3 sticky top-0 z-10">
           <div>
-            <div className="flex items-center gap-3 mb-1">
+            <div className="flex items-center gap-2 mb-1">
               <h2
                 id="drawer-title"
-                className="text-2xl font-black font-tabular tracking-tight"
-                style={{ color: 'var(--kds-text-primary)' }}
+                className="font-display text-2xl font-bold tabular-nums text-ink"
               >
                 {order.orderRef}
               </h2>
-              <OrderTypePill type={order.orderType} />
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-medium bg-canvas text-ink-soft border border-line">
+                <TypeIcon className="size-3 text-ink-soft" />
+                <span>{typeConfig.label}</span>
+              </span>
             </div>
-            <p className="text-xs font-semibold flex items-center gap-1.5" style={{ color: 'var(--kds-text-muted)' }}>
-              <Clock size={13} />
+            <p className="text-xs text-ink-soft flex items-center gap-1.5">
+              <Clock className="size-3 text-ink-faint" />
               Reçue à {formatDateTime(order.createdAt)}
             </p>
           </div>
@@ -78,111 +96,84 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2.5 rounded-xl border text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
-            style={{ borderColor: 'var(--kds-border-default)' }}
-            title="Fermer le panneau"
+            className="p-1.5 rounded-lg text-ink-soft hover:text-ink hover:bg-raised transition-colors cursor-pointer"
+            title="Fermer"
           >
-            <X size={20} />
+            <X className="size-5" />
           </button>
         </div>
 
         {/* CORPS DU TIROIR */}
-        <div className="p-6 flex-1 flex flex-col gap-6">
-          {/* INFORMATIONS CLIENT */}
-          <div
-            className="p-4 rounded-xl border flex flex-col gap-3"
-            style={{
-              backgroundColor: 'var(--kds-bg-app)',
-              borderColor: 'var(--kds-border-default)',
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--kds-text-muted)' }}>
-                Client
+        <div className="p-4 flex-1 flex flex-col gap-4">
+          {/* INFORMATIONS CLIENT & PAIEMENT */}
+          <div className="p-3 rounded-lg border border-line bg-surface flex flex-col gap-2">
+            <div className="flex items-center justify-between text-xs text-ink-soft font-medium">
+              <span>Client</span>
+              <span className="tabular-nums text-ink">
+                {paymentMethodLabel} · {paymentStatusLabel}
               </span>
-              <PaymentPill method={order.paymentMethod} status={order.paymentStatus} />
             </div>
 
-            <div className="text-xl font-black" style={{ color: 'var(--kds-text-primary)' }}>
-              {order.customerName}
-            </div>
+            <div className="text-base font-bold text-ink">{order.customerName}</div>
 
             {order.phone && (
               <a
                 href={`tel:${order.phone}`}
-                className="flex items-center gap-2 text-sm font-bold text-amber-400 hover:underline"
+                className="flex items-center gap-2 text-xs font-medium text-bmc-gold hover:underline"
               >
-                <Phone size={16} />
+                <Phone className="size-3.5" />
                 <span>{order.phone}</span>
               </a>
             )}
 
             {order.address && (
-              <div className="flex items-start gap-2 text-sm font-medium" style={{ color: 'var(--kds-text-secondary)' }}>
-                <MapPin size={16} className="shrink-0 mt-0.5 text-slate-400" />
+              <div className="flex items-start gap-1.5 text-xs text-ink-soft">
+                <MapPin className="size-3.5 shrink-0 mt-0.5 text-ink-faint" />
                 <span>{order.address}</span>
               </div>
             )}
           </div>
 
-          {/* NOTES DE COMMANDE */}
+          {/* NOTE DU CLIENT */}
           {order.notes && (
-            <div
-              className="p-4 rounded-xl border flex items-start gap-3"
-              style={{
-                backgroundColor: 'rgba(245, 158, 11, 0.12)',
-                borderColor: 'rgba(245, 158, 11, 0.35)',
-              }}
-            >
-              <AlertCircle size={20} className="text-amber-400 shrink-0 mt-0.5" />
+            <div className="p-3 rounded-lg border border-line bg-surface flex items-start gap-2 text-xs text-ink">
+              <MessageSquare className="size-3.5 text-bmc-gold shrink-0 mt-0.5" />
               <div>
-                <div className="text-xs font-black uppercase tracking-wider text-amber-400 mb-0.5">
-                  Consigne Cuisinier
-                </div>
-                <div className="text-sm font-bold text-amber-100">{order.notes}</div>
+                <span className="font-semibold text-bmc-gold block mb-0.5">Note client :</span>
+                <span className="italic leading-relaxed">« {order.notes} »</span>
               </div>
             </div>
           )}
 
-          {/* DÉTAIL DES ARTICLES & LIGNES */}
-          <div className="flex flex-col gap-3">
-            <h3 className="text-sm font-black uppercase tracking-wider" style={{ color: 'var(--kds-text-muted)' }}>
-              Articles commandés ({order.items.reduce((s, i) => s + i.quantity, 0)})
+          {/* DÉTAIL DES ARTICLES COMMANDÉS */}
+          <div className="flex flex-col gap-2">
+            <h3 className="text-xs font-semibold text-ink-soft">
+              Articles ({order.items.reduce((s, i) => s + i.quantity, 0)})
             </h3>
 
-            <div
-              className="rounded-xl border divide-y overflow-hidden"
-              style={{
-                backgroundColor: 'var(--kds-bg-app)',
-                borderColor: 'var(--kds-border-default)',
-              }}
-            >
+            <div className="rounded-lg border border-line bg-surface divide-y divide-line overflow-hidden">
               {order.items.map((item, idx) => (
-                <div key={idx} className="p-3.5 flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <span
-                      className="px-2 py-0.5 rounded text-sm font-black font-tabular shrink-0"
-                      style={{
-                        backgroundColor: 'rgba(252, 184, 0, 0.2)',
-                        color: 'var(--kds-gold)',
-                      }}
-                    >
+                <div key={idx} className="p-2.5 flex items-start justify-between gap-2.5 text-xs">
+                  <div className="flex items-start gap-2">
+                    <span className="px-1 py-0.2 rounded-lg text-xs tabular-nums font-bold bg-canvas text-bmc-gold border border-line shrink-0">
                       {item.quantity}×
                     </span>
                     <div>
-                      <div className="text-sm font-bold" style={{ color: 'var(--kds-text-primary)' }}>
-                        {item.name}
-                      </div>
+                      <div className="font-medium text-ink text-xs">{item.name}</div>
                       {item.notes && (
-                        <div className="text-xs italic text-amber-300 mt-0.5">Note : {item.notes}</div>
+                        <div className="text-[13px] italic text-bmc-gold mt-0.5">
+                          Note : {item.notes}
+                        </div>
                       )}
                       {item.options && item.options.length > 0 && (
-                        <div className="text-xs text-slate-400 mt-0.5">+ {item.options.join(', ')}</div>
+                        <div className="text-[13px] text-ink-soft mt-0.5">
+                          • {item.options.join(' · ')}
+                        </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="text-sm font-bold font-tabular text-right shrink-0" style={{ color: 'var(--kds-text-secondary)' }}>
+                  <div className="tabular-nums text-ink-soft text-xs font-medium text-right shrink-0">
                     {formatFcfa(item.unitPrice * item.quantity)}
                   </div>
                 </div>
@@ -190,45 +181,76 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
             </div>
           </div>
 
-          {/* TOTAL & MODE DE RÈGLEMENT */}
-          <div
-            className="p-4 rounded-xl border flex items-center justify-between"
-            style={{
-              backgroundColor: 'var(--kds-bg-surface-raised)',
-              borderColor: 'var(--kds-border-default)',
-            }}
-          >
-            <span className="text-base font-bold" style={{ color: 'var(--kds-text-secondary)' }}>
-              Montant total TTC
+          {/* MONTANT TOTAL EN F CFA */}
+          <div className="p-3 rounded-lg border border-line bg-surface flex items-center justify-between">
+            <span className="text-xs font-medium text-ink-soft">
+              Total TTC
             </span>
-            <span className="text-2xl font-black font-tabular" style={{ color: 'var(--kds-text-primary)' }}>
+            <span className="font-display text-xl font-bold tabular-nums text-price">
               {formatFcfa(order.totalAmount)}
             </span>
           </div>
 
-          {/* BOUTONS D'ACTION SECONDAIRE */}
-          <div className="flex items-center gap-3 pt-2">
+          {/* ACTIONS D'IMPRESSION ET D'APPEL */}
+          <div className="flex items-center gap-2 pt-1">
             <button
               type="button"
               onClick={() => onPrintTicket(order)}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border font-bold text-sm text-slate-200 hover:text-white hover:bg-white/10 transition-colors"
-              style={{ borderColor: 'var(--kds-border-default)' }}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-line bg-surface text-xs font-medium text-ink hover:bg-raised transition-colors cursor-pointer"
             >
-              <Printer size={18} />
-              <span>Imprimer ticket</span>
+              <Printer className="size-3.5 text-ink-soft" />
+              <span>Imprimer le ticket</span>
             </button>
 
             {order.phone && (
               <a
                 href={`tel:${order.phone}`}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border font-bold text-sm text-slate-200 hover:text-white hover:bg-white/10 transition-colors"
-                style={{ borderColor: 'var(--kds-border-default)' }}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-line bg-surface text-xs font-medium text-ink hover:bg-raised transition-colors"
               >
-                <Phone size={18} />
+                <Phone className="size-3.5 text-ink-soft" />
                 <span>Appeler</span>
               </a>
             )}
           </div>
+
+          {/* BOUTON DE TRANSITION DU WORKFLOW */}
+          {order.status !== 'delivered' && order.status !== 'cancelled' && (
+            <div className="flex flex-col gap-2 pt-2 border-t border-line">
+              <button
+                type="button"
+                onClick={() => {
+                  const next: KdsOrderStatus =
+                    order.status === 'pending'
+                      ? 'preparing'
+                      : order.status === 'preparing'
+                      ? 'ready'
+                      : 'delivered'
+                  onTransition?.(order.orderRef, next)
+                  onClose()
+                }}
+                className="w-full h-12 rounded-lg font-display text-[15px] font-bold cursor-pointer transition-colors bg-bmc-gold hover:bg-[#E5A700] text-bmc-charcoal"
+              >
+                {order.status === 'pending'
+                  ? 'Lancer la cuisson'
+                  : order.status === 'preparing'
+                  ? 'Marquer prêt'
+                  : order.orderType === 'delivery'
+                  ? 'Remis au livreur'
+                  : 'Remis au client'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onCancel?.(order.orderRef)
+                  onClose()
+                }}
+                className="w-full py-1.5 rounded-lg text-xs font-medium text-bad hover:bg-bad-soft cursor-pointer transition-colors"
+              >
+                Annuler la commande
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

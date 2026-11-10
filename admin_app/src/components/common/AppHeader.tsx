@@ -1,299 +1,89 @@
 import React, { useEffect, useState } from 'react'
-import {
-  Volume2,
-  VolumeX,
-  Flame,
-  UtensilsCrossed,
-  Maximize2,
-  Minimize2,
-  LogOut,
-  Tag,
-  CreditCard,
-} from 'lucide-react'
-import { audioAlert } from '../../lib/audioAlert'
-import { formatClockTime } from '../../lib/formatters'
-import type { ApiConnectionState } from '../../hooks/useOrders'
+import { Maximize2, Minimize2, PanelLeftClose, PanelLeftOpen, Volume2, VolumeX } from 'lucide-react'
+import { IconButton } from '../ui/primitives'
 
-export type AdminTab = 'kds' | 'special' | 'promotions' | 'transactions'
+export type AdminTab = 'kds' | 'special' | 'promotions' | 'transactions' | 'staff'
 
 interface AppHeaderProps {
   currentTab: AdminTab
-  onTabChange: (tab: AdminTab) => void
-  connectionState: ApiConnectionState
-  lastSyncTime: Date | null
-  onManualRefresh: () => void
-  onLogout?: () => void
-  currentUser?: string | null
+  isSidebarCollapsed?: boolean
+  onToggleSidebar?: () => void
+  isAudioMuted?: boolean
+  onToggleAudio?: () => void
+}
+
+const PAGE_COPY: Record<AdminTab, { title: string; description: string }> = {
+  kds: { title: 'Cuisine', description: '' },
+  promotions: {
+    title: 'Promotions',
+    description: 'Les remises actives s’affichent sur le site client.',
+  },
+  transactions: {
+    title: 'Transactions',
+    description: 'Encaissements et paiements des commandes.',
+  },
+  special: {
+    title: 'Plat du jour',
+    description: 'Choisissez les plats mis en avant sur le site client.',
+  },
+  staff: {
+    title: 'Personnel',
+    description: 'Accès des équipes en cuisine, en caisse et en salle.',
+  },
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
   currentTab,
-  onTabChange,
-  connectionState,
-  lastSyncTime,
-  onManualRefresh,
-  onLogout,
-  currentUser,
+  isSidebarCollapsed = false,
+  onToggleSidebar,
+  isAudioMuted = false,
+  onToggleAudio,
 }) => {
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const copy = PAGE_COPY[currentTab]
 
-  const [clock, setClock] = useState<string>('')
-  const [isMuted, setIsMuted] = useState<boolean>(audioAlert.muted)
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(false)
-  const [syncAgoSec, setSyncAgoSec] = useState<number>(0)
-
-  // Horloge 24h grand format mise à jour chaque seconde
   useEffect(() => {
-    const update = () => {
-      setClock(formatClockTime(new Date()))
-      if (lastSyncTime) {
-        const diff = Math.floor((Date.now() - lastSyncTime.getTime()) / 1000)
-        setSyncAgoSec(Math.max(0, diff))
-      }
-    }
-    update()
-    const timer = setInterval(update, 1000)
-    return () => clearInterval(timer)
-  }, [lastSyncTime])
+    const handleFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  }, [])
 
-  const toggleSound = () => {
-    const nextState = audioAlert.toggleMute()
-    setIsMuted(nextState)
-    if (!nextState) {
-      audioAlert.playActionConfirm()
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {})
+    } else {
+      document.exitFullscreen().catch(() => {})
     }
   }
-
-  const toggleFullscreen = async () => {
-    try {
-      if (!document.fullscreenElement) {
-        await document.documentElement.requestFullscreen()
-        setIsFullscreen(true)
-      } else {
-        await document.exitFullscreen()
-        setIsFullscreen(false)
-      }
-    } catch {
-      // Plein écran non autorisé
-    }
-  }
-
-  // Petit point vert (#22C55E) si connecté, orange si synchro, rouge (#EF4444) si erreur/déconnecté
-  const apiDotColor = {
-    connected: '#22C55E',
-    syncing: '#F5B301',
-    error: '#EF4444',
-    offline: '#EF4444',
-  }[connectionState]
-
-  const apiLabel = {
-    connected: 'API connectée',
-    syncing: 'Synchro…',
-    error: 'API hors-ligne',
-    offline: 'Hors-ligne',
-  }[connectionState]
 
   return (
-    <header
-      className="sticky top-0 z-40 w-full h-[72px] min-h-[72px] max-h-[72px] flex items-center justify-between px-6 border-b select-none"
-      style={{
-        backgroundColor: '#14171C',
-        borderColor: '#232830',
-      }}
-      role="banner"
-    >
-      {/* GAUCHE : LOGO CORRIGÉ + TITRE + BADGE */}
-      <div className="flex items-center gap-3.5">
-        <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm tracking-wider shrink-0 shadow-sm"
-          style={{
-            backgroundColor: '#F5B301',
-            color: '#0B0D10',
-          }}
-          aria-hidden="true"
-        >
-          BMC
-        </div>
+    <header className="flex h-[72px] shrink-0 items-center gap-3 border-b border-line bg-surface px-4 text-ink sm:px-6">
+      {onToggleSidebar && (
+        <IconButton
+          icon={isSidebarCollapsed ? PanelLeftOpen : PanelLeftClose}
+          label={isSidebarCollapsed ? 'Déplier le menu' : 'Replier le menu'}
+          onClick={onToggleSidebar}
+          className="-ml-2"
+        />
+      )}
 
-        <div className="flex items-center gap-2.5">
-          <h1
-            className="text-xl font-black tracking-tight"
-            style={{ color: '#F2F4F7' }}
-          >
-            BMC FOOD
-          </h1>
-          <span
-            className="text-[11px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-md border"
-            style={{
-              backgroundColor: '#0B0D10',
-              borderColor: '#232830',
-              color: '#F5B301',
-            }}
-          >
-            BACK-OFFICE & KDS
-          </span>
-        </div>
+      <div className="min-w-0 flex-1 text-left">
+        <h1 className="truncate font-display text-[22px] font-bold leading-7">{copy.title}</h1>
+        <p className="truncate text-[13px] text-ink-soft">{copy.description}</p>
       </div>
 
-      {/* CENTRE : 4 ONGLETS MODERNES (Cuisine, Promotions, Transactions, Plat du Jour) */}
-      <nav
-        className="flex items-center p-1 rounded-xl border gap-1"
-        style={{
-          backgroundColor: '#0B0D10',
-          borderColor: '#232830',
-        }}
-        aria-label="Navigation principale"
-      >
-        <button
-          type="button"
-          onClick={() => onTabChange('kds')}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer"
-          style={{
-            backgroundColor: currentTab === 'kds' ? '#F5B301' : 'transparent',
-            color: currentTab === 'kds' ? '#0B0D10' : '#9AA3AF',
-          }}
-        >
-          <Flame size={15} strokeWidth={2.5} />
-          <span>Cuisine & Commandes</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => onTabChange('promotions')}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer"
-          style={{
-            backgroundColor: currentTab === 'promotions' ? '#F5B301' : 'transparent',
-            color: currentTab === 'promotions' ? '#0B0D10' : '#9AA3AF',
-          }}
-        >
-          <Tag size={15} strokeWidth={2.5} />
-          <span>Plats en Promotion</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => onTabChange('transactions')}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer"
-          style={{
-            backgroundColor: currentTab === 'transactions' ? '#F5B301' : 'transparent',
-            color: currentTab === 'transactions' ? '#0B0D10' : '#9AA3AF',
-          }}
-        >
-          <CreditCard size={15} strokeWidth={2.5} />
-          <span>Transactions</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => onTabChange('special')}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer"
-          style={{
-            backgroundColor: currentTab === 'special' ? '#F5B301' : 'transparent',
-            color: currentTab === 'special' ? '#0B0D10' : '#9AA3AF',
-          }}
-        >
-          <UtensilsCrossed size={15} strokeWidth={2.5} />
-          <span>Plat du Jour</span>
-        </button>
-      </nav>
-
-      {/* DROITE : HORLOGE + SON + API (AVEC POINT VERT) + PLEIN ÉCRAN */}
-      <div className="flex items-center gap-3">
-        {/* Horloge numérique grand format */}
-        <div
-          className="px-3.5 py-1.5 rounded-xl border flex items-center"
-          style={{
-            backgroundColor: '#0B0D10',
-            borderColor: '#232830',
-          }}
-          aria-label={`Heure actuelle : ${clock}`}
-        >
-          <span
-            className="text-xl font-black font-tabular tracking-wider"
-            style={{ color: '#F2F4F7' }}
-          >
-            {clock || '12:00:00'}
-          </span>
-        </div>
-
-        {/* Pastille Son Neutre */}
-        <button
-          type="button"
-          onClick={toggleSound}
-          title={isMuted ? 'Sonnerie coupée (Cliquer pour activer)' : 'Sonnerie active (Cliquer pour couper)'}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all text-xs font-bold"
-          style={{
-            backgroundColor: '#14171C',
-            borderColor: '#232830',
-            color: isMuted ? '#9AA3AF' : '#F2F4F7',
-          }}
-          aria-pressed={!isMuted}
-        >
-          {isMuted ? (
-            <VolumeX size={16} className="text-slate-400" />
-          ) : (
-            <Volume2 size={16} style={{ color: '#F5B301' }} />
-          )}
-          <span>{isMuted ? 'Son muet' : 'Son actif'}</span>
-        </button>
-
-        {/* Pastille API Neutre avec point vert/rouge */}
-        <button
-          type="button"
-          onClick={onManualRefresh}
-          className="group relative flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all"
-          style={{
-            backgroundColor: '#14171C',
-            borderColor: '#232830',
-            color: '#F2F4F7',
-          }}
-          title={`Dernière synchro il y a ${syncAgoSec} s · Cliquer pour forcer`}
-        >
-          {/* Petit point de statut : vert si connecté, rouge si erreur */}
-          <span
-            className="w-2 h-2 rounded-full shrink-0"
-            style={{ backgroundColor: apiDotColor }}
-            aria-hidden="true"
-          />
-          <span>{apiLabel}</span>
-
-          <div className="absolute top-full mt-2 right-0 hidden group-hover:block z-50 px-2.5 py-1 rounded-md text-[11px] font-medium whitespace-nowrap bg-black/90 text-white border border-white/20 shadow-xl pointer-events-none">
-            Dernière synchro : il y a {syncAgoSec} s
-          </div>
-        </button>
-
-        {/* Bouton Plein écran */}
-        <button
-          type="button"
-          onClick={toggleFullscreen}
-          className="p-2 rounded-xl border text-slate-400 hover:text-white transition-all flex items-center justify-center"
-          style={{
-            backgroundColor: '#14171C',
-            borderColor: '#232830',
-          }}
-          title="Basculer en plein écran"
-          aria-label="Plein écran"
-        >
-          {isFullscreen ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
-        </button>
-
-        {/* Bouton Déconnexion */}
-        {onLogout && (
-          <button
-            type="button"
-            onClick={onLogout}
-            className="p-2 rounded-xl border text-slate-400 hover:text-red-400 hover:border-red-500/40 transition-all flex items-center justify-center"
-            style={{
-              backgroundColor: '#14171C',
-              borderColor: '#232830',
-            }}
-            title={currentUser ? `Déconnexion (${currentUser})` : 'Déconnexion'}
-            aria-label="Déconnexion"
-          >
-            <LogOut size={17} />
-          </button>
-        )}
-      </div>
+      {onToggleAudio && (
+        <IconButton
+          icon={isAudioMuted ? VolumeX : Volume2}
+          label={isAudioMuted ? 'Activer le son' : 'Couper le son'}
+          onClick={onToggleAudio}
+        />
+      )}
+      <IconButton
+        icon={isFullscreen ? Minimize2 : Maximize2}
+        label={isFullscreen ? 'Quitter le plein écran' : 'Passer en plein écran'}
+        onClick={toggleFullscreen}
+      />
     </header>
   )
 }
-
