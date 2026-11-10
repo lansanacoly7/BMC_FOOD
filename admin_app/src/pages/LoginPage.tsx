@@ -10,7 +10,6 @@ import {
   Flame,
   Zap,
   Bike,
-  CheckCircle2,
 } from 'lucide-react'
 import { loginAdmin } from '../api/client'
 
@@ -56,12 +55,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  // Remplissage rapide démo pour faciliter les tests
-  const handleQuickFill = () => {
-    setUsername('admin')
-    setPassword('admin')
   }
 
   return (
@@ -229,24 +222,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             </button>
           </form>
 
-          {/* Bandeau d'accès rapide démo */}
-          <div
-            onClick={handleQuickFill}
-            className="mt-6 px-3.5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-between text-xs text-[#94A3B8] cursor-pointer transition-all hover:bg-white/[0.06] hover:border-[#FCB800]/40 group"
-            title="Cliquer pour renseigner automatiquement les accès admin"
-          >
-            <span className="flex items-center gap-2">
-              <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Accès démo : <strong className="text-white group-hover:text-[#FCB800] transition-colors">admin</strong></span>
-            </span>
-            <span className="text-[11px] text-[#64748B] flex items-center gap-1 group-hover:text-neutral-300">
-              <CheckCircle2 className="size-3 text-[#FCB800]" />
-              Remplir en 1 clic
-            </span>
-          </div>
-
           {/* Pied de carte avec icône de sécurité et copyright */}
-          <div className="mt-6 pt-5 border-t border-white/[0.08] flex items-center justify-between text-[11px] text-[#64748B]">
+          <div className="mt-8 pt-5 border-t border-white/[0.08] flex items-center justify-between text-[11px] text-[#64748B]">
             <span>BMC Food Dakar © 2026</span>
             <span className="flex items-center gap-1 text-[#94A3B8]">
               <Lock className="size-3 text-[#FCB800]" />
