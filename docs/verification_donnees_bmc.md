@@ -198,7 +198,7 @@ D'après la photographie de la devanture réelle (`Projet BMC/099D05B3-D5DE-4DBB
    - 📞 **`77 106 75 75`** (Orange / Wave)
    - *Constat* : Ces numéros doivent figurer avec des liens cliquables `tel:+221778561313` dans le Footer, le tiroir de navigation et la page de confirmation de commande.
 3. **Réseaux Sociaux Officiels (affichés sur l'enseigne physique)** :
-   - **Instagram** : `@bmctacos_senegal`
+   - **Instagram** : `@bmcfood_senegal` (https://www.instagram.com/bmcfood_senegal/)
    - **TikTok** : `@bmctacos`
    - **Snapchat** : `@bmctacos`
 4. **Moyens de Paiement Reconnus** :

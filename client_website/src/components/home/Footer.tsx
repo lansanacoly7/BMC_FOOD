@@ -124,7 +124,7 @@ function TikTokIcon() {
 /** Comptes officiels uniquement (charte page 14 et enseigne du restaurant), plus le WhatsApp de commande. */
 const SOCIALS = [
   { name: 'TikTok', label: 'TikTok @bmctacos', href: 'https://www.tiktok.com/@bmctacos', icon: <TikTokIcon /> },
-  { name: 'Instagram', label: 'Instagram @bmctacos_senegal', href: 'https://www.instagram.com/bmctacos_senegal/', icon: <InstagramIcon /> },
+  { name: 'Instagram', label: 'Instagram @bmcfood_senegal', href: 'https://www.instagram.com/bmcfood_senegal/', icon: <InstagramIcon /> },
   { name: 'WhatsApp', label: 'WhatsApp 77 856 13 13', href: WHATSAPP_URL, icon: <WhatsAppIcon className="size-4" /> },
 ]
 
