@@ -265,22 +265,22 @@
 @keyframes ambient-glow-slow {
   0%, 100% {
     transform: scale(1) translate(0, 0);
-    opacity: 0.6;
+    opacity: 0.7;
   }
   50% {
-    transform: scale(1.18) translate(-20px, 15px);
-    opacity: 0.95;
+    transform: scale(1.2) translate(-25px, 20px);
+    opacity: 1;
   }
 }
 
 @keyframes ambient-glow-warm {
   0%, 100% {
     transform: scale(1) translate(0, 0);
-    opacity: 0.5;
+    opacity: 0.6;
   }
   50% {
-    transform: scale(1.22) translate(15px, -20px);
-    opacity: 0.85;
+    transform: scale(1.25) translate(20px, -25px);
+    opacity: 0.9;
   }
 }
 
@@ -289,14 +289,14 @@
     transform: scale(1.04) translate(0, 0);
   }
   50% {
-    transform: scale(1.09) translate(-1.5%, -1%);
+    transform: scale(1.1) translate(-2%, -1.5%);
   }
 }
 
 @keyframes card-float-enter {
   from {
     opacity: 0;
-    transform: translateY(24px) scale(0.98);
+    transform: translateY(28px) scale(0.97);
   }
   to {
     opacity: 1;
@@ -305,18 +305,24 @@
 }
 
 .animate-ambient-glow {
-  animation: ambient-glow-slow 9s ease-in-out infinite;
+  animation: ambient-glow-slow 10s ease-in-out infinite;
 }
 
 .animate-ambient-warm {
-  animation: ambient-glow-warm 11s ease-in-out infinite;
+  animation: ambient-glow-warm 12s ease-in-out infinite;
 }
 
 .animate-kenburns {
-  animation: kenburns-slow 22s ease-in-out infinite;
+  animation: kenburns-slow 24s ease-in-out infinite;
 }
 
 .animate-card-enter {
-  animation: card-float-enter 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: card-float-enter 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Grille subtile d'ambiance */
+.bg-grid-pattern {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 28px 28px;
 }
 
