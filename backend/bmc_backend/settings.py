@@ -156,6 +156,14 @@ if not DEBUG:
 # Définir à 0 ou négatif pour désactiver l'expiration.
 BMC_TOKEN_TTL_SECONDS = int(os.environ.get('BMC_TOKEN_TTL_SECONDS', str(24 * 3600)))
 
+# Contrôle des horaires d'ouverture : Mardi au Dimanche de 11h00 à 02h00 du matin.
+# Activé par défaut en production et en développement.
+# En exécution de tests automatisés (sys.argv 'test'), désactivé par défaut pour
+# que l'heure de lancement des tests n'interfère pas avec les tests généraux.
+import sys
+_IS_TESTING = 'test' in sys.argv
+BMC_ENFORCE_OPENING_HOURS = env_bool('BMC_ENFORCE_OPENING_HOURS', not _IS_TESTING)
+
 # --- Django REST Framework -------------------------------------------------
 # Sécurisé par défaut : toute vue sans `permission_classes` explicite est réservée
 # au staff. Les accès publics sont déclarés explicitement dans `api/urls.py`.

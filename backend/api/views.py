@@ -71,7 +71,8 @@ class HealthCheckView(APIView):
             'status': 'ok',
             'service': 'BMC Food Django REST API',
             'version': '2.0.0',
-            'server_time': timezone.now().isoformat()
+            'server_time': timezone.now().isoformat(),
+            'is_open': order_rules.is_restaurant_open()
         })
 
 

@@ -159,6 +159,10 @@ class OrderCreateSerializer(serializers.Serializer):
         return value
 
     def validate(self, attrs):
+        opening_error = order_rules.check_order_opening_hours()
+        if opening_error:
+            raise serializers.ValidationError(opening_error)
+
         _, errors = resolve_cart(attrs['items'])
         if errors:
             raise serializers.ValidationError({'items': errors})
