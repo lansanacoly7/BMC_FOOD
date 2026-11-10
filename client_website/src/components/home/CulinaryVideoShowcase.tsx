@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Pause, Play, Volume2, VolumeX } from 'lucide-react'
+import { Pause, Play } from 'lucide-react'
 import {
   AnimatePresence,
   motion,
@@ -42,7 +42,6 @@ export function CulinaryVideoShowcase() {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [index, setIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(reduceMotion)
-  const [isMuted, setIsMuted] = useState(true)
   const [progress, setProgress] = useState(0)
   const isOnScreen = useInView(sectionRef, { amount: 0.3 })
   const scene = SCENES[index]
@@ -68,12 +67,6 @@ export function CulinaryVideoShowcase() {
     setProgress(0)
   }
 
-  const toggleMute = () => {
-    const next = !isMuted
-    setIsMuted(next)
-    if (videoRef.current) videoRef.current.muted = next
-  }
-
   return (
     <section
       ref={sectionRef}
@@ -97,7 +90,8 @@ export function CulinaryVideoShowcase() {
               }}
               src={scene.src}
               poster={POSTER}
-              muted={isMuted}
+              // Toujours muette : pas de son sur cette vidéo d'ambiance.
+              muted
               playsInline
               preload="auto"
               onEnded={() => goTo((index + 1) % SCENES.length)}
@@ -167,14 +161,6 @@ export function CulinaryVideoShowcase() {
                 className="grid size-10 cursor-pointer place-items-center rounded-full bg-black/45 sm:size-12 text-white ring-1 ring-white/30 backdrop-blur-md transition-colors hover:text-bmc-gold hover:ring-bmc-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold"
               >
                 {isPaused ? <Play className="ml-0.5 size-5 fill-current" aria-hidden="true" /> : <Pause className="size-5" aria-hidden="true" />}
-              </button>
-              <button
-                type="button"
-                onClick={toggleMute}
-                aria-label={isMuted ? 'Activer le son' : 'Couper le son'}
-                className="grid size-10 cursor-pointer place-items-center rounded-full bg-black/45 sm:size-12 text-white ring-1 ring-white/30 backdrop-blur-md transition-colors hover:text-bmc-gold hover:ring-bmc-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold"
-              >
-                {isMuted ? <VolumeX className="size-5" aria-hidden="true" /> : <Volume2 className="size-5 text-bmc-gold" aria-hidden="true" />}
               </button>
             </div>
           </div>
