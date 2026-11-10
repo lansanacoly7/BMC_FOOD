@@ -216,7 +216,7 @@ export function FeaturedGrid({
       (activeCategory === 'tacos-panes' && (product.category === 1 || categoryName.includes('tacos pané'))) ||
       (activeCategory === 'burgers' && (product.category === 2 || categoryName.includes('burger'))) ||
       (activeCategory === 'tacos-simples' && (product.category === 3 || categoryName.includes('tacos simple'))) ||
-      (activeCategory === 'boissons' && (product.category === 7 || categoryName.includes('boisson'))) ||
+      (activeCategory === 'boissons' && (product.category === 7 || categoryName.includes('boisson') || product.code.toLowerCase().startsWith('bv'))) ||
       (activeCategory === 'sauces' && (product.category === 4 || categoryName.includes('sauce'))) ||
       (activeCategory === 'poulet-finger-food' && (product.category === 5 || categoryName.includes('poulet')))
 
@@ -229,8 +229,10 @@ export function FeaturedGrid({
   })
 
   // Les plus commandés : plats marqués « populaire », sinon les premiers de la carte
-  const popularProducts = filtered.filter((product) => product.popular)
-  const featured = (popularProducts.length >= 4 ? popularProducts : filtered).slice(0, 8)
+  const isDrinkItem = (product: Product) => product.code.toLowerCase().startsWith('bv') || (product.category_name || '').toLowerCase().includes('boisson')
+  const mainDishes = isDefaultView ? filtered.filter((product) => !isDrinkItem(product)) : filtered
+  const popularProducts = mainDishes.filter((product) => product.popular)
+  const featured = (popularProducts.length >= 4 ? popularProducts : mainDishes).slice(0, 8)
 
   const wrapper = 'mx-auto max-w-7xl px-4 sm:px-6 lg:px-8'
 

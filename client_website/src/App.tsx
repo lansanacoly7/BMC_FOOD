@@ -226,7 +226,7 @@ export default function App() {
 
             {/* LES PLUS COMMANDÉS — GRILLE DU MENU AVEC BANNIÈRE PROMO PLEINE LARGEUR */}
             <FeaturedGrid
-              products={menuProducts}
+              products={searchProducts}
               isLoading={isMenuLoading}
               activeCategory={activeCategory}
               searchQuery={searchQuery}
