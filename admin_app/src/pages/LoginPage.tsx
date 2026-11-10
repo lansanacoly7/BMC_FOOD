@@ -27,13 +27,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const hasFinishedRef = useRef(false)
 
+  // Vitesse de lecture accélérée (dynamique) et arrêt sur la dernière image
+  const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    e.currentTarget.playbackRate = 1.35
+  }
+
+  const handlePlay = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    e.currentTarget.playbackRate = 1.35
+  }
+
   // Met en pause sur la dernière image avant la fin (évite l'écran noir EOF et empêche la relecture)
   const handleVideoTimeUpdate = () => {
     if (hasFinishedRef.current) return
     const video = videoRef.current
     if (!video || !Number.isFinite(video.duration)) return
 
-    if (video.currentTime >= video.duration - 0.2) {
+    if (video.currentTime >= video.duration - 0.15) {
       hasFinishedRef.current = true
       video.pause()
     }
@@ -46,7 +55,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       video.pause()
       if (Number.isFinite(video.duration)) {
         try {
-          video.currentTime = Math.max(0, video.duration - 0.2)
+          video.currentTime = Math.max(0, video.duration - 0.15)
         } catch {
           // ignore seek error
         }
@@ -91,25 +100,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     <div className="min-h-[100dvh] w-full bg-[#08090D] text-left text-[#F2F4F7] font-sans antialiased grid lg:grid-cols-[1.15fr_1fr] selection:bg-[#FCB800]/30 selection:text-white overflow-hidden">
       {/* ─── PANNEAU GAUCHE : IDENTITÉ VISUELLE & HERO RESTAURANT BMC ─── */}
       <aside className="relative hidden overflow-hidden bg-[#0A0C10] border-r border-white/[0.08] lg:flex flex-col justify-between p-12">
-        {/* Fond d'image haute définition en secours (garantit zéro écran noir) */}
-        <img
-          src="/images/hero/hero_video_poster.webp"
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 size-full object-cover opacity-80 pointer-events-none"
-        />
-
-        {/* Vidéo d'ambiance officielle BMC Food : se charge et se joue une fois, puis reste figée sur sa dernière image sans relecture */}
+        {/* Vidéo d'ambiance officielle BMC Food : se lance directement sans image parasite, joue dynamiquement et se fige sur sa fin */}
         <video
           ref={videoRef}
           autoPlay
           muted
           playsInline
           preload="auto"
-          poster="/images/hero/hero_video_poster.webp"
+          onLoadedMetadata={handleLoadedMetadata}
+          onPlay={handlePlay}
           onTimeUpdate={handleVideoTimeUpdate}
           onEnded={handleVideoEnded}
-          className="absolute inset-0 size-full object-cover opacity-80 pointer-events-none z-0"
+          className="absolute inset-0 size-full object-cover opacity-85 pointer-events-none z-0"
         >
           <source src="/images/hero/bmc_video_hero.mp4" type="video/mp4" />
         </video>

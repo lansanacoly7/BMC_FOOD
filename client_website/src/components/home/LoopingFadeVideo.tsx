@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, type SyntheticEvent } from 'react'
 
 interface LoopingFadeVideoProps {
   src: string
@@ -14,10 +14,17 @@ interface LoopingFadeVideoProps {
 export function LoopingFadeVideo({
   src,
   className = '',
-  poster = '/images/hero/hero_video_poster.webp',
 }: LoopingFadeVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const hasFinishedRef = useRef(false)
+
+  const handleLoadedMetadata = (e: SyntheticEvent<HTMLVideoElement>) => {
+    e.currentTarget.playbackRate = 1.35
+  }
+
+  const handlePlay = (e: SyntheticEvent<HTMLVideoElement>) => {
+    e.currentTarget.playbackRate = 1.35
+  }
 
   const handleTimeUpdate = () => {
     if (hasFinishedRef.current) return
@@ -25,7 +32,7 @@ export function LoopingFadeVideo({
     if (!video || !Number.isFinite(video.duration)) return
 
     // Met en pause sur la dernière image nette avant l'arrêt complet (évite l'écran noir EOF du navigateur)
-    if (video.currentTime >= video.duration - 0.2) {
+    if (video.currentTime >= video.duration - 0.15) {
       hasFinishedRef.current = true
       video.pause()
     }
@@ -38,7 +45,7 @@ export function LoopingFadeVideo({
       video.pause()
       if (Number.isFinite(video.duration)) {
         try {
-          video.currentTime = Math.max(0, video.duration - 0.2)
+          video.currentTime = Math.max(0, video.duration - 0.15)
         } catch {
           // ignore seek error
         }
@@ -47,27 +54,19 @@ export function LoopingFadeVideo({
   }
 
   return (
-    <div className="absolute inset-0 size-full overflow-hidden">
-      {/* Fond de secours haute définition garantissant zéro écran noir */}
-      <img
-        src={poster}
-        alt=""
-        aria-hidden="true"
-        className="absolute inset-0 size-full object-cover object-center pointer-events-none"
-      />
-      <video
-        ref={videoRef}
-        autoPlay
-        muted
-        playsInline
-        preload="auto"
-        poster={poster}
-        onTimeUpdate={handleTimeUpdate}
-        onEnded={handleEnded}
-        className={`relative z-10 size-full object-cover object-center ${className}`}
-      >
-        <source src={src} type="video/mp4" />
-      </video>
-    </div>
+    <video
+      ref={videoRef}
+      autoPlay
+      muted
+      playsInline
+      preload="auto"
+      onLoadedMetadata={handleLoadedMetadata}
+      onPlay={handlePlay}
+      onTimeUpdate={handleTimeUpdate}
+      onEnded={handleEnded}
+      className={`size-full object-cover object-center ${className}`}
+    >
+      <source src={src} type="video/mp4" />
+    </video>
   )
 }
