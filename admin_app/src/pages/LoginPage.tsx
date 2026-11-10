@@ -8,11 +8,7 @@ import {
   ArrowRight,
   ShieldCheck,
   Loader2,
-  Sparkles,
   Flame,
-  Zap,
-  Bike,
-  Clock,
   CheckCircle2,
 } from 'lucide-react'
 import { loginAdmin } from '../api/client'
@@ -69,92 +65,37 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
   return (
     <div className="min-h-[100dvh] w-full bg-[#08090D] text-left text-[#F2F4F7] font-sans antialiased grid lg:grid-cols-[1.15fr_1fr] selection:bg-[#FCB800]/30 selection:text-white overflow-hidden">
-      {/* ─── PANNEAU GAUCHE : IDENTITÉ VISUELLE & HERO RESTAURANT ─── */}
+      {/* ─── PANNEAU GAUCHE : IDENTITÉ VISUELLE OFFICIELLE BMC FOOD ─── */}
       <aside className="relative hidden overflow-hidden bg-[#0A0C10] border-r border-white/[0.08] lg:flex flex-col justify-between p-12">
-        {/* Photographie culinaire haute résolution avec mouvement lent Ken-Burns */}
+        {/* Photographie culinaire signature BMC Food */}
         <img
-          src="/images/hero/hero_cheeseburger.webp"
-          alt="BMC Food Spécialité Braisée"
-          className="absolute inset-0 size-full object-cover opacity-80 animate-kenburns pointer-events-none"
+          src="/images/hero/tacos_pane_knife_cut.jpg"
+          alt="BMC Food Spécialité"
+          className="absolute inset-0 size-full object-cover opacity-70 animate-kenburns pointer-events-none"
         />
 
-        {/* Dégradés cinématiques superposés pour fondre avec le panneau droit */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#08090D] via-[#08090D]/40 to-[#08090D]/60 pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#08090D]/30 to-[#08090D] pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(252,184,0,0.22),transparent_55%)] pointer-events-none" />
+        {/* Dégradés superposés pour fondre avec le panneau droit */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#08090D] via-[#08090D]/30 to-[#08090D]/50 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#08090D]/20 to-[#08090D] pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(252,184,0,0.15),transparent_55%)] pointer-events-none" />
 
-        {/* En-tête : Logo officiel et badge statut */}
-        <div className="relative z-10 flex items-center justify-between">
-          <div className="transition-transform duration-300 hover:scale-[1.02]">
-            <img
-              src="/images/brand/logo.png"
-              alt="BMC Food"
-              className="h-20 w-auto object-contain drop-shadow-[0_4px_24px_rgba(0,0,0,0.9)]"
-            />
-          </div>
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/40 border border-[#FCB800]/30 backdrop-blur-md shadow-sm">
-            <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs font-semibold text-[#FCB800] uppercase tracking-wider">
-              Service en direct · Dakar
-            </span>
-          </div>
+        {/* Logo officiel en haut à gauche */}
+        <div className="relative z-10 transition-transform duration-300 hover:scale-[1.02]">
+          <img
+            src="/images/brand/logo.png"
+            alt="BMC Food"
+            className="h-20 w-auto object-contain drop-shadow-[0_4px_24px_rgba(0,0,0,0.9)]"
+          />
         </div>
 
-        {/* Bloc central / bas : Message d'excellence et carte KDS interactive */}
-        <div className="relative z-10 space-y-6 max-w-xl">
-          <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FCB800]/15 border border-[#FCB800]/30 text-xs font-bold text-[#FCB800] uppercase tracking-wider backdrop-blur-sm shadow-sm">
-              <Sparkles className="size-3.5 text-[#FCB800]" />
-              <span>Système Restauration & Cuisine KDS</span>
-            </div>
-            <h2 className="text-4xl xl:text-5xl font-extrabold leading-[1.15] text-white tracking-tight drop-shadow-lg">
-              L'art des grillades et burgers au <span className="text-[#FCB800]">feu de bois</span>.
-            </h2>
-            <p className="text-base text-neutral-300 font-normal leading-relaxed">
-              Dakar · Ouvert tous les jours de 11h à 02h. Pilotage en direct des commandes, cuisine et livraisons.
-            </p>
-          </div>
-
-          {/* Mini-widget KDS dynamique en direct (preuve de vie professionnelle) */}
-          <div className="p-4 rounded-2xl bg-black/50 border border-white/10 backdrop-blur-md shadow-xl flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-[#FCB800]/15 border border-[#FCB800]/30 flex items-center justify-center shrink-0">
-                <Zap className="size-5 text-[#FCB800]" />
-              </div>
-              <div>
-                <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                  <span>Cuisine KDS connectée</span>
-                  <span className="size-1.5 rounded-full bg-emerald-400" />
-                </div>
-                <div className="text-[11px] text-neutral-400 mt-0.5">
-                  Synchronisation temps réel & alertes de cuisson
-                </div>
-              </div>
-            </div>
-            <div className="text-right shrink-0">
-              <div className="text-xs font-bold text-[#FCB800] flex items-center justify-end gap-1">
-                <Clock className="size-3.5" />
-                <span>&lt; 12 min</span>
-              </div>
-              <div className="text-[11px] text-neutral-400">Temps moyen</div>
-            </div>
-          </div>
-
-          {/* Piliers de service */}
-          <div className="flex flex-wrap items-center gap-2.5 pt-2 border-t border-white/10 text-xs text-neutral-300">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08]">
-              <Flame className="size-3.5 text-[#FCB800] shrink-0" />
-              <span>Grillades & Braise</span>
-            </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08]">
-              <Zap className="size-3.5 text-[#FCB800] shrink-0" />
-              <span>Écran Cuisine KDS</span>
-            </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08]">
-              <Bike className="size-3.5 text-[#FCB800] shrink-0" />
-              <span>Livraison Dakar</span>
-            </div>
-          </div>
+        {/* Slogan officiel en bas à gauche */}
+        <div className="relative z-10 space-y-2">
+          <h2 className="text-4xl xl:text-5xl font-black text-white tracking-tight drop-shadow-lg">
+            Le goût du <span className="text-[#FCB800]">vrai plaisir</span>.
+          </h2>
+          <p className="text-sm text-neutral-300 font-medium">
+            Dakar · Ouvert tous les jours de 11h à 02h
+          </p>
         </div>
       </aside>
 
