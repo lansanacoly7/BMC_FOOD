@@ -4,6 +4,7 @@ import { AlertCircle, ArrowLeft, Check, Eye, EyeOff, KeyRound, Lock, LogOut, Pho
 import { API_BASE_URL } from '../../services/api'
 import { loadProfile } from '../../services/clientData'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 
 export interface ClientUser {
   name: string
@@ -124,6 +125,9 @@ export function AuthModal({ isOpen, onClose, onSuccess, onLogout }: AuthModalPro
     setStaffRecognized(false)
     setView('login')
   }, [isOpen])
+
+  // Page figée tant que la fenêtre est ouverte : on ne fait défiler que la fenêtre elle-même.
+  useBodyScrollLock(isOpen)
 
   useEffect(() => {
     if (!isOpen) return
@@ -296,7 +300,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, onLogout }: AuthModalPro
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 16 }}
               transition={{ duration: 0.22, ease: 'easeOut' }}
-              className="relative z-10 max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-white/10 bg-zinc-900 p-6 sm:p-8"
+              className="relative z-10 max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-zinc-900 p-6 sm:p-8"
             >
               <button
                 type="button"
