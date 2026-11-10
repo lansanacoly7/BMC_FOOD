@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import {
   AlertCircle,
   User,
@@ -23,6 +23,36 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const hasFinishedRef = useRef(false)
+
+  // Met en pause sur la dernière image avant la fin (évite l'écran noir EOF et empêche la relecture)
+  const handleVideoTimeUpdate = () => {
+    if (hasFinishedRef.current) return
+    const video = videoRef.current
+    if (!video || !Number.isFinite(video.duration)) return
+
+    if (video.currentTime >= video.duration - 0.2) {
+      hasFinishedRef.current = true
+      video.pause()
+    }
+  }
+
+  const handleVideoEnded = () => {
+    hasFinishedRef.current = true
+    const video = videoRef.current
+    if (video) {
+      video.pause()
+      if (Number.isFinite(video.duration)) {
+        try {
+          video.currentTime = Math.max(0, video.duration - 0.2)
+        } catch {
+          // ignore seek error
+        }
+      }
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -61,12 +91,28 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     <div className="min-h-[100dvh] w-full bg-[#08090D] text-left text-[#F2F4F7] font-sans antialiased grid lg:grid-cols-[1.15fr_1fr] selection:bg-[#FCB800]/30 selection:text-white overflow-hidden">
       {/* ─── PANNEAU GAUCHE : IDENTITÉ VISUELLE & HERO RESTAURANT BMC ─── */}
       <aside className="relative hidden overflow-hidden bg-[#0A0C10] border-r border-white/[0.08] lg:flex flex-col justify-between p-12">
-        {/* Photographie culinaire signature BMC Food fixe */}
+        {/* Fond d'image haute définition en secours (garantit zéro écran noir) */}
         <img
-          src="/images/hero/hero_cheeseburger.webp"
-          alt="BMC Food Spécialité"
+          src="/images/hero/hero_video_poster.webp"
+          alt=""
+          aria-hidden="true"
           className="absolute inset-0 size-full object-cover opacity-80 pointer-events-none"
         />
+
+        {/* Vidéo d'ambiance officielle BMC Food : se charge et se joue une fois, puis reste figée sur sa dernière image sans relecture */}
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          playsInline
+          preload="auto"
+          poster="/images/hero/hero_video_poster.webp"
+          onTimeUpdate={handleVideoTimeUpdate}
+          onEnded={handleVideoEnded}
+          className="absolute inset-0 size-full object-cover opacity-80 pointer-events-none z-0"
+        >
+          <source src="/images/hero/bmc_video_hero.mp4" type="video/mp4" />
+        </video>
 
         {/* Dégradés cinématiques superposés pour fondre avec le panneau droit */}
         <div className="absolute inset-0 bg-gradient-to-t from-[#08090D] via-[#08090D]/40 to-[#08090D]/60 pointer-events-none" />
