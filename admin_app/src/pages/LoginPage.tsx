@@ -61,11 +61,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     <div className="min-h-[100dvh] w-full bg-[#08090D] text-left text-[#F2F4F7] font-sans antialiased grid lg:grid-cols-[1.15fr_1fr] selection:bg-[#FCB800]/30 selection:text-white overflow-hidden">
       {/* ─── PANNEAU GAUCHE : IDENTITÉ VISUELLE & HERO RESTAURANT BMC ─── */}
       <aside className="relative hidden overflow-hidden bg-[#0A0C10] border-r border-white/[0.08] lg:flex flex-col justify-between p-12">
-        {/* Photographie culinaire haute résolution avec mouvement lent Ken-Burns */}
+        {/* Photographie culinaire signature BMC Food fixe */}
         <img
           src="/images/hero/hero_cheeseburger.webp"
           alt="BMC Food Spécialité"
-          className="absolute inset-0 size-full object-cover opacity-80 animate-kenburns pointer-events-none"
+          className="absolute inset-0 size-full object-cover opacity-80 pointer-events-none"
         />
 
         {/* Dégradés cinématiques superposés pour fondre avec le panneau droit */}
