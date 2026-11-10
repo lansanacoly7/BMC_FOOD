@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   clearAuthToken,
-  DEV_DEFAULT_TOKEN,
   getAuthToken,
   getAuthUser,
   SESSION_EXPIRED_EVENT,
-  setAuthToken,
 } from './api/client'
 import { AppHeader, type AdminTab } from './components/common/AppHeader'
 import { AdminSidebar } from './components/common/AdminSidebar'
@@ -29,11 +27,7 @@ import type { KdsOrder, KdsOrderStatus, OrderType } from './types/kds'
 export default function App() {
   // 0. État d'authentification administrateur
   const [authToken, setAuthTokenState] = useState<string | null>(() => {
-    const storedToken = getAuthToken()
-    if (storedToken || !import.meta.env.DEV) return storedToken
-    // En développement, la connexion automatique doit aussi servir aux appels API.
-    setAuthToken(DEV_DEFAULT_TOKEN)
-    return DEV_DEFAULT_TOKEN
+    return getAuthToken()
   })
   const [currentUser, setCurrentUserState] = useState<string | null>(() => getAuthUser() || 'admin')
 
