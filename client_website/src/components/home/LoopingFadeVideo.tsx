@@ -1,72 +1,93 @@
-import { useRef, type SyntheticEvent } from 'react'
+import { useRef, useState } from 'react'
+
+/** Durée du fondu entre la fin d'une lecture et le début de la suivante. */
+const FADE_SECONDS = 0.9
 
 interface LoopingFadeVideoProps {
   src: string
   className?: string
-  poster?: string
 }
 
 /**
- * Vidéo d'ambiance du Hero :
- * Se charge et se lit une seule fois jusqu'à la fin, puis reste définitivement figée
- * sur la dernière image sans relecture (sans boucle ni coupure noire).
+ * Vidéo d'ambiance en boucle sans coupure : deux lectures de la même vidéo sont superposées.
+ * Quelques instants avant la fin de la première, la seconde démarre au début et apparaît en fondu
+ * par-dessus ; la première est masquée une fois le fondu terminé. Aucune image noire entre deux boucles.
+ * Si le visiteur demande moins d'animations, la vidéo boucle simplement.
  */
-export function LoopingFadeVideo({
-  src,
-  className = '',
-}: LoopingFadeVideoProps) {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const hasFinishedRef = useRef(false)
+export function LoopingFadeVideo({ src, className = '' }: LoopingFadeVideoProps) {
+  const first = useRef<HTMLVideoElement>(null)
+  const second = useRef<HTMLVideoElement>(null)
+  const refs = [first, second]
+  const [active, setActive] = useState(0)
+  const activeRef = useRef(0)
+  const [reduceMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)
 
-  const handleLoadedMetadata = (e: SyntheticEvent<HTMLVideoElement>) => {
-    e.currentTarget.playbackRate = 1.35
+  const startNext = (from: number) => {
+    const next = 1 - from
+    const nextVideo = refs[next].current
+    if (!nextVideo) return
+    activeRef.current = next
+    nextVideo.currentTime = 0
+    nextVideo.play().catch(() => {
+      /* lecture muette refusée : la vidéo courante continue jusqu'à sa fin */
+    })
+    setActive(next)
   }
 
-  const handlePlay = (e: SyntheticEvent<HTMLVideoElement>) => {
-    e.currentTarget.playbackRate = 1.35
-  }
-
-  const handleTimeUpdate = () => {
-    if (hasFinishedRef.current) return
-    const video = videoRef.current
+  const handleTimeUpdate = (index: number) => {
+    if (index !== activeRef.current) return
+    const video = refs[index].current
     if (!video || !Number.isFinite(video.duration)) return
+    if (video.duration - video.currentTime <= FADE_SECONDS) startNext(index)
+  }
 
-    // Met en pause sur la dernière image nette avant l'arrêt complet (évite l'écran noir EOF du navigateur)
-    if (video.currentTime >= video.duration - 0.15) {
-      hasFinishedRef.current = true
+  const handleEnded = (index: number) => {
+    const video = refs[index].current
+    if (!video) return
+    if (index === activeRef.current) {
+      // Le fondu n'a pas eu lieu (onglet en arrière-plan, lecture ralentie) : on relance la même vidéo
+      video.currentTime = 0
+      video.play().catch(() => {})
+    } else {
       video.pause()
+      video.currentTime = 0
     }
   }
 
-  const handleEnded = () => {
-    hasFinishedRef.current = true
-    const video = videoRef.current
-    if (video) {
-      video.pause()
-      if (Number.isFinite(video.duration)) {
-        try {
-          video.currentTime = Math.max(0, video.duration - 0.15)
-        } catch {
-          // ignore seek error
-        }
-      }
-    }
+  if (reduceMotion) {
+    return (
+      <video autoPlay loop muted playsInline preload="auto" className={className}>
+        <source src={src} type="video/mp4" />
+      </video>
+    )
   }
 
   return (
-    <video
-      ref={videoRef}
-      autoPlay
-      muted
-      playsInline
-      preload="auto"
-      onLoadedMetadata={handleLoadedMetadata}
-      onPlay={handlePlay}
-      onTimeUpdate={handleTimeUpdate}
-      onEnded={handleEnded}
-      className={`size-full object-cover object-center ${className}`}
-    >
-      <source src={src} type="video/mp4" />
-    </video>
+    <>
+      {[0, 1].map((index) => {
+        const isActive = active === index
+        return (
+          <video
+            key={index}
+            ref={refs[index]}
+            autoPlay={index === 0}
+            muted
+            playsInline
+            preload="auto"
+            onTimeUpdate={() => handleTimeUpdate(index)}
+            onEnded={() => handleEnded(index)}
+            className={`absolute inset-0 ${className}`}
+            style={{
+              opacity: isActive ? 1 : 0,
+              zIndex: isActive ? 2 : 1,
+              // La vidéo qui arrive apparaît en fondu ; l'ancienne reste visible dessous puis disparaît
+              transition: isActive ? `opacity ${FADE_SECONDS}s linear` : `opacity 0s linear ${FADE_SECONDS}s`,
+            }}
+          >
+            <source src={src} type="video/mp4" />
+          </video>
+        )
+      })}
+    </>
   )
 }

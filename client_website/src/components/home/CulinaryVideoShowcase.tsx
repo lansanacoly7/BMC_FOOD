@@ -78,15 +78,9 @@ export function CulinaryVideoShowcase({ onExploreMenu }: CulinaryVideoShowcasePr
 
   const currentScene = CULINARY_SCENES[activeSceneIndex]
 
-  // Passe à la scène suivante (s'arrête sur la dernière scène sans relecture en boucle)
+  // Passe à la scène suivante (et reboucle sur la première après la dernière)
   const goToNext = useCallback(() => {
-    setActiveSceneIndex((prev) => {
-      if (prev >= CULINARY_SCENES.length - 1) {
-        setIsPlaying(false)
-        return prev
-      }
-      return prev + 1
-    })
+    setActiveSceneIndex((prev) => (prev + 1) % CULINARY_SCENES.length)
   }, [])
 
   // Lancement automatique de la vidéo active
