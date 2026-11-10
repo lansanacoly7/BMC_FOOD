@@ -107,11 +107,11 @@ export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
       */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-black/90 via-black/60 to-black/10 sm:w-4/5 lg:w-3/5"
+        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-black/85 from-0% via-black/45 via-45% to-transparent to-85%"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-black via-transparent to-black/30"
+        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-zinc-950 from-0% via-transparent via-35% to-transparent"
       />
 
       {/* 
@@ -177,13 +177,6 @@ export function HeroCinematic({ onExploreMenu }: HeroCinematicProps) {
         </motion.div>
       </div>
 
-      {/* 
-        4. DÉGRADÉ FONDU PROGRESSIF EN BAS
-      */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent to-zinc-950"
-      />
     </section>
   )
 }
