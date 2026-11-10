@@ -7,13 +7,11 @@ import { CartDrawer } from './components/cart/CartDrawer'
 import { DailySpecialBanner } from './components/client/DailySpecialBanner'
 import { TopHeader } from './components/home/TopHeader'
 import { HeroCinematic } from './components/home/HeroCinematic'
-import { CategoryPills } from './components/home/CategoryPills'
 import { FeaturedGrid } from './components/home/FeaturedGrid'
 import { StickyCartBar } from './components/home/StickyCartBar'
 import { NavMenuDrawer } from './components/home/NavMenuDrawer'
 import { Footer } from './components/home/Footer'
 import { CulinaryVideoShowcase } from './components/home/CulinaryVideoShowcase'
-import { MenuHero } from './components/home/MenuHero'
 import { MenuView } from './components/menu/MenuView'
 import { ContactView } from './components/contact/ContactView'
 import { ProfileView } from './components/profile/ProfileView'
@@ -26,8 +24,20 @@ import { useMenu } from './hooks/useMenu'
 import { useCart } from './hooks/useCart'
 import { IntroSplash } from './components/brand/IntroSplash'
 
+type Page = 'home' | 'contact' | 'profile'
+
+/** Familles du menu latéral → mot-clé du nom de catégorie, pour filtrer la carte de l'accueil (« all » : tout). */
+const DRAWER_FAMILY_KEYWORDS: Record<string, string | null> = {
+  all: null,
+  'tacos-panes': 'tacos panes',
+  burgers: 'burger',
+  'tacos-simples': 'simple',
+  boissons: 'boisson',
+}
+
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'menu' | 'contact' | 'profile'>('home')
+  // La carte n'est plus une page : elle fait partie de l'accueil (« La carte » y fait défiler).
+  const [currentPage, setCurrentPage] = useState<Page>('home')
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -40,32 +50,41 @@ export default function App() {
       return null
     }
   })
-  const [activeCategory, setActiveCategory] = useState('all')
   const searchQuery = ''
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   // Animation d'entrée : jouée à chaque arrivée sur le site et à chaque rechargement.
   const [isIntroDone, setIsIntroDone] = useState(false)
   // Le hero entre en scène dès que le rideau de l'intro se lève, pas à la toute fin.
   const [isIntroLifting, setIsIntroLifting] = useState(false)
-  // Famille sur laquelle ouvrir la carte (spécialités du pied de page). nonce : rouvre la carte à neuf à chaque clic.
-  const [menuFocus, setMenuFocus] = useState<{ keyword: string; nonce: number } | null>(null)
+  // Famille sur laquelle filtrer la carte (pied de page, menu latéral). nonce : chaque clic réapplique le filtre.
+  const [menuFocus, setMenuFocus] = useState<{ keyword: string | null; nonce: number } | null>(null)
 
-  // Navigation fluide entre Accueil, la page Menu d'El Hadji et la page Contact
-  const handleNavigate = (page: 'home' | 'menu' | 'contact' | 'profile') => {
+  // Amène le client à la carte de l'accueil, juste sous l'en-tête fixe.
+  const scrollToMenu = () => {
+    window.setTimeout(() => {
+      const heading = document.getElementById('menu-heading')
+      if (!heading) return
+      window.scrollTo({ top: heading.getBoundingClientRect().top + window.scrollY - 96, behavior: 'smooth' })
+    }, 60)
+  }
+
+  // Navigation : Accueil, Contact, Mon compte ; « La carte » ramène sur l'accueil, au niveau de la carte.
+  const handleNavigate = (page: Page | 'menu') => {
+    if (page === 'menu') {
+      setCurrentPage('home')
+      scrollToMenu()
+      return
+    }
     setMenuFocus(null)
     setCurrentPage(page)
     window.scrollTo({ top: 0, behavior: 'auto' })
   }
 
-  // Ouvre la carte directement sur une famille et amène le client à la grille, sous l'en-tête fixe.
-  const openMenuOn = (keyword: string) => {
+  // Filtre la carte sur une famille (mot-clé du nom de catégorie, null = tout) et y amène le client.
+  const openMenuOn = (keyword: string | null) => {
     setMenuFocus({ keyword, nonce: Date.now() })
-    setCurrentPage('menu')
-    window.setTimeout(() => {
-      const heading = document.getElementById('menu-heading')
-      if (!heading) return
-      window.scrollTo({ top: heading.getBoundingClientRect().top + window.scrollY - 96, behavior: 'auto' })
-    }, 60)
+    setCurrentPage('home')
+    scrollToMenu()
   }
 
   // Lien direct vers la connexion (#login), par exemple depuis l'application cuisine
@@ -152,7 +171,6 @@ export default function App() {
         onOpenCart={openCart}
         onOpenSearch={() => setIsSearchOpen(true)}
         onToggleMenu={() => setIsNavMenuOpen(true)}
-        onSelectCategory={setActiveCategory}
         currentPage={currentPage}
         onNavigate={handleNavigate}
         onOpenAuth={openAccount}
@@ -163,7 +181,7 @@ export default function App() {
       <NavMenuDrawer
         isOpen={isNavMenuOpen}
         onClose={() => setIsNavMenuOpen(false)}
-        onSelectCategory={setActiveCategory}
+        onSelectCategory={(categoryId) => openMenuOn(DRAWER_FAMILY_KEYWORDS[categoryId] ?? null)}
         onNavigate={handleNavigate}
         onOpenAuth={openAccount}
         clientUser={clientUser}
@@ -217,49 +235,27 @@ export default function App() {
           />
 
           {/* ZONE DE CONTENU RESPONSIVE (Mobile / Tablette / Desktop) — UNIVERS DARK LUXURY */}
-          <main id="menu-section" className="space-y-8 pt-6">
-            {/* CATÉGORIES EN VIGNETTES PHOTO CIRCULAIRES */}
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-              <CategoryPills
-                activeId={activeCategory}
-                onSelect={setActiveCategory}
-              />
-            </div>
-
+          <main id="menu-section" className="space-y-12 pt-6 sm:space-y-16">
             {/* LES PLUS COMMANDÉS — GRILLE DU MENU AVEC BANNIÈRE PROMO PLEINE LARGEUR */}
             <FeaturedGrid
               products={searchProducts}
               isLoading={isMenuLoading}
-              activeCategory={activeCategory}
+              activeCategory="all"
               searchQuery={searchQuery}
               onAddToCart={addToCart}
               onSeeAll={() => handleNavigate('menu')}
               onSelectProduct={setSelectedProduct}
             />
+
+            {/* TOUTE LA CARTE : filtres par famille et tous les plats (l'ancienne page « La carte ») */}
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              <MenuView focus={menuFocus} onAddToCart={addToCart} />
+            </div>
           </main>
 
           {/* Capsule Vidéo Culinaire Immersive (« L'Art du Tacos Pané » - 5 Scènes Vidéo) */}
           <CulinaryVideoShowcase />
         </>
-      )}
-
-      {currentPage === 'menu' && (
-        /* =========================================================================
-           PAGE MENU D'EL HADJI : MenuHero panoramique & MenuView complet 
-           avec carrousels de spécialités, fiches produits détaillées et sélection
-           ========================================================================= */
-        <div className="space-y-8">
-          {/* 1. MenuHero panoramique avec carrousel promotionnel */}
-          <MenuHero onExploreMenu={() => {
-            const target = document.getElementById('menu-heading')
-            target?.scrollIntoView({ behavior: 'smooth' })
-          }} />
-
-          {/* 2. Vue du Menu complète d'El Hadji Diop */}
-          <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <MenuView key={menuFocus?.nonce ?? 'carte'} focusKeyword={menuFocus?.keyword} onAddToCart={addToCart} />
-          </main>
-        </div>
       )}
 
       {currentPage === 'contact' && (

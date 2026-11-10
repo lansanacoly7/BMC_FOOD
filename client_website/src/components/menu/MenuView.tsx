@@ -5,7 +5,6 @@ import type { Product } from '../../types'
 import { useMenu } from '../../hooks/useMenu'
 import { CategoryNav } from './CategoryNav'
 import { ProductCard } from './ProductCard'
-import { ProductCarousel } from './ProductCarousel'
 import { ProductDetailModal } from './ProductDetailModal'
 import { Skeleton } from '../ui/Loader'
 import { ErrorMessage } from '../ui/ErrorMessage'
@@ -15,17 +14,24 @@ import { isAddOnCategory, isAddOnOnly, normalize } from '../../data/productOptio
 
 export interface MenuViewProps {
   onAddToCart: (product: Product, quantity?: number, note?: string) => void
-  /** Ouvre la carte sur la famille dont le nom contient ce mot-clé (sans accents), par exemple depuis le pied de page. */
-  focusKeyword?: string
+  /**
+   * Famille demandée de l'extérieur (pied de page, menu latéral) : mot-clé du nom de catégorie, sans accents
+   * (null = toute la carte). Chaque nouvelle demande (nonce) remplace le choix fait dans les rondelles.
+   */
+  focus?: { keyword: string | null; nonce: number } | null
 }
 
 /** Une boisson (catégorie « Boissons » ou code bv-…) : elle n'apparaît que dans la section Boissons. */
 const isDrink = (p: Product) => Boolean(p.category_name?.toLowerCase().includes('boisson') || p.code.toLowerCase().startsWith('bv'))
 
-export function MenuView({ onAddToCart, focusKeyword }: MenuViewProps) {
+export function MenuView({ onAddToCart, focus }: MenuViewProps) {
   const { categories, items, isLoading, error, refetch } = useMenu()
-  // null : le client n'a pas encore choisi de rondelle, on suit la famille demandée (ou « tout »).
-  const [pickedCategoryId, setPickedCategoryId] = useState<number | 'all' | null>(null)
+  const focusKeyword = focus?.keyword ?? undefined
+  // Choix fait dans les rondelles, valable pour une demande extérieure donnée (nonce) :
+  // une nouvelle demande l'efface, sans démonter la carte ni la recharger.
+  const [picked, setPicked] = useState<{ id: number | 'all'; nonce: number | undefined } | null>(null)
+  const pickedCategoryId = picked && picked.nonce === focus?.nonce ? picked.id : null
+  const setPickedCategoryId = (id: number | 'all') => setPicked({ id, nonce: focus?.nonce })
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
 
   // Catégories de navigation : s'assure que "Boissons" existe toujours dans le ruban
@@ -37,7 +43,8 @@ export function MenuView({ onAddToCart, focusKeyword }: MenuViewProps) {
     if (!hasDrinks) {
       list.push({ id: 50, name: 'Boissons', slug: 'boissons', icon: 'Coffee' })
     }
-    return list.filter((c) => !isAddOnCategory(c))
+    // Ordre du menu officiel (ordre de création) : tacos panés d'abord, boissons à la fin, et non l'ordre alphabétique.
+    return list.filter((c) => !isAddOnCategory(c)).sort((a, b) => a.id - b.id)
   }, [categories])
 
   // Famille demandée, retrouvée dans les catégories réelles (serveur ou secours) : elle s'applique dès leur chargement.
@@ -79,11 +86,7 @@ export function MenuView({ onAddToCart, focusKeyword }: MenuViewProps) {
     })
   }, [menuItems, selectedCategoryId])
 
-  // Groupes de produits pour le rendu rythmé alternant Carrousel -> Cartes -> Carrousel -> Cartes
-  const popularItems = useMemo(
-    () => menuItems.filter((p) => p.popular || p.is_daily_special).slice(0, 6),
-    [menuItems],
-  )
+  // Groupes de produits de la carte complète : tacos panés, burgers et tacos simples, boissons
   const tacosPanesItems = useMemo(
     () =>
       menuItems.filter(
@@ -122,20 +125,7 @@ export function MenuView({ onAddToCart, focusKeyword }: MenuViewProps) {
 
   return (
     <section aria-labelledby="menu-heading" className="w-full flex flex-col gap-8">
-      {/* 1. Carrousel horizontal supérieur "Les Incontournables de Dakar" */}
-      {!isLoading && !error && isFullCatalogView && (
-        <ProductCarousel
-          id="popular"
-          title="Les Incontournables de Dakar"
-          subtitle="Les recettes les plus commandées ce mois-ci"
-          badgeText="★ TOP VENTES"
-          products={popularItems}
-          onAddToCart={(p) => onAddToCart(p, 1)}
-          onSelectProduct={(p) => setSelectedProduct(p)}
-        />
-      )}
-
-      {/* 2. En-tête de section avec titre blanc éclatant et champ de recherche */}
+      {/* 1. En-tête de la carte (cible des liens « La carte » de tout le site) */}
       <div className="border-t border-zinc-800/80 pt-6">
         <div>
           <h2
