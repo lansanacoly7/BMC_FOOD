@@ -174,7 +174,7 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'EXCEPTION_HANDLER': 'api.exceptions.bmc_exception_handler',
     'DEFAULT_THROTTLE_RATES': {
-        'auth': os.environ.get('BMC_AUTH_THROTTLE_RATE', '60/min'),
+        'auth': os.environ.get('BMC_AUTH_THROTTLE_RATE', '10/min'),
         'order_create': os.environ.get('BMC_ORDER_THROTTLE_RATE', '15/min'),
         'order_track': os.environ.get('BMC_TRACK_THROTTLE_RATE', '30/min'),
     },

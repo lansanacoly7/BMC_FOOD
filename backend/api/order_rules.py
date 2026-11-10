@@ -34,7 +34,7 @@ def generate_order_ref():
 
 # --- I4 : transitions autorisées --------------------------------------------
 ORDER_STATUS_TRANSITIONS = {
-    'pending': ('confirmed', 'preparing', 'cancelled'),
+    'pending': ('confirmed', 'cancelled'),
     'confirmed': ('preparing', 'cancelled'),
     'preparing': ('delivering', 'cancelled'),
     'delivering': ('delivered',),
