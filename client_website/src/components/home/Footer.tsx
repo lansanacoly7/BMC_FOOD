@@ -2,7 +2,7 @@ import { ArrowRight, ArrowUp, ArrowUpRight, ChevronRight, Clock3, MapPin, Phone 
 import { motion, useReducedMotion, type Variants } from 'motion/react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { isOpenAt } from '../../lib/greeting'
-import { WHATSAPP_GREEN, WhatsAppIcon } from '../brand/WhatsAppIcon'
+import { WhatsAppIcon } from '../brand/WhatsAppIcon'
 
 type Page = 'home' | 'menu' | 'contact' | 'profile'
 
@@ -374,7 +374,7 @@ export function Footer({ onExploreMenu, onNavigate, onSelectSpecialty, onOpenAcc
                 PGXV+6R7 · Itinéraire<span className="sr-only"> (ouvre Google Maps)</span>
               </a>
             </ContactRow>
-            <ContactRow icon={<WhatsAppIcon />} iconColor={WHATSAPP_GREEN}>
+            <ContactRow icon={<WhatsAppIcon />}>
               <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="block font-semibold text-white transition-colors hover:text-bmc-gold">
                 WhatsApp
               </a>
