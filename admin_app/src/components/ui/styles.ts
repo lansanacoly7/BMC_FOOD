@@ -2,8 +2,8 @@ export type ButtonVariant = 'primary' | 'gold' | 'secondary' | 'ghost' | 'danger
 export type ButtonSize = 'sm' | 'md' | 'lg'
 
 const VARIANTS: Record<ButtonVariant, string> = {
-  // Orange braise : l'unique action principale de l'écran (texte blanc, charte p. 8).
-  primary: 'bg-bmc-orange-braise text-white hover:bg-[#B53F06]',
+  // Or officiel BMC Food : action principale jaune dorée, texte sombre et contraste maximal
+  primary: 'bg-bmc-gold text-bmc-charcoal hover:bg-[#E5A700] font-bold shadow-sm',
   gold: 'bg-bmc-gold text-bmc-charcoal hover:bg-[#E5A700]',
   secondary: 'border border-line bg-surface text-ink hover:bg-raised',
   ghost: 'text-ink-soft hover:bg-raised hover:text-ink',
@@ -20,4 +20,4 @@ export const buttonClass = (variant: ButtonVariant = 'secondary', size: ButtonSi
   `inline-flex shrink-0 cursor-pointer items-center justify-center whitespace-nowrap font-display font-semibold transition-colors active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 ${VARIANTS[variant]} ${SIZES[size]}`
 
 export const fieldClass =
-  'w-full rounded-lg border border-field bg-surface px-3 text-sm text-ink placeholder:text-ink-faint transition-shadow focus:border-bmc-orange-deep focus:outline-none focus:ring-2 focus:ring-bmc-orange-deep/20'
+  'w-full rounded-lg border border-field bg-surface px-3 text-sm text-ink placeholder:text-ink-faint transition-shadow focus:border-bmc-gold focus:outline-none focus:ring-2 focus:ring-bmc-gold/20'

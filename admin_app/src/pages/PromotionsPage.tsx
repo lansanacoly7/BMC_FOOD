@@ -320,6 +320,110 @@ export const PromotionsPage: React.FC = () => {
     <PageBody>
       <Notice notice={notification} />
 
+      {/* ─── APERÇU EN DIRECT DU SITE CLIENT (Bannière & Plats en Promotion) ─── */}
+      <section
+        aria-label="Aperçu en direct du site client"
+        className="rounded-2xl border border-white/10 bg-gradient-to-b from-[#141720] to-[#0D0F15] p-4 sm:p-5 shadow-2xl relative overflow-hidden"
+      >
+        {/* En-tête de l'aperçu avec statut temps réel */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/[0.08]">
+          <div className="flex items-center gap-2.5">
+            <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-xs font-bold uppercase tracking-wider text-white">
+              Aperçu en direct · Site Client
+            </span>
+            <span className="text-[11px] font-medium text-neutral-400">
+              (Bannière & offres actives visibles par vos clients)
+            </span>
+          </div>
+
+          <a
+            href="http://localhost:5173/"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-bmc-gold hover:text-amber-300 transition-colors"
+          >
+            <Eye className="size-3.5" />
+            <span>Tester sur le site client en direct ↗</span>
+          </a>
+        </div>
+
+        {/* Corps de l'aperçu : Bannière officielle + Plats en promotion */}
+        <div className="mt-4 grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-4 items-center">
+          {/* 1. Miniature de la Bannière Spéciale Officielle */}
+          <div className="relative overflow-hidden rounded-xl border border-amber-500/30 bg-black aspect-[16/9] max-h-52 group">
+            <img
+              src="/images/products/special-offer-banner.jpg"
+              alt="Bannière Offre Spéciale BMC Food"
+              className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+            />
+            {/* Dégradé et badge superposé */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-4 flex flex-col justify-end">
+              <span className="inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-wider text-bmc-gold">
+                Offre Spéciale Dakar
+              </span>
+              <p className="font-display text-lg sm:text-xl font-black text-white leading-tight">
+                {activePromos.length > 0
+                  ? `Jusqu'à -${Math.max(...activePromos.map((p) => p.discountPercent || 20))}% sur vos commandes`
+                  : 'Bannière active en ligne'}
+              </p>
+              <p className="text-xs text-neutral-300 mt-0.5">
+                {activePromos.length} plat{activePromos.length > 1 ? 's' : ''} en promotion immédiate
+              </p>
+            </div>
+          </div>
+
+          {/* 2. Liste miniature des plats en promotion actifs */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs pb-1">
+              <span className="font-semibold text-neutral-300">Plats remisés en vitrine :</span>
+              <span className="font-bold text-bmc-gold">{activePromos.length} actif{activePromos.length > 1 ? 's' : ''}</span>
+            </div>
+
+            {activePromos.length > 0 ? (
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {activePromos.map((item) => {
+                  const discounted = calcDiscounted(item.price, item.discountPercent || 20)
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-3 p-2 rounded-xl bg-black/40 border border-white/[0.08] hover:border-bmc-gold/40 transition-colors"
+                    >
+                      <img
+                        src={item.image_url}
+                        alt={item.name}
+                        className="size-10 rounded-lg object-cover shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-white truncate">{item.name}</p>
+                        <div className="flex items-baseline gap-2 mt-0.5">
+                          <span className="text-[11px] text-neutral-500 line-through">
+                            {formatPrice(item.price)}
+                          </span>
+                          <span className="text-xs font-bold text-bmc-gold">
+                            {formatPrice(discounted)}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-bmc-gold/20 text-bmc-gold shrink-0">
+                        -{item.discountPercent || 20}%
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-black/30 border border-dashed border-white/10 text-center">
+                <p className="text-xs text-neutral-400">Aucune promotion active actuellement.</p>
+                <p className="text-[11px] text-neutral-500 mt-1">
+                  Cliquez sur « Mettre en promo » dans le catalogue pour afficher un plat ici.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       <StatGrid>
         <Stat label="Promotions en ligne" value={activePromos.length} hint="Visibles sur le site client" />
         <Stat
