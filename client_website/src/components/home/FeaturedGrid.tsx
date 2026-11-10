@@ -1,5 +1,34 @@
-import { isAddOnOnly } from '../../data/productOptions'
+import { FALLBACK_PRODUCTS } from '../../data/mockMenu'
+import { isAddOnOnly, normalize } from '../../data/productOptions'
 import type { Product } from '../../types'
+
+/**
+ * Famille d'un plat pour les rondelles de l'accueil.
+ * On se fie au nom de la catégorie et au code du plat, jamais au numéro de catégorie :
+ * ce numéro change d'une base à l'autre (menu de secours, base locale, production).
+ */
+function matchesFamily(product: Product, family: string): boolean {
+  const category = normalize(product.category_name)
+  const code = product.code.toLowerCase()
+  switch (family) {
+    case 'all':
+      return true
+    case 'tacos-panes':
+      return category.includes('pane') || /^(tp|tjp|trp|thp|txl)-/.test(code)
+    case 'burgers':
+      return category.includes('burger') || code.startsWith('bg-')
+    case 'tacos-simples':
+      return category.includes('simple') || code.startsWith('ts-')
+    case 'boissons':
+      return category.includes('boisson') || code.startsWith('bv-')
+    case 'sauces':
+      return category.includes('sauce')
+    case 'poulet-finger-food':
+      return category.includes('poulet') || category.includes('finger')
+    default:
+      return false
+  }
+}
 import { ProductCard } from '../menu/ProductCard'
 
 const CATALOG_PRODUCTS: Product[] = [
@@ -191,7 +220,12 @@ export function FeaturedGrid({
   onSeeAll,
   onSelectProduct,
 }: FeaturedGridProps) {
-  const productList = (products.length > 0 ? products : CATALOG_PRODUCTS).filter((product) => !isAddOnOnly(product))
+  const source = products.length > 0 ? products : CATALOG_PRODUCTS
+  // Si la base ne contient pas encore de boissons, on montre les canettes BMC du menu de secours (comme la page Menu).
+  const withDrinks = source.some((p) => matchesFamily(p, 'boissons'))
+    ? source
+    : [...source, ...FALLBACK_PRODUCTS.filter((p) => matchesFamily(p, 'boissons'))]
+  const productList = withDrinks.filter((product) => !isAddOnOnly(product))
 
   const isDefaultView = activeCategory === 'all' && !searchQuery.trim()
 
@@ -210,15 +244,7 @@ export function FeaturedGrid({
 
   // Filtrage combiné catégorie + recherche texte
   const filtered = baseList.filter((product) => {
-    const categoryName = (product.category_name || '').toLowerCase()
-    const matchCategory =
-      activeCategory === 'all' ||
-      (activeCategory === 'tacos-panes' && (product.category === 1 || categoryName.includes('tacos pané'))) ||
-      (activeCategory === 'burgers' && (product.category === 2 || categoryName.includes('burger'))) ||
-      (activeCategory === 'tacos-simples' && (product.category === 3 || categoryName.includes('tacos simple'))) ||
-      (activeCategory === 'boissons' && (product.category === 7 || categoryName.includes('boisson') || product.code.toLowerCase().startsWith('bv'))) ||
-      (activeCategory === 'sauces' && (product.category === 4 || categoryName.includes('sauce'))) ||
-      (activeCategory === 'poulet-finger-food' && (product.category === 5 || categoryName.includes('poulet')))
+    const matchCategory = matchesFamily(product, activeCategory)
 
     const matchSearch =
       !searchQuery.trim() ||
@@ -228,9 +254,8 @@ export function FeaturedGrid({
     return matchCategory && matchSearch
   })
 
-  // Les plus commandés : plats marqués « populaire », sinon les premiers de la carte
-  const isDrinkItem = (product: Product) => product.code.toLowerCase().startsWith('bv') || (product.category_name || '').toLowerCase().includes('boisson')
-  const mainDishes = isDefaultView ? filtered.filter((product) => !isDrinkItem(product)) : filtered
+  // Les plus commandés : plats marqués « populaire », sinon les premiers de la carte (sans boissons en vue complète)
+  const mainDishes = isDefaultView ? filtered.filter((product) => !matchesFamily(product, 'boissons')) : filtered
   const popularProducts = mainDishes.filter((product) => product.popular)
   const featured = (popularProducts.length >= 4 ? popularProducts : mainDishes).slice(0, 8)
 
