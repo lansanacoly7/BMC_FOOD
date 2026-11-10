@@ -209,24 +209,21 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               </div>
             </div>
 
-            {/* ─── BOUTON JAUNE BMC FOOD (Demande explicite de l'utilisateur) ─── */}
+            {/* ─── BOUTON JAUNE BMC FOOD (Sans effet lumineux) ─── */}
             <button
               type="submit"
               disabled={isLoading}
-              className="relative overflow-hidden group w-full h-13 !mt-6 rounded-xl bg-gradient-to-r from-[#FFD000] via-[#FCB800] to-[#F59E0B] hover:from-[#FFE043] hover:to-[#FCB800] text-[#090A0E] font-black text-base tracking-wide transition-all duration-200 shadow-[0_8px_30px_rgba(252,184,0,0.45)] hover:shadow-[0_12px_40px_rgba(252,184,0,0.7)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-12 !mt-6 rounded-xl bg-[#FCB800] hover:bg-[#E5A700] active:bg-[#CC9400] text-[#090A0E] font-black text-sm uppercase tracking-wider transition-colors duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {/* Balayage de lumière au survol */}
-              <span className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-[350%] transition-transform duration-1000 ease-out pointer-events-none" />
-
               {isLoading ? (
                 <>
-                  <Loader2 className="size-5 animate-spin text-[#090A0E]" />
+                  <Loader2 className="size-4 animate-spin text-[#090A0E]" />
                   <span>Connexion en cours…</span>
                 </>
               ) : (
                 <>
                   <span>Se connecter</span>
-                  <ArrowRight className="size-5 transition-transform duration-200 group-hover:translate-x-1 text-[#090A0E]" />
+                  <ArrowRight className="size-4 text-[#090A0E]" />
                 </>
               )}
             </button>
