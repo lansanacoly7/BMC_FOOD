@@ -30,7 +30,6 @@ interface KdsTopBarProps {
     dine_in: number
   }
   lateCount: number
-  avgWaitMinutes: number
   historyCount: number
   onOpenHistory: () => void
   isAudioMuted: boolean
@@ -46,7 +45,6 @@ export const KdsTopBar: React.FC<KdsTopBarProps> = ({
   onTypeFilterChange,
   countsByType,
   lateCount,
-  avgWaitMinutes,
   historyCount,
   onOpenHistory,
   isAudioMuted,

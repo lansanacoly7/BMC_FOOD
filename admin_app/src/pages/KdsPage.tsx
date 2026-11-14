@@ -78,13 +78,6 @@ export const KdsPage: React.FC<KdsPageProps> = ({
     return searchedOrders.filter((o) => o.orderType === typeFilter)
   }, [searchedOrders, typeFilter])
 
-  // 4. Commandes actives (pending + preparing) pour calculs d'attente et retards
-  const activeOrders = useMemo(() => {
-    return filteredOrders.filter(
-      (o) => o.status === 'pending' || o.status === 'preparing',
-    )
-  }, [filteredOrders])
-
   // Retards sur les 3 colonnes : le compteur correspond aux tickets rouges affichés
   const lateCount = useMemo(() => {
     const dangerSec = thresholds.dangerMinutes * 60
@@ -96,16 +89,7 @@ export const KdsPage: React.FC<KdsPageProps> = ({
     ).length
   }, [filteredOrders, nowMs, thresholds])
 
-  const avgWaitMinutes = useMemo(() => {
-    if (activeOrders.length === 0) return 0
-    const totalMs = activeOrders.reduce((sum, o) => {
-      const diff = nowMs - new Date(o.createdAt).getTime()
-      return sum + (isNaN(diff) ? 0 : Math.max(0, diff))
-    }, 0)
-    return Math.round(totalMs / (activeOrders.length * 60000))
-  }, [activeOrders, nowMs])
-
-  // 5. Historique (commandes livrées ou annulées)
+  // 4. Historique (commandes livrées ou annulées)
   const historyCount = useMemo(() => {
     return searchedOrders.filter(
       (o) => o.status === 'delivered' || o.status === 'cancelled',
@@ -124,7 +108,6 @@ export const KdsPage: React.FC<KdsPageProps> = ({
         onTypeFilterChange={onTypeFilterChange}
         countsByType={countsByType}
         lateCount={lateCount}
-        avgWaitMinutes={avgWaitMinutes}
         historyCount={historyCount}
         onOpenHistory={() => setIsHistoryOpen(true)}
         isAudioMuted={isAudioMuted}

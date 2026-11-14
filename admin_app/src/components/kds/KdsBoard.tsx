@@ -46,6 +46,20 @@ export const KdsBoard: React.FC<KdsBoardProps> = ({
   isUndoPending = false,
 }) => {
   const [activeTab, setActiveTab] = useState<BoardTab>('pending')
+  // Les plats rayés survivent au passage en compact et aux changements d'étape
+  const [doneItems, setDoneItems] = useState<Record<string, number[]>>({})
+
+  const toggleItem = (orderId: string, itemIndex: number) => {
+    setDoneItems((prev) => {
+      const current = prev[orderId] ?? []
+      return {
+        ...prev,
+        [orderId]: current.includes(itemIndex)
+          ? current.filter((index) => index !== itemIndex)
+          : [...current, itemIndex],
+      }
+    })
+  }
   // Onglet vers lequel l'écran va passer tout seul (message affiché pendant le délai)
   const [autoSwitchTarget, setAutoSwitchTarget] = useState<BoardTab | null>(null)
   // Vrai quand l'onglet ouvert vient de se vider pendant que l'équipe le regardait
@@ -213,6 +227,8 @@ export const KdsBoard: React.FC<KdsBoardProps> = ({
           nowMs={nowMs}
           thresholds={thresholds}
           emptyMessage={current.emptyMessage}
+          doneItems={doneItems}
+          onToggleItem={toggleItem}
           onTransition={onTransition}
           onCancel={onCancel}
           onViewDetails={onViewDetails}

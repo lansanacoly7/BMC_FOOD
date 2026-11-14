@@ -131,12 +131,20 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Optimisation développement : hachage rapide pour éviter les blocages de boucle sur Windows
+# Optimisation développement : hachage rapide pour éviter les blocages de boucle sur Windows.
+# En production (DEBUG=False), seuls les hasheurs standard sécurisés (>700 000 itérations) sont utilisés.
 if DEBUG:
     PASSWORD_HASHERS = [
         'api.hashers.DevFastPBKDF2PasswordHasher',
         'django.contrib.auth.hashers.PBKDF2PasswordHasher',
         'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+    ]
+else:
+    PASSWORD_HASHERS = [
+        'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+        'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+        'django.contrib.auth.hashers.Argon2PasswordHasher',
+        'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
     ]
 
 LANGUAGE_CODE = 'fr-fr'
