@@ -114,12 +114,12 @@ export const KdsBoard: React.FC<KdsBoardProps> = ({
 
   return (
     <>
-      {/* Onglets des trois parcours de commande - Centrés et Mis en valeur */}
-      <div className="flex shrink-0 justify-center bg-canvas px-4 pt-3 pb-1">
+      {/* Barre d'onglets compacte et centrée des trois parcours */}
+      <div className="flex shrink-0 items-center justify-center bg-canvas px-4 py-2">
         <div
           role="tablist"
-          aria-label="Étapes de la commande"
-          className="grid w-full max-w-6xl grid-cols-3 gap-3.5"
+          aria-label="Parcours de commande"
+          className="inline-flex max-w-full items-center gap-1.5 overflow-x-auto rounded-2xl border border-white/10 bg-[#12141A] p-1.5 shadow-lg shadow-black/40"
         >
           {TABS.map((tab) => {
             const tabOrders = ordersFor(tab)
@@ -129,8 +129,6 @@ export const KdsBoard: React.FC<KdsBoardProps> = ({
             const isActive = tab.id === activeTab
             const TabIcon = tab.icon
             const count = tabOrders.length
-            const countLabel = `${count} commande${count > 1 ? 's' : ''}`
-            const lateLabel = `${lateCount} commande${lateCount > 1 ? 's' : ''} en retard`
 
             return (
               <button
@@ -140,67 +138,40 @@ export const KdsBoard: React.FC<KdsBoardProps> = ({
                 id={`kds-tab-${tab.id}`}
                 aria-selected={isActive}
                 aria-controls="kds-tab-panel"
-                aria-label={`${tab.label}, ${countLabel}${lateCount > 0 ? `, ${lateLabel}` : ''}`}
-                title={lateCount > 0 ? lateLabel : undefined}
+                aria-label={`${tab.label}, ${count} commande${count > 1 ? 's' : ''}${
+                  lateCount > 0 ? `, ${lateCount} en retard` : ''
+                }`}
                 onClick={() => openTab(tab.id)}
-                className={`group relative flex min-w-0 cursor-pointer select-none items-center gap-3.5 rounded-2xl border p-3.5 text-left transition-all duration-200 ${
+                className={`flex h-11 cursor-pointer select-none items-center gap-2.5 whitespace-nowrap rounded-xl px-5 text-sm font-bold transition-all duration-150 ${
                   isActive
-                    ? 'border-[#FCB800] bg-gradient-to-b from-[#181A22] to-[#12141B] shadow-xl shadow-black/40 ring-1 ring-[#FCB800]/50'
-                    : 'border-white/10 bg-[#101217] hover:border-white/20 hover:bg-[#14161F]'
+                    ? 'bg-[#FCB800] text-[#08090D] shadow-md shadow-[#FCB800]/25'
+                    : 'text-neutral-400 hover:bg-white/5 hover:text-white'
                 }`}
               >
-                {/* Indicateur lumineux actif en haut de carte */}
-                {isActive && (
-                  <span
-                    className="absolute -top-px left-6 right-6 h-[2px] rounded-full bg-gradient-to-r from-transparent via-[#FCB800] to-transparent shadow-[0_0_8px_#FCB800]"
-                    aria-hidden="true"
-                  />
-                )}
-
-                {/* Icône de parcours */}
+                <TabIcon
+                  className={`size-[18px] shrink-0 ${isActive ? 'text-[#08090D]' : 'text-neutral-400'}`}
+                  aria-hidden="true"
+                />
+                <span className="font-display tracking-tight">{tab.label}</span>
                 <span
-                  className={`grid size-12 shrink-0 place-items-center rounded-xl transition-all duration-200 ${
-                    isActive
-                      ? 'bg-[#FCB800] text-[#08090D] shadow-md shadow-[#FCB800]/30'
-                      : 'bg-white/5 text-neutral-400 group-hover:bg-white/10 group-hover:text-white'
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-bold tabular-nums ${
+                    isActive ? 'bg-[#08090D]/20 text-[#08090D]' : 'bg-white/10 text-neutral-300'
                   }`}
                 >
-                  <TabIcon className="size-6" aria-hidden="true" />
+                  {count}
                 </span>
-
-                {/* Corps de l'onglet */}
-                <span className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-1">
-                    <span
-                      className={`block truncate font-display text-[16px] font-bold tracking-tight ${
-                        isActive ? 'text-white' : 'text-neutral-300 group-hover:text-white'
-                      }`}
-                    >
-                      {tab.label}
-                    </span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums shrink-0 ${
-                        isActive
-                          ? 'bg-[#FCB800]/20 text-[#FCB800]'
-                          : 'bg-white/5 text-neutral-400 group-hover:text-neutral-300'
-                      }`}
-                    >
-                      {count}
-                    </span>
-                  </div>
-
-                  <div className="mt-1 flex items-center gap-2 whitespace-nowrap text-xs">
-                    <span className={isActive ? 'text-neutral-300 font-medium' : 'text-neutral-500'}>
-                      {countLabel}
-                    </span>
-
-                    {lateCount > 0 && (
-                      <span className="inline-flex items-center gap-1 rounded-md bg-red-500/15 px-1.5 py-0.5 text-[11px] font-bold text-red-400 border border-red-500/30">
-                        {lateCount} retard
-                      </span>
-                    )}
-                  </div>
-                </span>
+                {lateCount > 0 && (
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums ${
+                      isActive
+                        ? 'bg-[#08090D] text-red-400'
+                        : 'border border-red-500/30 bg-red-500/20 text-red-400'
+                    }`}
+                    title={`${lateCount} commande(s) en retard`}
+                  >
+                    {lateCount} retard
+                  </span>
+                )}
               </button>
             )
           })}
