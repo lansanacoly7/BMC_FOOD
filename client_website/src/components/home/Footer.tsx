@@ -2,7 +2,7 @@ import { ArrowRight, ArrowUp, ArrowUpRight, ChevronRight, Clock3, MapPin, Phone 
 import { motion, useReducedMotion, type Variants } from 'motion/react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { isOpenAt } from '../../lib/greeting'
-import { WHATSAPP_GREEN, WhatsAppIcon } from '../brand/WhatsAppIcon'
+import { WhatsAppIcon } from '../brand/WhatsAppIcon'
 
 type Page = 'home' | 'menu' | 'contact' | 'profile'
 
@@ -29,7 +29,7 @@ const NAV_LINKS: { page: Page; label: string }[] = [
 
 /** Les familles de la carte BMC (mêmes intitulés que les rondelles de la carte, qu'elles ouvrent directement). */
 const SPECIALTIES = [
-  { icon: 'taco', label: 'Tacos panés', keyword: 'pane' },
+  { icon: 'taco', label: 'Tacos panés', keyword: 'tacos panes' },
   { icon: 'wrap', label: 'Tacos simples', keyword: 'simple' },
   { icon: 'burger', label: 'Burgers', keyword: 'burger' },
   { icon: 'chicken', label: 'Poulet & finger food', keyword: 'poulet' },
@@ -124,7 +124,7 @@ function TikTokIcon() {
 /** Comptes officiels uniquement (charte page 14 et enseigne du restaurant), plus le WhatsApp de commande. */
 const SOCIALS = [
   { name: 'TikTok', label: 'TikTok @bmctacos', href: 'https://www.tiktok.com/@bmctacos', icon: <TikTokIcon /> },
-  { name: 'Instagram', label: 'Instagram @bmctacos_senegal', href: 'https://www.instagram.com/bmctacos_senegal/', icon: <InstagramIcon /> },
+  { name: 'Instagram', label: 'Instagram @bmcfood_senegal', href: 'https://www.instagram.com/bmcfood_senegal/', icon: <InstagramIcon /> },
   { name: 'WhatsApp', label: 'WhatsApp 77 856 13 13', href: WHATSAPP_URL, icon: <WhatsAppIcon className="size-4" /> },
 ]
 
@@ -185,6 +185,63 @@ function PhonePreview({ float }: { float: boolean }) {
   )
 }
 
+/** Carte « Commandez en ligne » : l'appel à commander, avec la livraison, les paiements et l'aperçu téléphone. */
+function OrderCard({ titleId, onOrder, float }: { titleId: string; onOrder: () => void; float: boolean }) {
+  return (
+    <div className="relative flex min-h-[15rem] items-center overflow-hidden rounded-3xl bg-linear-to-br from-[#141414] to-[#050505] py-6 pl-5 pr-3 shadow-[0_24px_48px_rgb(0_0_0/0.55)] ring-1 ring-bmc-gold/40 lg:min-h-[16.5rem] lg:shadow-none">
+      <div aria-hidden="true" className="absolute -right-10 -top-16 size-48 rounded-full [background:radial-gradient(circle,rgb(252_184_0/0.16),transparent_70%)]" />
+      <div className="relative z-10 w-[64%] lg:w-[62%]">
+        <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-bmc-gold">BMC Food en ligne</p>
+        <h3 id={titleId} className="mt-3 font-display text-xl font-bold leading-tight tracking-[-0.02em] text-white">
+          Commandez
+          <span className="block">en ligne,</span>
+          <span className="block text-bmc-gold">on vous livre.</span>
+        </h3>
+        <button
+          type="button"
+          onClick={onOrder}
+          className="group mt-4 inline-flex h-11 cursor-pointer items-center gap-2.5 rounded-full py-1 pl-4 pr-1 text-xs font-semibold text-white ring-1 ring-bmc-gold transition-colors hover:bg-bmc-gold/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold"
+        >
+          <span>
+            Commander<span className="lg:hidden"> maintenant</span>
+          </span>
+          <span className="grid size-8 place-items-center rounded-full bg-bmc-gold text-bmc-charcoal transition-transform duration-300 group-hover:translate-x-0.5">
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </span>
+        </button>
+        <p className="mt-3 text-[0.7rem] leading-relaxed text-zinc-400">
+          Livraison dès 1 000 F
+          <span className="block">20 à 45 min, partout à Dakar</span>
+        </p>
+        <ul className="mt-2.5 flex gap-1.5" aria-label="Moyens de paiement acceptés">
+          {PAYMENTS.map((payment) => (
+            <li key={payment.name} title={payment.name}>
+              <img src={payment.src} alt={payment.name} width={28} height={28} loading="lazy" className="size-7 rounded-md bg-white object-contain p-0.5" />
+            </li>
+          ))}
+        </ul>
+      </div>
+      <PhonePreview float={float} />
+    </div>
+  )
+}
+
+/** Gros bouton tactile du pied de page mobile : appeler, écrire sur WhatsApp, ouvrir l'itinéraire. */
+function QuickAction({ href, icon, label, detail, external = false }: { href: string; icon: ReactNode; label: string; detail: string; external?: boolean }) {
+  return (
+    <a
+      href={href}
+      {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+      className="group flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl bg-white/[0.04] px-2 py-3 text-center ring-1 ring-white/10 transition-[background-color,box-shadow] active:bg-bmc-gold/10 hover:ring-bmc-gold/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold"
+    >
+      <span className="grid size-10 place-items-center rounded-full text-bmc-gold ring-1 ring-bmc-gold/45 [&_svg]:size-[18px]">{icon}</span>
+      <span className="text-sm font-semibold leading-none text-white">{label}</span>
+      <span className="text-[0.7rem] leading-none tabular-nums text-zinc-400">{detail}</span>
+      {external && <span className="sr-only"> (nouvel onglet)</span>}
+    </a>
+  )
+}
+
 /**
  * Pied de page BMC Food, d'après la maquette validée :
  * 1. une grande photo de cuisine (le gobelet noir BMC est posé sur le comptoir) avec la signature de la marque ;
@@ -220,7 +277,7 @@ export function Footer({ onExploreMenu, onNavigate, onSelectSpecialty, onOpenAcc
   return (
     <footer aria-label="Pied de page" className="relative mt-16 overflow-hidden bg-bmc-black text-zinc-100 sm:mt-24">
       {/* ===== 1. LA PHOTO ===== */}
-      <motion.div {...inView} variants={cascade} className="relative h-[26rem] overflow-hidden sm:h-[clamp(22rem,44vw,40rem)]">
+      <motion.div {...inView} variants={cascade} className="relative h-[19rem] overflow-hidden sm:h-[clamp(22rem,44vw,40rem)]">
         <motion.img
           src="/images/footer/footer-gobelet.webp"
           srcSet="/images/footer/footer-gobelet-960.webp 960w, /images/footer/footer-gobelet.webp 1679w"
@@ -258,13 +315,13 @@ export function Footer({ onExploreMenu, onNavigate, onSelectSpecialty, onOpenAcc
           />
         </motion.svg>
 
-        <div className="relative mx-auto flex h-full max-w-7xl flex-col justify-start px-4 pt-12 sm:px-6 sm:pt-16 lg:justify-center lg:px-8 lg:pb-24 lg:pt-0">
+        <div className="relative mx-auto flex h-full max-w-7xl flex-col justify-start px-4 pt-9 sm:px-6 sm:pt-16 lg:justify-center lg:px-8 lg:pb-24 lg:pt-0">
           <motion.p variants={reveal} className="text-xs font-bold uppercase tracking-[0.22em] text-bmc-gold">
             BMC Food · Dakar
           </motion.p>
           <motion.h2
             variants={reveal}
-            className="mt-4 font-display text-[2.6rem] font-extrabold leading-[0.95] tracking-[-0.04em] text-white sm:text-6xl lg:text-7xl"
+            className="mt-3 font-display text-[2.35rem] font-extrabold leading-[0.95] tracking-[-0.04em] text-white sm:mt-4 sm:text-6xl lg:text-7xl"
           >
             Le goût du
             <span className="block text-bmc-gold">vrai plaisir.</span>
@@ -273,7 +330,7 @@ export function Footer({ onExploreMenu, onNavigate, onSelectSpecialty, onOpenAcc
             <button
               type="button"
               onClick={exploreMenu}
-              className="group mt-6 inline-flex min-h-11 cursor-pointer items-center gap-2 border-b border-bmc-gold pb-1.5 text-sm font-bold text-white transition-colors hover:text-bmc-gold focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-bmc-gold"
+              className="group mt-4 inline-flex min-h-11 cursor-pointer items-center gap-2 border-b border-bmc-gold pb-1.5 text-sm font-bold text-white sm:mt-6 transition-colors hover:text-bmc-gold focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-bmc-gold"
             >
               Découvrir notre carte
               <ArrowUpRight
@@ -285,12 +342,122 @@ export function Footer({ onExploreMenu, onNavigate, onSelectSpecialty, onOpenAcc
         </div>
       </motion.div>
 
-      {/* ===== 2. LES COLONNES ===== */}
+      {/* ===== 2a. TÉLÉPHONE ET TABLETTE : l'essentiel d'abord, au pouce ===== */}
+      <motion.div
+        {...inView}
+        viewport={{ once: true, amount: 0.08 }}
+        variants={cascade}
+        className="relative z-10 mx-auto -mt-16 flex max-w-2xl flex-col gap-5 px-4 pb-8 sm:-mt-24 sm:px-6 lg:hidden"
+      >
+        {/* Commander : à cheval sur la photo */}
+        <motion.section variants={reveal} aria-labelledby="footer-order-title-mobile">
+          <OrderCard titleId="footer-order-title-mobile" onOrder={exploreMenu} float={!reduceMotion} />
+        </motion.section>
+
+        {/* Nous joindre en un geste */}
+        <motion.nav variants={reveal} aria-label="Nous joindre" className="grid grid-cols-3 gap-2.5">
+          <QuickAction href="tel:+221778561313" icon={<Phone aria-hidden="true" />} label="Appeler" detail="77 856 13 13" />
+          <QuickAction href={WHATSAPP_URL} icon={<WhatsAppIcon />} label="WhatsApp" detail="Par message" external />
+          <QuickAction href={MAPS_URL} icon={<MapPin aria-hidden="true" />} label="Itinéraire" detail="PGXV+6R7" external />
+        </motion.nav>
+
+        {/* Horaires et statut en direct */}
+        <motion.div variants={reveal} className="flex items-center gap-3 rounded-2xl bg-white/[0.04] px-4 py-3 ring-1 ring-white/10">
+          <Clock3 className="size-5 shrink-0 text-bmc-gold" aria-hidden="true" />
+          <div className="min-w-0 flex-1 text-sm leading-snug">
+            <p className="font-semibold text-white">
+              <span className="tabular-nums">11h – 02h</span> · mardi au dimanche
+            </p>
+            <p className="text-xs text-zinc-400">
+              Fermé le lundi · aussi au{' '}
+              <a href="tel:+221771067575" className="whitespace-nowrap tabular-nums text-zinc-300 underline-offset-2 hover:text-bmc-gold hover:underline">
+                77 106 75 75
+              </a>
+            </p>
+          </div>
+          <span
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.7rem] font-semibold ${
+              isOpen ? 'bg-emerald-400/10 text-emerald-400' : 'bg-white/5 text-zinc-400'
+            }`}
+          >
+            <span className={`size-1.5 rounded-full ${isOpen ? 'bg-emerald-400' : 'bg-zinc-500'}`} aria-hidden="true" />
+            {isOpen ? 'Ouvert' : 'Fermé'}
+          </span>
+        </motion.div>
+
+        {/* Nos spécialités : chaque pastille ouvre la carte sur sa famille */}
+        <motion.section variants={reveal} aria-labelledby="footer-specialties-mobile" className="pt-2">
+          <h3 id="footer-specialties-mobile" className="text-[0.7rem] font-bold uppercase tracking-[0.2em] text-bmc-gold">
+            Nos spécialités
+          </h3>
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {SPECIALTIES.map((item) => (
+              <li key={item.keyword}>
+                <button
+                  type="button"
+                  onClick={() => (onSelectSpecialty ? onSelectSpecialty(item.keyword) : exploreMenu())}
+                  className="flex h-10 cursor-pointer items-center gap-2 rounded-full bg-white/[0.04] pl-2.5 pr-3.5 text-sm text-zinc-100 ring-1 ring-white/12 transition-colors active:bg-bmc-gold/10 hover:text-bmc-gold hover:ring-bmc-gold/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold [&_svg]:size-[18px]"
+                >
+                  <SpecialtyIcon type={item.icon} />
+                  {item.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </motion.section>
+
+        {/* Navigation */}
+        <motion.nav variants={reveal} aria-label="Navigation du pied de page" className="border-y border-white/10">
+          <ul className="grid grid-cols-2 gap-x-6">
+            {NAV_LINKS.map((link) => (
+              <li key={link.page}>
+                <button
+                  type="button"
+                  onClick={() => (link.page === 'profile' && onOpenAccount ? onOpenAccount() : onNavigate?.(link.page))}
+                  className="flex min-h-12 w-full cursor-pointer items-center justify-between gap-2 text-left text-sm text-zinc-200 transition-colors hover:text-bmc-gold"
+                >
+                  {link.label}
+                  <ChevronRight className="size-4 text-zinc-500" aria-hidden="true" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </motion.nav>
+
+        {/* Marque et réseaux */}
+        <motion.section variants={reveal} aria-label="BMC Food" className="flex items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <img src="/images/brand/logo-principal.webp" alt="BMC Food" width={640} height={483} loading="lazy" className="h-12 w-auto shrink-0" />
+            <p className="font-display text-sm font-bold leading-snug text-white">
+              Le goût du vrai plaisir.
+              <span className="block text-bmc-gold">Excellence in every bite.</span>
+            </p>
+          </div>
+          <ul className="flex shrink-0 gap-2" aria-label="Nos réseaux">
+            {SOCIALS.map((social) => (
+              <li key={social.name}>
+                <a
+                  href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={social.label}
+                  title={social.label}
+                  className="grid size-10 place-items-center rounded-full text-zinc-100 ring-1 ring-white/40 transition-colors hover:text-bmc-gold hover:ring-bmc-gold"
+                >
+                  {social.icon}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </motion.section>
+      </motion.div>
+
+      {/* ===== 2b. GRAND ÉCRAN : LES CINQ COLONNES ===== */}
       <motion.div
         {...inView}
         viewport={{ once: true, amount: 0.12 }}
         variants={cascade}
-        className="relative z-10 mx-auto -mt-10 grid max-w-7xl grid-cols-2 gap-x-6 gap-y-10 px-4 pb-12 sm:-mt-14 sm:px-6 md:grid-cols-3 lg:-mt-20 lg:grid-cols-[1.2fr_0.8fr_1.1fr_1.15fr_1.45fr] lg:gap-x-0 lg:px-8"
+        className="relative z-10 mx-auto hidden max-w-7xl px-8 pb-12 lg:-mt-20 lg:grid lg:grid-cols-[1.2fr_0.8fr_1.1fr_1.15fr_1.45fr]"
       >
         {/* Marque */}
         <motion.section
@@ -374,7 +541,7 @@ export function Footer({ onExploreMenu, onNavigate, onSelectSpecialty, onOpenAcc
                 PGXV+6R7 · Itinéraire<span className="sr-only"> (ouvre Google Maps)</span>
               </a>
             </ContactRow>
-            <ContactRow icon={<WhatsAppIcon />} iconColor={WHATSAPP_GREEN}>
+            <ContactRow icon={<WhatsAppIcon />}>
               <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="block font-semibold text-white transition-colors hover:text-bmc-gold">
                 WhatsApp
               </a>
@@ -399,46 +566,32 @@ export function Footer({ onExploreMenu, onNavigate, onSelectSpecialty, onOpenAcc
           aria-labelledby="footer-order-title"
           className="col-span-2 md:col-span-3 lg:col-span-1 lg:ml-7"
         >
-          <div className="relative flex min-h-[16.5rem] items-center overflow-hidden rounded-3xl bg-linear-to-br from-[#141414] to-[#050505] py-6 pl-5 pr-3 ring-1 ring-bmc-gold/40">
-            <div aria-hidden="true" className="absolute -right-10 -top-16 size-48 rounded-full [background:radial-gradient(circle,rgb(252_184_0/0.16),transparent_70%)]" />
-            <div className="relative z-10 w-[64%] lg:w-[62%]">
-              <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-bmc-gold">BMC Food en ligne</p>
-              <h3 id="footer-order-title" className="mt-3 font-display text-xl font-bold leading-tight tracking-[-0.02em] text-white">
-                Commandez
-                <span className="block">en ligne,</span>
-                <span className="block text-bmc-gold">on vous livre.</span>
-              </h3>
-              <button
-                type="button"
-                onClick={exploreMenu}
-                className="group mt-4 inline-flex h-11 cursor-pointer items-center gap-2.5 rounded-full py-1 pl-4 pr-1 text-xs font-semibold text-white ring-1 ring-bmc-gold transition-colors hover:bg-bmc-gold/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold"
-              >
-                <span>
-                  Commander<span className="lg:hidden"> maintenant</span>
-                </span>
-                <span className="grid size-8 place-items-center rounded-full bg-bmc-gold text-bmc-charcoal transition-transform duration-300 group-hover:translate-x-0.5">
-                  <ArrowRight className="size-4" aria-hidden="true" />
-                </span>
-              </button>
-              <p className="mt-3 text-[0.7rem] leading-relaxed text-zinc-400">
-                Livraison dès 1 000 F
-                <span className="block">20 à 45 min, partout à Dakar</span>
-              </p>
-              <ul className="mt-2.5 flex gap-1.5" aria-label="Moyens de paiement acceptés">
-                {PAYMENTS.map((payment) => (
-                  <li key={payment.name} title={payment.name}>
-                    <img src={payment.src} alt={payment.name} width={28} height={28} loading="lazy" className="size-7 rounded-md bg-white object-contain p-0.5" />
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <PhonePreview float={!reduceMotion} />
-          </div>
+          <OrderCard titleId="footer-order-title" onOrder={exploreMenu} float={!reduceMotion} />
         </motion.section>
       </motion.div>
 
-      {/* ===== 3. LA BARRE FINALE ===== */}
-      <div className="border-t border-bmc-gold/50">
+      {/* ===== 3a. LA BARRE FINALE (téléphone et tablette) ===== */}
+      <div className="border-t border-bmc-gold/50 lg:hidden">
+        <div className={`mx-auto flex max-w-2xl flex-col gap-1 px-4 pt-4 text-xs text-zinc-400 sm:px-6 ${reserveCartSpace ? 'pb-28' : 'pb-8'}`}>
+          <div className="flex items-center justify-between gap-4">
+            <p>© {now.getFullYear()} BMC Food</p>
+            <button
+              type="button"
+              onClick={() => window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' })}
+              className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 text-zinc-300 transition-colors hover:text-bmc-gold"
+            >
+              Retour en haut
+              <ArrowUp className="size-3.5" aria-hidden="true" />
+            </button>
+          </div>
+          <p>
+            Tous droits réservés · Site réalisé par <span className="text-zinc-200">Teranga Labs</span>
+          </p>
+        </div>
+      </div>
+
+      {/* ===== 3b. LA BARRE FINALE (grand écran) ===== */}
+      <div className="hidden border-t border-bmc-gold/50 lg:block">
         <motion.div
           {...inView}
           variants={cascade}

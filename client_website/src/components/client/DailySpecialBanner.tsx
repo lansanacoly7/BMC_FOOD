@@ -241,7 +241,7 @@ function FeaturedCard({
         </div>
 
         <div>
-          <h3 className="font-display text-xl font-bold leading-tight">
+          <h3 className="font-display text-xl font-bold leading-tight transition-colors duration-300 group-hover:text-bmc-gold">
             {/* Lien étiré : sa zone de clic couvre toute la carte (photo comprise), au clavier comme à la souris. */}
             <button
               type="button"

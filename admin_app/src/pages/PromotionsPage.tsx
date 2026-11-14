@@ -123,7 +123,7 @@ const INITIAL_CATALOG: PromoItem[] = [
   },
   {
     id: 16,
-    code: 'bv-1',
+    code: 'bv-2',
     name: 'Canette Bissap Royal (33cl)',
     category: 'Boissons',
     price: 1000,
