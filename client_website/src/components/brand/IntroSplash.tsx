@@ -50,14 +50,17 @@ function waitForAssets(): Promise<void> {
 interface IntroSplashProps {
   /** Appelé quand le site est entièrement dévoilé : l'intro peut être retirée. */
   onFinish: () => void
+  /** Appelé quand le rideau commence à se lever : la page dessous peut lancer son entrée en même temps. */
+  onReveal?: () => void
 }
 
-export function IntroSplash({ onFinish }: IntroSplashProps) {
+export function IntroSplash({ onFinish, onReveal }: IntroSplashProps) {
   const [scope, animate] = useAnimate<HTMLDivElement>()
   const shouldReduceMotion = useReducedMotion()
   const skipRequested = useRef(false)
   const playing = useRef<AnimationPlaybackControlsWithThen | null>(null)
   const finish = useEffectEvent(onFinish)
+  const reveal = useEffectEvent(() => onReveal?.())
 
   const skip = useCallback(() => {
     if (skipRequested.current) return
@@ -182,6 +185,7 @@ export function IntroSplash({ onFinish }: IntroSplashProps) {
       if (cancelled) return
       if (!skipRequested.current) await playEntrance()
       if (cancelled) return
+      reveal()
       await playExit(skipRequested.current)
       if (cancelled) return
       delete root.dataset.intro

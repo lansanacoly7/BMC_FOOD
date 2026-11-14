@@ -93,7 +93,7 @@ const FALLBACK_PRODUCTS: Product[] = [
   },
   {
     id: 14,
-    code: 'bv-1',
+    code: 'bv-2',
     name: 'Canette Bissap BMC',
     category: 5,
     category_name: 'Boissons',

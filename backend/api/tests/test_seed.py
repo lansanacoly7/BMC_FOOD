@@ -16,12 +16,12 @@ class SeedBmcCommandTests(TestCase):
         MenuItem.objects.all().delete()
 
     def test_seed_creates_official_catalog(self):
-        """Vérifie que le seed peuple fidèlement les 7 catégories et 43 articles officiels (Décision X1 & P11)."""
+        """Vérifie que le seed peuple fidèlement les 8 catégories (dont Boissons) et 47 articles officiels (Décision X1 & P11)."""
         out = StringIO()
         call_command('seed_bmc', reset=True, stdout=out)
 
-        self.assertEqual(Category.objects.count(), 7)
-        self.assertEqual(MenuItem.objects.count(), 43)
+        self.assertEqual(Category.objects.count(), 8)
+        self.assertEqual(MenuItem.objects.count(), 47)
 
         tacos_simples = MenuItem.objects.filter(category__name="Tacos simples")
         self.assertEqual(tacos_simples.count(), 19)
@@ -35,12 +35,12 @@ class SeedBmcCommandTests(TestCase):
         Validation P12 :
         1. Chaque article possède une URL d'image renseignée.
         2. Format strictement conforme à : /images/products/<slug>.webp.
-        3. Tous les 43 slugs d'images sont 100% uniques sans collision.
+        3. Tous les 47 slugs d'images sont 100% uniques sans collision.
         """
         call_command('seed_bmc', reset=True, stdout=StringIO())
 
         items = MenuItem.objects.all()
-        self.assertEqual(items.count(), 43)
+        self.assertEqual(items.count(), 47)
 
         image_pattern = re.compile(r"^/images/products/([a-z0-9\-]+)\.webp$")
         seen_slugs = set()
@@ -60,7 +60,7 @@ class SeedBmcCommandTests(TestCase):
             )
             seen_slugs.add(slug)
 
-        self.assertEqual(len(seen_slugs), 43)
+        self.assertEqual(len(seen_slugs), 47)
 
     def test_seed_non_destructive_preserves_admin_modifications(self):
         """
@@ -120,3 +120,16 @@ class SeedBmcCommandTests(TestCase):
         self.assertEqual(item.price, 3500)
         self.assertEqual(item.description, "Viande hachée assaisonnée, frites croustillantes, sauce fromagère maison et panure dorée.")
         self.assertTrue(item.is_available)
+
+    def test_seed_retire_les_articles_retires_de_la_carte(self):
+        """bv-1 (« Boissons fraîches au choix ») est supprimé d'une base existante par le seed."""
+        boissons = Category.objects.create(name="Boissons", slug="boissons")
+        MenuItem.objects.create(
+            code="bv-1", category=boissons, name="Boissons fraîches au choix (33cl)",
+            price=800, description="Ancienne boisson générique",
+        )
+
+        call_command('seed_bmc', stdout=StringIO())
+
+        self.assertFalse(MenuItem.objects.filter(code="bv-1").exists())
+        self.assertEqual(MenuItem.objects.filter(category__name="Boissons").count(), 4)

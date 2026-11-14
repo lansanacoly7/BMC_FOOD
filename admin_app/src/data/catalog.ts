@@ -22,5 +22,4 @@ export const BMC_CATALOG: CatalogItem[] = [
   { id: 15, name: 'Ailes de poulet BBQ (x6)', category: 'Poulet', price: 3000, image_url: '/images/products/chicken-wings-bbq.webp' },
   { id: 16, name: 'Frites maison', category: 'Accompagnements', price: 1000, image_url: '/images/products/frites-maison.webp' },
   { id: 17, name: 'Pastels au poisson (x5)', category: 'Accompagnements', price: 1500, image_url: '/images/products/pastels-dakar.webp' },
-  { id: 18, name: 'Boisson fraîche (33cl)', category: 'Boissons', price: 800, image_url: '/images/products/boissons-fraiches.webp' },
 ]

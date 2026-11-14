@@ -244,21 +244,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
     popular: true,
   },
 
-  // --- Boissons ---
-  {
-    id: 18,
-    code: 'bv-1',
-    name: 'Boissons fraîches au choix (33cl)',
-    category: 7,
-    category_name: 'Boissons',
-    description: 'Coca-Cola, Fanta, Sprite ou Eau minérale gazeuse fraîche.',
-    price: 800,
-    image_url: '/images/products/boissons-fraiches.webp',
-    is_available: true,
-    is_daily_special: false,
-    popular: false,
-  },
-  // Canettes BMC Food (prix indicatif identique aux boissons 33cl : à confirmer avec l'équipe)
+  // --- Boissons : les canettes BMC Food, 800 F l'unité ---
   ...(
     [
       { id: 19, code: 'bv-2', name: 'Bissap glacé', image: 'canette-bissap-bmc.webp', description: 'Canette BMC Food au bissap, servie bien fraîche.' },
