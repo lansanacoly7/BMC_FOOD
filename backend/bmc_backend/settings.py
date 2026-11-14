@@ -7,12 +7,20 @@ manquent. En développement, définir `DJANGO_DEBUG=true` (voir `backend/.env.ex
 Aucune valeur secrète ne doit être écrite dans ce fichier ni dans le dépôt.
 """
 import os
+import sys
 from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Fichier des promotions en cours (api/promotions.py). Les tests en utilisent un autre, absent par
+# défaut (= aucune promotion) : les promotions réelles du restaurant ne faussent jamais un test.
+TESTING = len(sys.argv) > 1 and sys.argv[1] == 'test'
+BMC_PROMOTIONS_FILE = os.environ.get('BMC_PROMOTIONS_FILE') or str(
+    BASE_DIR / ('promotions.test.json' if TESTING else 'promotions.json')
+)
 
 # Fichier `.env` local optionnel (ignoré par Git). Les variables déjà présentes
 # dans l'environnement ont priorité.
@@ -122,6 +130,14 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
+
+# Optimisation développement : hachage rapide pour éviter les blocages de boucle sur Windows
+if DEBUG:
+    PASSWORD_HASHERS = [
+        'api.hashers.DevFastPBKDF2PasswordHasher',
+        'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+        'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+    ]
 
 LANGUAGE_CODE = 'fr-fr'
 TIME_ZONE = 'Africa/Dakar'

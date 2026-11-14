@@ -87,11 +87,6 @@ export const KdsTopBar: React.FC<KdsTopBarProps> = ({
 
       <div className="shrink-0 text-left">
         <h1 className="font-display text-[22px] font-bold leading-7">Cuisine</h1>
-        {/* Le point vert « En direct » est le seul vert de l'écran. */}
-        <p className="flex items-center gap-1.5 text-xs text-ink-soft">
-          <span className="size-1.5 rounded-full bg-[#22C55E]" aria-hidden="true" />
-          En direct
-        </p>
       </div>
 
       <div className="mx-1 h-8 w-px shrink-0 bg-line" aria-hidden="true" />
@@ -105,15 +100,6 @@ export const KdsTopBar: React.FC<KdsTopBarProps> = ({
       />
 
       <div className="ml-auto flex min-w-0 items-center gap-3">
-        <span className="hidden whitespace-nowrap text-[13px] text-ink-soft @[1000px]:inline">
-          Attente moy.{' '}
-          <strong className="font-semibold tabular-nums text-ink">
-            {avgWaitMinutes < 60
-              ? `${avgWaitMinutes} min`
-              : `${Math.floor(avgWaitMinutes / 60)} h ${String(avgWaitMinutes % 60).padStart(2, '0')}`}
-          </strong>
-        </span>
-
         {lateCount > 0 && (
           <span
             className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[13px] font-semibold text-bad"

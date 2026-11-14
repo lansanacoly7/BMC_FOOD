@@ -41,6 +41,9 @@ export async function fetchActiveOrders(signal?: AbortSignal): Promise<KdsOrder[
     usingDemoData = false
     return list.map(mapOrderFromApi)
   } catch (error) {
+    if ((error as DOMException)?.name === 'AbortError') {
+      return []
+    }
     // Si le serveur Django est arrêté en local, bascule sur le mock en développement.
     // Un refus (401, 403) n'est pas une panne : il remonte pour être traité.
     if (import.meta.env.DEV && isBackendUnreachable(error)) {

@@ -12,7 +12,7 @@ export const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 
 const TOKEN_KEY = 'bmc_admin_token'
 const USER_KEY = 'bmc_admin_username'
-export const DEV_DEFAULT_TOKEN = '5b52fcdaf0cd1621c18dc47f0a60b6386b906803'
+export const DEV_DEFAULT_TOKEN = '55048ed4207262b8069241f3f3542e2a47bbd9b9'
 
 /** Émis quand le serveur refuse le jeton en cours : l'application revient à la connexion. */
 export const SESSION_EXPIRED_EVENT = 'bmc:session-expired'
@@ -91,7 +91,7 @@ export interface RequestOptions extends RequestInit {
  * Exécute une requête HTTP typée vers Django DRF
  */
 export async function apiClient<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-  const { timeoutMs = 8000, headers: customHeaders, ...restOptions } = options
+  const { timeoutMs = 25000, headers: customHeaders, ...restOptions } = options
 
   const headers = new Headers(customHeaders)
   headers.set('Accept', 'application/json')
@@ -152,7 +152,10 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     clearTimeout(timeoutId)
     if (error instanceof ApiError) throw error
     if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new ApiError('Délai d’attente dépassé (Serveur Django non réactif)', 408)
+      if (controller.signal.aborted) {
+        throw new ApiError('Délai d’attente dépassé (Serveur Django non réactif)', 408)
+      }
+      throw error
     }
     throw new ApiError(
       `Connexion impossible au serveur backend (${(error as Error).message})`,
@@ -201,8 +204,8 @@ export async function loginAdmin(
     }
     return res
   } catch (error) {
-    if (import.meta.env.DEV && (error as ApiError)?.status === 0) {
-      // Si Django est indisponible en local en mode dev
+    if (import.meta.env.DEV && isBackendUnreachable(error)) {
+      // Si Django est indisponible ou non réactif en local en mode dev
       const token = DEV_DEFAULT_TOKEN
       setAuthToken(token)
       setAuthUser(username || 'admin')

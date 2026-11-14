@@ -10,7 +10,7 @@ import type {
 } from '../types'
 
 /** URL de base de l'API Django REST, surchargeable via VITE_API_BASE_URL dans .env.local. */
-export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api').replace(/\/+$/, '')
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '/api').replace(/\/+$/, '')
 
 const TOKEN_KEY = 'bmc_admin_token'
 
@@ -97,6 +97,26 @@ export function updateOrderStatus(orderRef: string, status: OrderStatus): Promis
 /** Récupère les plats du jour configurés (GET /api/daily-special/). */
 export function fetchDailySpecials(signal?: AbortSignal): Promise<DailySpecialResponse> {
   return apiRequest<DailySpecialResponse>('/daily-special/', { signal })
+}
+
+/** Plat de la carte tel que renvoyé par GET /api/menu/ (prix de carte + remise éventuelle). */
+export interface MenuCatalogItem {
+  id: number
+  code: string
+  name: string
+  category?: number
+  category_name?: string
+  description: string
+  price: number
+  image_url: string
+  is_available: boolean
+  discount_percent?: number | null
+  promo_price?: number | null
+}
+
+/** Carte complète du restaurant (GET /api/menu/, public). */
+export function fetchMenu(signal?: AbortSignal): Promise<{ success: boolean; items: MenuCatalogItem[] }> {
+  return apiRequest<{ success: boolean; items: MenuCatalogItem[] }>('/menu/', { signal })
 }
 
 /** Active/désactive un plat du jour (PATCH /api/daily-special/<id>/toggle/). */
