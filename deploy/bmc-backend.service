@@ -1,0 +1,28 @@
+[Unit]
+Description=BMC Food Backend API (Gunicorn)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=notify
+User=bmc
+Group=bmc
+WorkingDirectory=/var/www/bmc/backend
+EnvironmentFile=/etc/bmc/backend.env
+ExecStart=/var/www/bmc/venv/bin/gunicorn -c /var/www/bmc/deploy/gunicorn.conf.py bmc_backend.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=30
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# Durcissement minimal compatible avec l'écriture de promotions.json dans /var/www/bmc/backend
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
