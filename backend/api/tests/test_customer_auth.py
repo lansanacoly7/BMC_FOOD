@@ -150,3 +150,23 @@ class CustomerAuthTests(TestCase):
         self.assertEqual(patch_res.status_code, status.HTTP_200_OK)
         self.assertEqual(patch_res.data['user']['address'], 'Plateau, Rue Carnot')
 
+    def test_customer_login_throttled_at_11th_request_429(self):
+        """La 11e tentative consécutive d'authentification depuis la même IP est bloquée avec HTTP 429."""
+        from django.core.cache import cache
+        cache.clear()
+
+        # Envoi de 10 tentatives de connexion
+        for _ in range(10):
+            res = self.client.post('/api/auth/customer/login/', {
+                'phone': '771234567',
+                'password': 'badpassword'
+            }, format='json')
+            self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # La 11e tentative doit renvoyer 429 Too Many Requests
+        res_11 = self.client.post('/api/auth/customer/login/', {
+            'phone': '771234567',
+            'password': 'badpassword'
+        }, format='json')
+        self.assertEqual(res_11.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+

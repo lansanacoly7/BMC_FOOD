@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, MenuItem, DeliveryArea, Order, OrderItem, Customer
+from .models import Category, MenuItem, DeliveryArea, Order, OrderItem, Customer, RestaurantSettings
 
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
@@ -36,3 +36,8 @@ class OrderAdmin(admin.ModelAdmin):
 class CustomerAdmin(admin.ModelAdmin):
     list_display = ['name', 'phone', 'address', 'created_at']
     search_fields = ['name', 'phone', 'address']
+
+
+@admin.register(RestaurantSettings)
+class RestaurantSettingsAdmin(admin.ModelAdmin):
+    list_display = ['manual_closed', 'closed_message', 'updated_at']
