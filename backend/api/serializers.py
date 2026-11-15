@@ -7,7 +7,7 @@ from rest_framework import serializers
 
 from . import order_rules
 from .exceptions import OrderReferenceUnavailable
-from .models import Category, MenuItem, Order, OrderItem
+from .models import Category, MenuItem, Order, OrderItem, RestaurantSettings
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -162,14 +162,44 @@ class OrderCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError("Le panier ne peut pas être vide.")
         return value
 
+    def validate_phone(self, value):
+        try:
+            return order_rules.validate_and_normalize_phone(value)
+        except ValueError as e:
+            raise serializers.ValidationError(str(e))
+
+    def validate_notes(self, value):
+        if value and len(value) > order_rules.MAX_NOTE_LENGTH:
+            raise serializers.ValidationError(
+                f"La note ne peut pas dépasser {order_rules.MAX_NOTE_LENGTH} caractères (actuellement {len(value)})."
+            )
+        return value
+
     def validate(self, attrs):
         opening_error = order_rules.check_order_opening_hours()
         if opening_error:
             raise serializers.ValidationError(opening_error)
 
-        _, errors = resolve_cart(attrs['items'])
+        total_quantity = sum(item.get('quantity', 0) for item in attrs.get('items', []))
+        if total_quantity > order_rules.MAX_ORDER_TOTAL_QUANTITY:
+            raise serializers.ValidationError({
+                'items': [f"La quantité totale d'articles ({total_quantity}) dépasse la limite autorisée ({order_rules.MAX_ORDER_TOTAL_QUANTITY})."]
+            })
+
+        lines, errors = resolve_cart(attrs['items'])
         if errors:
             raise serializers.ValidationError({'items': errors})
+
+        fulfillment_method = attrs.get('fulfillment_method', 'delivery')
+        delivery_area = attrs.get('delivery_area', '').strip()
+        delivery_fee = 0 if fulfillment_method == 'pickup' else order_rules.get_delivery_fee(delivery_area)
+        items_subtotal = sum(line['subtotal'] for line in lines)
+        total_amount = items_subtotal + delivery_fee
+        if total_amount > order_rules.MAX_ORDER_AMOUNT:
+            raise serializers.ValidationError({
+                'total_amount': [f"Le montant total de la commande ({total_amount} F CFA) dépasse le plafond autorisé de {order_rules.MAX_ORDER_AMOUNT} F CFA."]
+            })
+
         return attrs
 
     @staticmethod
@@ -254,6 +284,9 @@ class HealthCheckResponseSerializer(serializers.Serializer):
     service = serializers.CharField(default='BMC Food Django REST API')
     version = serializers.CharField(default='2.0.0')
     server_time = serializers.DateTimeField()
+    is_open = serializers.BooleanField(help_text="Indique si le restaurant est dans ses horaires d'ouverture (11h-02h)")
+    accepting_orders = serializers.BooleanField(help_text="Faux si fermeture manuelle, pause cuisine ou hors fenêtre de commande")
+    closed_message = serializers.CharField(allow_blank=True, help_text="Message explicatif si les commandes sont fermées")
 
 
 class CategoryWithItemsSerializer(serializers.ModelSerializer):
@@ -373,4 +406,11 @@ class OrderTrackResponseSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField(help_text="Date et heure de passage de commande")
     items_count = serializers.IntegerField(help_text="Nombre total d'articles commandés")
     items = OrderTrackItemSerializer(many=True, help_text="Liste des articles de la commande")
+
+
+class RestaurantSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RestaurantSettings
+        fields = ['manual_closed', 'closed_message', 'updated_at']
+        read_only_fields = ['updated_at']
 

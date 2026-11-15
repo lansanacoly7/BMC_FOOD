@@ -13,6 +13,7 @@ Décisions validées (voir docs/repartition_taches_backend.md) :
 - D12 : 20 unités maximum par ligne, 30 lignes distinctes maximum après fusion.
 - Horaires : Mardi au Dimanche de 11h00 à 02h00 du matin (fuseau Africa/Dakar).
 """
+import re
 import secrets
 from zoneinfo import ZoneInfo
 from django.utils import timezone
@@ -121,21 +122,110 @@ def is_restaurant_open(dt=None) -> bool:
     return weekday != 1
 
 
-def check_order_opening_hours(dt=None) -> str | None:
+def is_order_window_open(dt=None) -> bool:
     """
-    Retourne None si le restaurant est ouvert (ou si la règle est désactivée par configuration).
-    Retourne un message d'erreur si le restaurant est actuellement fermé.
+    Vérifie si les commandes sont acceptées selon les horaires officiels :
+    - Mardi au Dimanche : de 11h00 à 01h30 du matin (dernière commande à 01h30 incluse).
+    - Fermé aux commandes :
+      * De 01h31 à 10h59 chaque jour.
+      * Toute la journée du Lundi à partir de 01h31 jusqu'au Mardi 11h00.
+    """
+    if dt is None:
+        dt = timezone.now()
+
+    dakar_tz = ZoneInfo(RESTAURANT_TIMEZONE)
+    local_dt = dt.astimezone(dakar_tz) if dt.tzinfo else dt.replace(tzinfo=dakar_tz)
+
+    weekday = local_dt.weekday()  # 0 = Lundi, 1 = Mardi, ..., 6 = Dimanche
+    hour = local_dt.hour
+    minute = local_dt.minute
+
+    # 1. Fermé tous les jours entre 02h00 et 10h59
+    if 2 <= hour < 11:
+        return False
+
+    # 2. De 11h00 à 23h59 : ouvert du Mardi (1) au Dimanche (6), fermé le Lundi (0)
+    if hour >= 11:
+        return weekday != 0
+
+    # 3. Entre 00h00 et 01h59 (après minuit) : prolongation du service de la veille.
+    # Mardi 00h-02h : prolongation du lundi (jour de fermeture) -> FERMÉ.
+    if weekday == 1:
+        return False
+
+    # Dimanche soir prolongé sur Lundi 00h-01h30, et Mercredi-Dimanche 00h-01h30 -> OUVERT.
+    # Après 01h30 (01h31 à 01h59) -> FERMÉ aux commandes (dernière commande à 01h30 incluse).
+    if hour == 1 and minute > 30:
+        return False
+
+    return True
+
+
+def is_restaurant_accepting_orders(dt=None) -> tuple[bool, str]:
+    """
+    Détermine si le restaurant accepte actuellement les commandes.
+    Prend en compte :
+    1. L'interrupteur manuel / pause cuisine (RestaurantSettings.manual_closed).
+    2. La fenêtre horaire de commande (11h00 à 01h30).
+    3. La configuration BMC_ENFORCE_OPENING_HOURS (pour dev/tests).
+
+    Retourne un tuple (accepting: bool, message: str).
     """
     from django.conf import settings
-    if not getattr(settings, 'BMC_ENFORCE_OPENING_HOURS', True):
-        return None
+    from .models import RestaurantSettings
 
-    if not is_restaurant_open(dt):
-        return (
+    # 1. Vérification de l'interrupteur manuel / pause cuisine
+    try:
+        store_settings = RestaurantSettings.get_settings()
+        if store_settings.manual_closed:
+            msg = store_settings.closed_message.strip() or "Le restaurant BMC Food est temporairement fermé pour les commandes (pause cuisine)."
+            return False, msg
+    except Exception:
+        pass
+
+    # 2. Vérification de l'activation des horaires (désactivable en dev/test via settings)
+    if not getattr(settings, 'BMC_ENFORCE_OPENING_HOURS', True):
+        return True, ""
+
+    # 3. Vérification de la fenêtre horaire (dernière commande à 01h30)
+    if not is_order_window_open(dt):
+        return False, (
             "Le restaurant BMC Food est actuellement fermé pour les commandes. "
-            "Horaires d'ouverture : du mardi au dimanche, de 11h00 à 02h00 du matin (fuseau de Dakar)."
+            "Horaires de commande : du mardi au dimanche, de 11h00 à 01h30 du matin (dernière commande à 01h30, fermeture du restaurant à 02h00)."
         )
+
+    return True, ""
+
+
+def check_order_opening_hours(dt=None) -> str | None:
+    """
+    Retourne None si le restaurant accepte les commandes.
+    Retourne un message d'erreur si le restaurant est fermé ou en pause.
+    """
+    accepting, msg = is_restaurant_accepting_orders(dt)
+    if not accepting:
+        return msg
     return None
+
+
+# --- Garde-fous de commande (Section 2 - Pathé Fall) ------------------------
+MAX_ORDER_AMOUNT = 250000  # 250 000 F CFA montant maximal par commande
+MAX_NOTE_LENGTH = 500      # 500 caractères maximum pour la note
+MAX_ORDER_TOTAL_QUANTITY = 50  # 50 articles maximum au total par commande
+SENEGAL_PHONE_REGEX = re.compile(r'^(?:\+221|00221)?([73]\d{8})$')
+
+
+def validate_and_normalize_phone(raw_phone: str) -> str:
+    """
+    Valide que le numéro est un numéro sénégalais valide (mobile 7X ou fixe 33, 9 chiffres).
+    Normalise le numéro au format international standard '+221XXXXXXXXX'.
+    Lève ValueError si invalide.
+    """
+    cleaned = re.sub(r'[\s\.\-\(\)]', '', str(raw_phone or '').strip())
+    match = SENEGAL_PHONE_REGEX.match(cleaned)
+    if not match:
+        raise ValueError("Numéro de téléphone sénégalais invalide (ex: 77 123 45 67 ou +221 77 123 45 67).")
+    return f"+221{match.group(1)}"
 
 
 # --- Frais de livraison (docs/frais_livraison_bmc.md) ------------------------

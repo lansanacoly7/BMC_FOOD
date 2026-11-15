@@ -46,6 +46,17 @@ Chaque faction dispose d'un document complet et unique contenant ses missions, l
 
 ---
 
+## 🛠️ Développement Local & Horaires d'Ouverture
+
+Le restaurant applique par défaut ses horaires d'ouverture réels (Mardi au Dimanche, 11h00 à 02h00, dernière commande à 01h30).  
+Pour passer des commandes de test en dehors de ces heures en environnement de développement, définissez :
+```bash
+export BMC_ENFORCE_OPENING_HOURS=0  # Linux / macOS
+$env:BMC_ENFORCE_OPENING_HOURS="0"  # Windows PowerShell
+```
+
+---
+
 ## 📞 Contacts Utiles (BMC FOOD)
 - **Commandes** : 77 856 13 13 / 77 106 75 75
 - **Localisation** : Dakar, Sénégal

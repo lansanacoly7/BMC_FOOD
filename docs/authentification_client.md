@@ -148,3 +148,4 @@ Lors de la soumission d'une commande via `POST /api/orders/`, deux nouveaux cham
 
 Si `fulfillment_method == "pickup"`, les frais de livraison appliqués par le serveur sont de **0 F CFA**.  
 Si `fulfillment_method == "delivery"`, le serveur calcule automatiquement `delivery_fee` selon la grille officielle et l'ajoute au `total_amount`. Le client ne doit jamais envoyer de montant de frais calculé côté client.
+

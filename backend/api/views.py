@@ -27,7 +27,7 @@ from .api_schemas import (
     OrderStatusUpdateRequestSerializer,
 )
 from .exceptions import error_response, first_message
-from .models import Category, MenuItem, Order
+from .models import Category, MenuItem, Order, RestaurantSettings
 from .serializers import (
     CategorySerializer,
     MenuItemSerializer,
@@ -41,7 +41,8 @@ from .serializers import (
     OrderAcknowledgeInputSerializer,
     OrderAcknowledgeResponseSerializer,
     OrderTrackResponseSerializer,
-    ErrorResponseSerializer
+    ErrorResponseSerializer,
+    RestaurantSettingsSerializer
 )
 
 ORDER_STATUS_VALUES = [choice[0] for choice in Order.STATUS_CHOICES]
@@ -69,13 +70,45 @@ def _check_allowed_value(errors, field, value, allowed):
 class HealthCheckView(APIView):
     @extend_schema(responses=HealthResponseSerializer)
     def get(self, request):
+        accepting, closed_msg = order_rules.is_restaurant_accepting_orders()
         return Response({
             'status': 'ok',
             'service': 'BMC Food Django REST API',
             'version': '2.0.0',
             'server_time': timezone.now().isoformat(),
-            'is_open': order_rules.is_restaurant_open()
+            'is_open': order_rules.is_restaurant_open(),
+            'accepting_orders': accepting,
+            'closed_message': closed_msg,
         })
+
+
+class RestaurantSettingsView(APIView):
+    permission_classes = [IsAdminUser]
+
+    @extend_schema(
+        tags=["Administration"],
+        summary="Consultation des réglages opérationnels du restaurant",
+        description="Renvoie l'état de l'interrupteur d'ouverture/fermeture manuelle et le message aux clients.",
+        responses={200: RestaurantSettingsSerializer}
+    )
+    def get(self, request):
+        store_settings = RestaurantSettings.get_settings()
+        serializer = RestaurantSettingsSerializer(store_settings)
+        return Response(serializer.data)
+
+    @extend_schema(
+        tags=["Administration"],
+        summary="Modification des réglages opérationnels (fermeture manuelle / pause cuisine)",
+        description="Permet à l'administration de fermer manuellement le restaurant ou de le mettre en pause cuisine.",
+        request=RestaurantSettingsSerializer,
+        responses={200: RestaurantSettingsSerializer}
+    )
+    def patch(self, request):
+        store_settings = RestaurantSettings.get_settings()
+        serializer = RestaurantSettingsSerializer(store_settings, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
 
 class MenuView(APIView):

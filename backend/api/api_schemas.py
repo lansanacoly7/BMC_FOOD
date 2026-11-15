@@ -36,6 +36,9 @@ class HealthResponseSerializer(serializers.Serializer):
     service = serializers.CharField()
     version = serializers.CharField()
     server_time = serializers.DateTimeField()
+    is_open = serializers.BooleanField()
+    accepting_orders = serializers.BooleanField()
+    closed_message = serializers.CharField(allow_blank=True)
 
 
 class MenuCategorySerializer(serializers.Serializer):

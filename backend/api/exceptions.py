@@ -76,6 +76,8 @@ def bmc_exception_handler(exc, context):
             'error': first_message(errors) or 'Données invalides.',
             'errors': errors,
         }
+        if isinstance(errors, dict) and 'non_field_errors' in errors:
+            response.data['non_field_errors'] = errors['non_field_errors']
         return response
 
     detail = response.data.get('detail') if isinstance(response.data, dict) else response.data

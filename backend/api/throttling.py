@@ -14,3 +14,4 @@ class ProxiedScopedRateThrottle(ScopedRateThrottle):
             # L'adresse client réelle est la première IP de la chaîne X-Forwarded-For
             return xff.split(',')[0].strip()
         return super().get_ident(request)
+
