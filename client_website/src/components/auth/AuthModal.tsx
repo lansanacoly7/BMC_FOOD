@@ -111,20 +111,23 @@ export function AuthModal({ isOpen, onClose, onSuccess, onLogout }: AuthModalPro
   const [staffRecognized, setStaffRecognized] = useState(false)
 
   // À chaque ouverture : on relit le compte (il a pu changer depuis la page profil) et on repart d'un écran propre
-  useEffect(() => {
-    if (!isOpen) return
-    try {
-      const saved = localStorage.getItem(USER_STORAGE_KEY)
-      setCurrentUser(saved ? (JSON.parse(saved) as ClientUser) : null)
-    } catch {
-      setCurrentUser(null)
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen)
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen)
+    if (isOpen) {
+      try {
+        const saved = localStorage.getItem(USER_STORAGE_KEY)
+        setCurrentUser(saved ? (JSON.parse(saved) as ClientUser) : null)
+      } catch {
+        setCurrentUser(null)
+      }
+      setError(null)
+      setSuccess(null)
+      setOtpCode('')
+      setStaffRecognized(false)
+      setView('login')
     }
-    setError(null)
-    setSuccess(null)
-    setOtpCode('')
-    setStaffRecognized(false)
-    setView('login')
-  }, [isOpen])
+  }
 
   // Page figée tant que la fenêtre est ouverte : on ne fait défiler que la fenêtre elle-même.
   useBodyScrollLock(isOpen)

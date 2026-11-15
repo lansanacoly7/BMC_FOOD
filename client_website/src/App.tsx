@@ -17,6 +17,7 @@ import { MenuView } from './components/menu/MenuView'
 import { useIsDesktop } from './hooks/useIsDesktop'
 import { ContactView } from './components/contact/ContactView'
 import { ProfileView } from './components/profile/ProfileView'
+import { TrackOrderView } from './components/tracking/TrackOrderView'
 import { type OrderSummary, USER_KEY } from './services/clientData'
 import { normalize } from './data/productOptions'
 import { ProvisionalCheckout } from './components/checkout/ProvisionalCheckout'
@@ -26,7 +27,7 @@ import { useMenu } from './hooks/useMenu'
 import { useCart } from './hooks/useCart'
 import { IntroSplash } from './components/brand/IntroSplash'
 
-type Page = 'home' | 'menu' | 'contact' | 'profile'
+type Page = 'home' | 'menu' | 'track' | 'contact' | 'profile'
 
 /** Familles du menu latéral → mot-clé du nom de catégorie, pour filtrer la carte (« all » : tout). */
 const DRAWER_FAMILY_KEYWORDS: Record<string, string | null> = {
@@ -55,6 +56,7 @@ export default function App() {
   })
   const searchQuery = ''
   const [isCheckingOut, setIsCheckingOut] = useState(false)
+  const [trackingRef, setTrackingRef] = useState<string>('')
   // Animation d'entrée : jouée à chaque arrivée sur le site et à chaque rechargement.
   const [isIntroDone, setIsIntroDone] = useState(false)
   // Le hero entre en scène dès que le rideau de l'intro se lève, pas à la toute fin.
@@ -90,21 +92,52 @@ export default function App() {
     scrollToMenu(isDesktop ? 'auto' : 'smooth')
   }
 
-  // Lien direct vers la connexion (#login), par exemple depuis l'application cuisine
+  // Lien direct vers la connexion (#login) ou le suivi (#track / #suivi)
   useEffect(() => {
     const openFromHash = () => {
-      if (window.location.hash === '#login') setIsAuthModalOpen(true)
+      const hash = window.location.hash
+      if (hash === '#login') {
+        setIsAuthModalOpen(true)
+      } else if (hash.startsWith('#track') || hash.startsWith('#suivi')) {
+        const match = hash.match(/[?&]ref=([^&]+)/)
+        if (match?.[1]) {
+          setTrackingRef(decodeURIComponent(match[1]))
+        }
+        setMenuFocus(null)
+        setCurrentPage('track')
+        window.scrollTo({ top: 0, behavior: 'auto' })
+      }
     }
     openFromHash()
     window.addEventListener('hashchange', openFromHash)
     return () => window.removeEventListener('hashchange', openFromHash)
   }, [])
 
+  const handleTrackOrder = (ref: string) => {
+    setTrackingRef(ref)
+    setIsCheckingOut(false)
+    handleNavigate('track')
+  }
+
   // Le bouton « compte » ouvre la page profil si le client est connecté, sinon la fenêtre de connexion
   const openAccount = () => {
     if (clientUser) handleNavigate('profile')
     else setIsAuthModalOpen(true)
   }
+
+  // Gestion centralisée du panier BMC Food (Pape Aliou)
+  const { items, itemCount, subtotal, isCartOpen, openCart, closeCart, addToCart, updateQuantity, removeFromCart, clearCart } = useCart()
+
+  // Hooks de données officiels BMC Food (avec support fallback)
+  const { specials, isLoading: isSpecialsLoading } = useDailySpecials()
+  const { items: menuProducts, isLoading: isMenuLoading } = useMenu()
+
+  // Produits de la recherche : la carte du serveur, avec les boissons BMC en renfort si le serveur n'en renvoie pas
+  const searchProducts = useMemo(() => {
+    const base = menuProducts.length > 0 ? menuProducts : FALLBACK_PRODUCTS
+    const hasDrinks = base.some((p) => p.category_name?.toLowerCase().includes('boisson') || p.code.toLowerCase().startsWith('bv'))
+    return hasDrinks ? base : [...base, ...FALLBACK_PRODUCTS.filter((p) => p.code.startsWith('bv'))]
+  }, [menuProducts])
 
   // « Commander à nouveau » : retrouve chaque plat dans la carte actuelle (par code, sinon par nom) et le remet au panier
   const reorderFromHistory = (order: OrderSummary) => {
@@ -136,26 +169,13 @@ export default function App() {
     handleNavigate('home')
   }
 
-  // Gestion centralisée du panier BMC Food (Pape Aliou)
-  const { items, itemCount, subtotal, isCartOpen, openCart, closeCart, addToCart, updateQuantity, removeFromCart, clearCart } = useCart()
-
-  // Hooks de données officiels BMC Food (avec support fallback)
-  const { specials, isLoading: isSpecialsLoading } = useDailySpecials()
-  const { items: menuProducts, isLoading: isMenuLoading } = useMenu()
-
-  // Produits de la recherche : la carte du serveur, avec les boissons BMC en renfort si le serveur n'en renvoie pas
-  const searchProducts = useMemo(() => {
-    const base = menuProducts.length > 0 ? menuProducts : FALLBACK_PRODUCTS
-    const hasDrinks = base.some((p) => p.category_name?.toLowerCase().includes('boisson') || p.code.toLowerCase().startsWith('bv'))
-    return hasDrinks ? base : [...base, ...FALLBACK_PRODUCTS.filter((p) => p.code.startsWith('bv'))]
-  }, [menuProducts])
-
   if (isCheckingOut) {
     return (
       <ProvisionalCheckout
         clientUser={clientUser}
         onBack={() => setIsCheckingOut(false)}
         onNewOrder={() => setIsCheckingOut(false)}
+        onTrackOrder={handleTrackOrder}
       />
     )
   }
@@ -300,6 +320,16 @@ export default function App() {
             onOpenAuth={() => setIsAuthModalOpen(true)}
             onExploreMenu={() => handleNavigate('menu')}
             onReorder={reorderFromHistory}
+            onTrackOrder={handleTrackOrder}
+          />
+        </main>
+      )}
+
+      {currentPage === 'track' && (
+        <main>
+          <TrackOrderView
+            initialRef={trackingRef}
+            onExploreMenu={() => handleNavigate('menu')}
           />
         </main>
       )}

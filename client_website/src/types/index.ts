@@ -13,7 +13,7 @@ export type PaymentMethod = 'cash' | 'wave' | 'orange_money'
 export type PaymentStatus = 'unpaid' | 'pending' | 'paid'
 
 /** Cycle de vie d'une commande (Order.STATUS_CHOICES). */
-export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'delivering' | 'delivered' | 'cancelled'
+export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivering' | 'delivered' | 'cancelled'
 
 /** Catégorie du menu (CategorySerializer). `icon` est un nom d'icône lucide-react, ex. « Flame ». */
 export interface Category {
