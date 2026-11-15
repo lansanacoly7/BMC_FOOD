@@ -1,17 +1,24 @@
-import { useCallback, useEffect, useState } from 'react'
-import { getOpeningStatus, type OpeningStatus } from '../lib/openingHours'
+import { useCallback, useSyncExternalStore } from 'react'
+import {
+  getOpeningStatusSnapshot,
+  type LiveOpeningStatus,
+  refreshHealthStatus,
+  subscribeOpeningStatus,
+} from '../services/health'
+
+export type { LiveOpeningStatus }
 
 /**
- * Statut d'ouverture de BMC, recalculé toutes les 30 secondes :
- * à 02h00, les boutons de commande se ferment sans que le client ait à recharger la page.
- * `refresh()` force le recalcul immédiat (par exemple au moment d'envoyer une commande).
+ * Statut d'ouverture et d'acceptation des commandes (`/api/health/` + horaires de Dakar).
+ * Partagé entre tous les composants pour éviter les appels dupliqués et refléter
+ * immédiatement toute fermeture manuelle ou pause cuisine.
  */
-export function useOpeningStatus(): OpeningStatus & { refresh: () => void } {
-  const [now, setNow] = useState(() => new Date())
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 30_000)
-    return () => window.clearInterval(timer)
-  }, [])
-  const refresh = useCallback(() => setNow(new Date()), [])
-  return { ...getOpeningStatus(now), refresh }
+export function useOpeningStatus(): LiveOpeningStatus & { refresh: () => Promise<LiveOpeningStatus> } {
+  const snapshot = useSyncExternalStore(
+    subscribeOpeningStatus,
+    getOpeningStatusSnapshot,
+    getOpeningStatusSnapshot,
+  )
+  const refresh = useCallback(() => refreshHealthStatus(), [])
+  return { ...snapshot, refresh }
 }

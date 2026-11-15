@@ -6,12 +6,20 @@ interface OrderSubmitButtonProps {
   /** Montant affiché sur le bouton (indicatif : le serveur recalcule le total). */
   amount: number
   disabled?: boolean
+  /** Libellé affiché quand le bouton est bloqué hors envoi (ex. restaurant fermé ou en pause). */
+  disabledLabel?: string
   /** Sans onClick : bouton `submit` du formulaire de checkout. */
   onClick?: () => void
 }
 
 /** Bouton principal d'envoi de la commande : or BMC, texte noir à fort contraste (règle de la charte). */
-export function OrderSubmitButton({ isSubmitting, amount, disabled = false, onClick }: OrderSubmitButtonProps) {
+export function OrderSubmitButton({
+  isSubmitting,
+  amount,
+  disabled = false,
+  disabledLabel,
+  onClick,
+}: OrderSubmitButtonProps) {
   const isDisabled = disabled || isSubmitting
 
   return (
@@ -27,6 +35,8 @@ export function OrderSubmitButton({ isSubmitting, amount, disabled = false, onCl
           <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />
           <span>Envoi en cours…</span>
         </>
+      ) : disabled && disabledLabel ? (
+        <span>{disabledLabel}</span>
       ) : (
         <>
           <span>Confirmer la commande</span>
