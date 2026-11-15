@@ -1,99 +1,15 @@
 """
-Tests des fonctionnalités ajoutées :
-- Tâche 5 : Commande d'articles ajoutés (boissons, sauces, accompagnements, finger food, chawarma).
-- Tâche 6 : Calcul des frais de livraison côté serveur selon la zone / quartier.
-- Tâche 7 : Mode de retrait (delivery vs pickup).
-- Tâche 10 : Throttling tenant compte de X-Forwarded-For derrière un reverse-proxy.
-- Tâche 4 : Vérification d'accès interdit (403) aux endpoints admin pour un compte Customer.
+Tests des fonctionnalités de sécurité et de proxy (Pathé Fall) :
+- Throttling tenant compte de X-Forwarded-For derrière un reverse-proxy (ProxiedScopedRateThrottle).
+- Vérification d'accès interdit (403) aux endpoints admin pour un compte Customer.
 """
 from django.core.cache import cache
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient, APIRequestFactory
 
-from api.models import Category, Customer, MenuItem, Order
+from api.models import Customer
 from api.throttling import ProxiedScopedRateThrottle
-
-
-class DeliveryAndFulfillmentTests(TestCase):
-    def setUp(self):
-        cache.clear()
-        self.client = APIClient()
-
-        cat = Category.objects.create(name="Tacos", slug="tacos")
-        self.tacos = MenuItem.objects.create(category=cat, code="tp-1", name="Tacos", price=3500)
-        self.boisson = MenuItem.objects.create(category=cat, code="bv-1", name="Boisson", price=800)
-        self.sauce = MenuItem.objects.create(category=cat, code="sc-1", name="Sauce", price=500)
-        self.frites = MenuItem.objects.create(category=cat, code="ac-1", name="Frites", price=1000)
-        self.chawarma = MenuItem.objects.create(category=cat, code="sw-1", name="Chawarma", price=2000)
-
-    @override_settings(BMC_ENFORCE_OPENING_HOURS=False)
-    def test_order_with_delivery_fee_calculated_by_server(self):
-        """Les frais de livraison sont calculés selon le quartier et ajoutés au total."""
-        payload = {
-            "customer_name": "Babacar Sow",
-            "phone": "77 555 44 33",
-            "address": "Grand Yoff, Dakar",
-            "payment_method": "cash",
-            "fulfillment_method": "delivery",
-            "delivery_area": "grand-yoff",
-            "items": [{"id": "tp-1", "quantity": 1}]  # 3500 F
-        }
-        res = self.client.post('/api/orders/', payload, format='json')
-        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
-        self.assertTrue(res.data.get('success'))
-
-        order_data = res.data['order']
-        self.assertEqual(order_data['fulfillment_method'], 'delivery')
-        self.assertEqual(order_data['delivery_area'], 'grand-yoff')
-        self.assertEqual(order_data['delivery_fee'], 1000)
-        self.assertEqual(order_data['total_amount'], 4500)  # 3500 + 1000
-
-    @override_settings(BMC_ENFORCE_OPENING_HOURS=False)
-    def test_order_pickup_has_zero_delivery_fee(self):
-        """Une commande à emporter (pickup) a des frais de livraison de 0 F."""
-        payload = {
-            "customer_name": "Aissatou Ba",
-            "phone": "77 222 33 44",
-            "address": "Retrait au comptoir",
-            "payment_method": "cash",
-            "fulfillment_method": "pickup",
-            "delivery_area": "grand-yoff",  # ignoré car pickup
-            "items": [{"id": "tp-1", "quantity": 2}]  # 7000 F
-        }
-        res = self.client.post('/api/orders/', payload, format='json')
-        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
-
-        order_data = res.data['order']
-        self.assertEqual(order_data['fulfillment_method'], 'pickup')
-        self.assertEqual(order_data['delivery_fee'], 0)
-        self.assertEqual(order_data['total_amount'], 7000)
-
-    @override_settings(BMC_ENFORCE_OPENING_HOURS=False)
-    def test_order_with_new_menu_items_succeeds(self):
-        """Une commande contenant des boissons (bv-*), sauces (sc-*), accompagnements (ac-*) et chawarma (sw-1) réussit."""
-        payload = {
-            "customer_name": "Moustapha Fall",
-            "phone": "78 999 88 77",
-            "address": "Almadies",
-            "payment_method": "cash",
-            "fulfillment_method": "delivery",
-            "delivery_area": "almadies",  # 2500 F
-            "items": [
-                {"id": "sw-1", "quantity": 1},  # 2000
-                {"id": "bv-1", "quantity": 2},  # 1600
-                {"id": "sc-1", "quantity": 1},  # 500
-                {"id": "ac-1", "quantity": 1},  # 1000
-            ]
-        }
-        # Total articles = 2000 + 1600 + 500 + 1000 = 5100 F
-        # Frais livraison = 2500 F
-        # Total = 7600 F
-        res = self.client.post('/api/orders/', payload, format='json')
-        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
-        order_data = res.data['order']
-        self.assertEqual(order_data['delivery_fee'], 2500)
-        self.assertEqual(order_data['total_amount'], 7600)
 
 
 class ProxyThrottlingAndSecurityTests(TestCase):

@@ -3,6 +3,7 @@ import {
   AlertCircle,
   Check,
   ChevronDown,
+  Clock,
   Heart,
   ChevronRight,
   LocateFixed,
@@ -40,6 +41,7 @@ interface ProfileViewProps {
   onExploreMenu: () => void
   /** Remet les plats d'une ancienne commande dans le panier ; renvoie le nombre d'articles ajoutés et de plats introuvables. */
   onReorder: (order: OrderSummary) => { added: number; missing: number }
+  onTrackOrder?: (orderRef: string) => void
 }
 
 type Tab = 'profile' | 'orders' | 'settings'
@@ -60,6 +62,7 @@ const STATUS: Record<OrderStatus, { label: string; chip: string }> = {
   pending: { label: 'En attente', chip: 'bg-white/10 text-zinc-200' },
   confirmed: { label: 'Confirmée', chip: 'bg-bmc-gold/15 text-bmc-gold' },
   preparing: { label: 'En préparation', chip: 'bg-bmc-gold/15 text-bmc-gold' },
+  ready: { label: 'Prête', chip: 'bg-bmc-gold/15 text-bmc-gold' },
   delivering: { label: 'En livraison', chip: 'bg-bmc-gold/15 text-bmc-gold' },
   delivered: { label: 'Livrée', chip: 'bg-green-500/15 text-green-400' },
   cancelled: { label: 'Annulée', chip: 'bg-red-500/15 text-red-400' },
@@ -138,7 +141,7 @@ function OrderProgress({ status }: { status: OrderStatus }) {
 }
 
 /** Page « Mon compte » : profil, commandes, réglages. */
-export function ProfileView({ user, onUserChange, onLogout, onOpenAuth, onExploreMenu, onReorder }: ProfileViewProps) {
+export function ProfileView({ user, onUserChange, onLogout, onOpenAuth, onExploreMenu, onReorder, onTrackOrder }: ProfileViewProps) {
   const [tab, setTab] = useState<Tab>('profile')
   const [draft, setDraft] = useState<ClientProfile>(() => {
     const stored = loadProfile()
@@ -628,7 +631,17 @@ export function ProfileView({ user, onUserChange, onLogout, onOpenAuth, onExplor
                           ))}
                         </ul>
                       </details>
-                      <div className="flex gap-2 border-t border-white/10 p-3">
+                      <div className="flex flex-wrap gap-2 border-t border-white/10 p-3">
+                        {onTrackOrder && (
+                          <button
+                            type="button"
+                            onClick={() => onTrackOrder(order.order_ref)}
+                            className="inline-flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-bmc-gold/40 bg-zinc-950 px-3.5 text-xs font-semibold text-bmc-gold transition-colors hover:bg-bmc-gold hover:text-black"
+                          >
+                            <Clock className="size-3.5" aria-hidden="true" />
+                            Suivre
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => reorder(order)}

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Maximize2, Minimize2, PanelLeftClose, PanelLeftOpen, Volume2, VolumeX } from 'lucide-react'
 import { IconButton } from '../ui/primitives'
 
-export type AdminTab = 'kds' | 'special' | 'promotions' | 'transactions' | 'staff'
+export type AdminTab = 'kds' | 'special' | 'promotions' | 'transactions' | 'restaurant' | 'staff'
 
 interface AppHeaderProps {
   currentTab: AdminTab
@@ -14,6 +14,10 @@ interface AppHeaderProps {
 
 const PAGE_COPY: Record<AdminTab, { title: string; description: string }> = {
   kds: { title: 'Cuisine', description: '' },
+  restaurant: {
+    title: 'Restaurant',
+    description: 'Ouverture, pause cuisine et disponibilité des commandes.',
+  },
   promotions: {
     title: 'Promotions',
     description: 'Les remises actives s’affichent sur le site client.',

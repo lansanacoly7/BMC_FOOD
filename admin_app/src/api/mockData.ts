@@ -16,18 +16,54 @@ export const MOCK_KDS_ORDERS: KdsOrder[] = [
   // COLONNE 1 : À PRÉPARER (pending)
   // =========================================================================
   {
+    id: 122,
+    orderRef: '#BMC-0122',
+    customerName: 'Aissatou Ba',
+    phone: '+221 77 123 45 67',
+    address: 'Grand Yoff, Rue 10 en face Pharmacie',
+    deliveryArea: 'Grand Yoff',
+    hasAllergy: true,
+    notes: 'Allergie sévère arachide. Merci de faire attention aux sauces.',
+    orderType: 'delivery',
+    status: 'pending',
+    paymentMethod: 'wave',
+    paymentStatus: 'pending', // En attente de validation par le restaurant
+    totalAmount: 8500,
+    createdAt: minutesAgo(2),
+    isNew: true,
+    items: [
+      {
+        id: 101,
+        code: 'tp-1',
+        name: 'Tacos Viande Pané XL',
+        quantity: 2,
+        unitPrice: 3500,
+        options: ['Sauce fromagère sans arachide'],
+      },
+      {
+        id: 102,
+        code: 'drink-1',
+        name: 'Jus de Bissap Maison Menthe 50cl',
+        quantity: 1,
+        unitPrice: 1500,
+      },
+    ],
+  },
+  {
     id: 123,
     orderRef: '#BMC-0123',
     customerName: 'Fatou Sall',
     phone: '+221 77 654 32 10',
     address: 'Mermoz, Rue MZ-14, Immeuble Horizon Appt 3B',
+    deliveryArea: 'Mermoz',
+    hasAllergy: false,
     notes: 'Piment bien séparé svp. Sonner à l’interphone Sall.',
     orderType: 'delivery',
     status: 'pending',
-    paymentMethod: 'wave',
-    paymentStatus: 'paid',
+    paymentMethod: 'orange_money',
+    paymentStatus: 'pending', // Paiement Orange Money en attente
     totalAmount: 14500,
-    createdAt: minutesAgo(3), // 3 min : Normal
+    createdAt: minutesAgo(5),
     isNew: true, // Badge NOUVEAU
     items: [
       {
@@ -129,7 +165,9 @@ export const MOCK_KDS_ORDERS: KdsOrder[] = [
     customerName: 'Awa Diallo',
     phone: '+221 76 543 21 09',
     address: 'Almadies, En face Ambassade USA, Villa 12',
-    notes: 'Portail noir en fer forgé. Appeler à l’arrivée.',
+    deliveryArea: 'Almadies',
+    hasAllergy: true,
+    notes: 'Allergie fruits de mer. Portail noir en fer forgé. Appeler à l’arrivée.',
     orderType: 'delivery',
     status: 'preparing',
     paymentMethod: 'wave',

@@ -95,6 +95,23 @@ class OrderStatusUpdateRequestSerializer(serializers.Serializer):
     les deux changements sont validés puis appliqués ensemble (tout ou rien)."""
     status = serializers.ChoiceField(choices=Order.STATUS_CHOICES, required=False)
     payment_status = serializers.ChoiceField(choices=Order.PAYMENT_STATUS_CHOICES, required=False)
+    cancel_reason = serializers.CharField(
+        max_length=255,
+        required=False,
+        allow_blank=True,
+        help_text="Motif d'annulation (obligatoire si status='cancelled').",
+    )
+
+
+class OrderCancelClientRequestSerializer(serializers.Serializer):
+    """Corps de POST /api/orders/<ref>/cancel/."""
+    phone = serializers.CharField(max_length=30, help_text="Numéro de téléphone du client ayant passé la commande.")
+    cancel_reason = serializers.CharField(
+        max_length=255,
+        required=False,
+        allow_blank=True,
+        help_text="Motif d'annulation facultatif.",
+    )
 
 
 class UnnotifiedEventsResponseSerializer(serializers.Serializer):

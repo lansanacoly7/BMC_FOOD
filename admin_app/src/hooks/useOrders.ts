@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getAuthToken } from '../api/client'
-import { acknowledgeOrders, fetchActiveOrders, isUsingDemoData, transitionOrderStatus } from '../api/orders'
+import {
+  acknowledgeOrders,
+  confirmOrderPayment,
+  fetchActiveOrders,
+  isUsingDemoData,
+  transitionOrderStatus,
+} from '../api/orders'
 import { audioAlert } from '../lib/audioAlert'
 import type { KdsOrder, KdsOrderStatus } from '../types/kds'
 
@@ -28,6 +34,8 @@ export interface UseOrdersResult {
   toggleAudio: () => void
   refresh: () => Promise<void>
   transitionOrder: (orderRef: string, newStatus: KdsOrderStatus) => Promise<void>
+  cancelOrderWithReason: (orderRef: string, reason: string) => Promise<void>
+  confirmPayment: (orderRef: string) => Promise<void>
   undoTransition: (orderRef: string) => void
   activeUndoAction: UndoableAction | null
   acknowledgeNewOrders: () => void
@@ -271,6 +279,70 @@ export function useOrders(nowMs: number = Date.now()): UseOrdersResult {
     [orders, activeUndoAction, sendTransition],
   )
 
+  /**
+   * Annulation de commande avec motif obligatoire (Contrat V1)
+   */
+  const cancelOrderWithReason = useCallback(
+    async (orderRef: string, reason: string) => {
+      const order = orders.find((o) => o.orderRef === orderRef)
+      if (!order) return
+      const previousStatus = order.status
+
+      // Mise à jour optimiste
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.orderRef === orderRef
+            ? { ...o, status: 'cancelled', cancelReason: reason, isNew: false }
+            : o,
+        ),
+      )
+      audioAlert.playActionConfirm()
+
+      try {
+        await transitionOrderStatus(orderRef, 'cancelled', reason)
+      } catch (apiErr) {
+        console.error(`Échec annulation ${orderRef}:`, apiErr)
+        setOrders((prev) =>
+          prev.map((o) => (o.orderRef === orderRef ? { ...o, status: previousStatus } : o)),
+        )
+        setError(apiErr as Error)
+        setActionError(`L'annulation de la commande ${orderRef} a échoué.`)
+        setTimeout(() => setActionError(null), 5000)
+      }
+    },
+    [orders],
+  )
+
+  /**
+   * Confirmation d'un paiement mobile (Wave, Orange Money) ou espèces
+   */
+  const confirmPayment = useCallback(
+    async (orderRef: string) => {
+      const order = orders.find((o) => o.orderRef === orderRef)
+      if (!order) return
+      const prevPayment = order.paymentStatus
+
+      // Mise à jour optimiste
+      setOrders((prev) =>
+        prev.map((o) => (o.orderRef === orderRef ? { ...o, paymentStatus: 'paid' } : o)),
+      )
+      audioAlert.playActionConfirm()
+
+      try {
+        await confirmOrderPayment(orderRef)
+      } catch (apiErr) {
+        console.error(`Échec confirmation paiement ${orderRef}:`, apiErr)
+        setOrders((prev) =>
+          prev.map((o) => (o.orderRef === orderRef ? { ...o, paymentStatus: prevPayment } : o)),
+        )
+        setError(apiErr as Error)
+        setActionError(`La validation du paiement pour ${orderRef} a échoué.`)
+        setTimeout(() => setActionError(null), 5000)
+      }
+    },
+    [orders],
+  )
+
   const refresh = useCallback(async () => {
     await loadOrders(false)
   }, [loadOrders])
@@ -288,6 +360,8 @@ export function useOrders(nowMs: number = Date.now()): UseOrdersResult {
     toggleAudio,
     refresh,
     transitionOrder,
+    cancelOrderWithReason,
+    confirmPayment,
     undoTransition,
     activeUndoAction,
     acknowledgeNewOrders,

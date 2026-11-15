@@ -44,7 +44,39 @@ class MenuItem(models.Model):
         return f"{self.name} — {self.price} F CFA"
 
 
+class DeliveryArea(models.Model):
+    slug = models.SlugField(
+        max_length=80,
+        unique=True,
+        db_index=True,
+        help_text="Identifiant stable du quartier (ex: grand-yoff)",
+    )
+    name = models.CharField(max_length=120, unique=True)
+    zone = models.PositiveSmallIntegerField(help_text="Numéro de zone (1 à 9)")
+    zone_label = models.CharField(max_length=80, blank=True, default='')
+    fee = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Frais en F CFA ; null si destination éloignée (prix confirmé par téléphone)",
+    )
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = 'Quartier de livraison'
+        verbose_name_plural = 'Quartiers de livraison'
+        ordering = ['zone', 'name']
+
+    def __str__(self):
+        fee_label = f"{self.fee} F CFA" if self.fee is not None else "À confirmer par téléphone"
+        return f"Zone {self.zone} — {self.name} ({fee_label})"
+
+
 class Order(models.Model):
+    ORDER_TYPE_CHOICES = [
+        ('delivery', 'Livraison'),
+        ('pickup', 'À emporter'),
+    ]
+
     PAYMENT_CHOICES = [
         ('cash', 'Espèces à la livraison'),
         ('wave', 'Wave'),
@@ -76,15 +108,47 @@ class Order(models.Model):
     order_ref = models.CharField(max_length=20, unique=True, db_index=True)
     customer_name = models.CharField(max_length=120)
     phone = models.CharField(max_length=30)
-    address = models.TextField()
+    order_type = models.CharField(max_length=20, choices=ORDER_TYPE_CHOICES, default='delivery', db_index=True)
+    delivery_area = models.CharField(
+        max_length=80,
+        blank=True,
+        default='',
+        help_text="Identifiant du quartier de livraison (ex: grand-yoff)",
+    )
+    delivery_fee = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        default=0,
+        help_text="Frais de livraison en F CFA (null si à confirmer par téléphone)",
+    )
+    address = models.TextField(blank=True, default='')
     notes = models.TextField(blank=True, default='')
+    has_allergy = models.BooleanField(
+        default=False,
+        help_text="Indique si le client a signalé une allergie alimentaire",
+    )
     payment_method = models.CharField(max_length=20, choices=PAYMENT_CHOICES, default='cash')
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='unpaid')
-    fulfillment_method = models.CharField(max_length=20, choices=FULFILLMENT_CHOICES, default='delivery')
-    delivery_area = models.CharField(max_length=80, blank=True, default='', help_text="Identifiant du quartier de livraison (ex: grand-yoff)")
-    delivery_fee = models.PositiveIntegerField(default=0, help_text="Frais de livraison en F CFA calculés par le serveur")
+    subtotal = models.PositiveIntegerField(
+        default=0,
+        help_text="Sous-total des articles hors livraison en F CFA, calculé par le serveur",
+    )
     total_amount = models.PositiveIntegerField(help_text="Montant total en F CFA, calculé par le serveur")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', db_index=True)
+    cancel_reason = models.CharField(
+        max_length=255,
+        blank=True,
+        default='',
+        help_text="Motif d'annulation de la commande",
+    )
+    idempotency_key = models.CharField(
+        max_length=100,
+        unique=True,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Clé d'idempotence (en-tête Idempotency-Key) anti-doublon",
+    )
     is_notified_to_admin = models.BooleanField(
         default=False,
         db_index=True,
@@ -96,6 +160,14 @@ class Order(models.Model):
         verbose_name = 'Commande'
         verbose_name_plural = 'Commandes'
         ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        update_fields = kwargs.get('update_fields')
+        if update_fields is None and self.subtotal == 0 and self.total_amount:
+            fee = self.delivery_fee or 0
+            if self.total_amount >= fee:
+                self.subtotal = self.total_amount - fee
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.order_ref} — {self.customer_name} ({self.total_amount} F CFA)"

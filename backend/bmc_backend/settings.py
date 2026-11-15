@@ -114,15 +114,27 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'bmc_backend.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.environ.get('BMC_DB_PATH') or (BASE_DIR / 'bmc_orders.sqlite3'),
-        'OPTIONS': {
-            'timeout': 20,  # Attente de 20s sur verrou SQLite pour les requêtes concurrentes (I11)
-        },
+_DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
+if _DATABASE_URL:
+    import dj_database_url
+
+    DATABASES = {
+        'default': dj_database_url.parse(
+            _DATABASE_URL,
+            conn_max_age=int(os.environ.get('DB_CONN_MAX_AGE', '60')),
+            conn_health_checks=True,
+        )
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.environ.get('BMC_DB_PATH') or (BASE_DIR / 'bmc_orders.sqlite3'),
+            'OPTIONS': {
+                'timeout': 20,  # Attente de 20s sur verrou SQLite pour les requêtes concurrentes (I11)
+            },
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -214,14 +226,30 @@ REST_FRAMEWORK = {
 }
 
 # --- Cache / Throttling partagé (I16) ---------------------------------------
-# Par défaut en local/test : LocMemCache de Django.
-# En production multi-workers (gunicorn/uvicorn), décommenter/configurer Redis :
-# CACHES = {
-#     'default': {
-#         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-#         'LOCATION': os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/1'),
-#     }
-# }
+# En développement ou pendant les tests : mémoire locale (aucune dépendance externe).
+# En production multi-workers (gunicorn) : Redis si REDIS_URL est défini, sinon
+# cache partagé en base de données (table créée via `python manage.py createcachetable`).
+_REDIS_URL = os.environ.get('REDIS_URL', '').strip()
+if DEBUG or TESTING:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        }
+    }
+elif _REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': _REDIS_URL,
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+            'LOCATION': os.environ.get('BMC_CACHE_TABLE', 'bmc_cache'),
+        }
+    }
 
 # --- Documentation OpenAPI (Swagger) ---------------------------------------
 # Publique en développement ; en production, réservée aux membres du staff

@@ -24,6 +24,7 @@ _DEFAULT_CODES = {
     status.HTTP_403_FORBIDDEN: 'permission_denied',
     status.HTTP_404_NOT_FOUND: 'not_found',
     status.HTTP_405_METHOD_NOT_ALLOWED: 'method_not_allowed',
+    status.HTTP_409_CONFLICT: 'conflict',
     status.HTTP_429_TOO_MANY_REQUESTS: 'throttled',
     status.HTTP_503_SERVICE_UNAVAILABLE: 'service_unavailable',
 }

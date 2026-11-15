@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Download, Printer, Receipt } from 'lucide-react'
+import { CheckCircle2, Download, Printer, Receipt } from 'lucide-react'
 import {
   Badge,
   Button,
@@ -21,6 +21,7 @@ import type { KdsOrder, PaymentMethod } from '../types/kds'
 
 interface TransactionsPageProps {
   orders: KdsOrder[]
+  onConfirmPayment?: (orderRef: string) => void
 }
 
 const METHOD_LABELS: Record<PaymentMethod, string> = {
@@ -33,7 +34,7 @@ const formatPrice = (value: number) => `${value.toLocaleString('fr-FR')} F`
 
 const isPaid = (order: KdsOrder) => order.paymentStatus === 'paid' || order.status === 'delivered'
 
-export const TransactionsPage: React.FC<TransactionsPageProps> = ({ orders }) => {
+export const TransactionsPage: React.FC<TransactionsPageProps> = ({ orders, onConfirmPayment }) => {
   const [method, setMethod] = useState<'all' | PaymentMethod>('all')
   const [selectedOrder, setSelectedOrder] = useState<KdsOrder | null>(null)
 
@@ -184,7 +185,22 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ orders }) =>
                     <Td>{order.customerName}</Td>
                     <Td className="hidden text-ink-soft md:table-cell">{METHOD_LABELS[order.paymentMethod]}</Td>
                     <Td>
-                      <Badge tone={isPaid(order) ? 'ok' : 'warn'}>{isPaid(order) ? 'Payé' : 'En attente'}</Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge tone={isPaid(order) ? 'ok' : 'warn'}>{isPaid(order) ? 'Payé' : 'En attente'}</Badge>
+                        {!isPaid(order) && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onConfirmPayment?.(order.orderRef)
+                            }}
+                            className="rounded border border-emerald-500/40 bg-emerald-600/20 px-2 py-0.5 text-[11px] font-bold text-emerald-300 transition-colors hover:bg-emerald-600 hover:text-white cursor-pointer"
+                            title={`Valider l'encaissement de ${order.orderRef}`}
+                          >
+                            Valider
+                          </button>
+                        )}
+                      </div>
                     </Td>
                     <Td className="text-right font-display font-semibold tabular-nums">
                       {formatPrice(order.totalAmount)}
@@ -208,6 +224,18 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({ orders }) =>
               <Button variant="ghost" onClick={() => setSelectedOrder(null)}>
                 Fermer
               </Button>
+              {!isPaid(selectedOrder) && (
+                <Button
+                  icon={CheckCircle2}
+                  onClick={() => {
+                    onConfirmPayment?.(selectedOrder.orderRef)
+                    setSelectedOrder((prev) => (prev ? { ...prev, paymentStatus: 'paid' } : null))
+                  }}
+                  className="!bg-emerald-600 hover:!bg-emerald-500 !text-white"
+                >
+                  Confirmer le paiement ({METHOD_LABELS[selectedOrder.paymentMethod]})
+                </Button>
+              )}
               <Button icon={Printer} onClick={() => handlePrint(selectedOrder)}>
                 Imprimer le reçu
               </Button>

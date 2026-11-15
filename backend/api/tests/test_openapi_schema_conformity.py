@@ -82,7 +82,8 @@ class OpenApiSchemaConformityTests(TestCase):
         data = r.json()
         expected_fields = {
             'success', 'order_ref', 'status', 'status_label',
-            'payment_status', 'payment_status_label', 'total_amount',
+            'payment_status', 'payment_status_label', 'order_type',
+            'subtotal', 'delivery_fee', 'total_amount', 'cancel_reason',
             'created_at', 'items_count', 'items'
         }
         for field in expected_fields:

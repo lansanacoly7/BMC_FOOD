@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('api', '0006_order_delivery_area_order_delivery_fee_and_more'),
+        ('api', '0006_deliveryarea_and_order_v1_fields'),
     ]
 
     operations = [

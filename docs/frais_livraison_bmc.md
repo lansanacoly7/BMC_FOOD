@@ -36,13 +36,14 @@ Wave et Orange Money exigent un montant exact : chaque quartier a donc un prix f
 | 9 | Sébikotane | 4 000 F |
 | 9 | Autre destination plus éloignée | prix confirmé par téléphone |
 
-## 3. À faire côté backend (Ibrahima / Pathé)
+## 3. Implémentation côté backend (V1 — Ibrahima)
 
-Aujourd'hui, le serveur ne connaît pas les frais de livraison : `total_amount` ne contient que les plats. Pour garder la règle « le serveur fait foi sur les prix » :
+La grille officielle (51 quartiers répartis sur les zones 1 à 9) est désormais enregistrée et appliquée côté Django (`backend/api/delivery_grid.py` et modèle `DeliveryArea`, migration `0006_deliveryarea_and_order_v1_fields`, `seed_bmc` idempotent) :
 
-1. Ajouter la grille (quartier → frais) côté Django, comme le menu.
-2. Accepter `delivery_area` (identifiant du quartier, ex. `grand-yoff`) dans `POST /api/orders/`.
-3. Enregistrer `delivery_fee` et l'inclure dans `total_amount` (le navigateur n'envoie jamais le montant des frais).
-4. Renvoyer `delivery_area` et `delivery_fee` dans la commande pour l'admin.
-
-En attendant, le site affiche les frais et les ajoute au montant à payer côté navigateur (démo uniquement).
+1. **Table `DeliveryArea`** : contient chaque quartier (`slug`, `name`, `zone`, `zone_label`, `fee`, `is_active`), initialisée par la migration `0006` et maintenue de façon non-destructive par `python manage.py seed_bmc` (réinitialisable avec `--reset`).
+2. **`POST /api/orders/`** :
+   - En mode `order_type="delivery"`, `delivery_area` (ex. `grand-yoff`) et `address` sont obligatoires ; un quartier inconnu renvoie HTTP 400.
+   - Pour `autre-destination-plus-eloignee`, `delivery_fee` vaut `null` et `total_amount = subtotal`.
+   - En mode `order_type="pickup"`, l'adresse est facultative, `delivery_area=""`, `delivery_fee=0` et `total_amount = subtotal`.
+   - Tout prix ou frais envoyé par le client est ignoré par le serveur.
+3. **Réponses (`OrderSerializer` & suivi `GET /api/orders/track/<ref>/`)** : exposent `order_type`, `delivery_area` (hors suivi public si sensible, mais `delivery_fee` et `subtotal` présents dans les deux), `delivery_fee`, `subtotal` et `total_amount`.

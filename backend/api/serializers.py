@@ -6,6 +6,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from . import order_rules
+from .delivery_grid import resolve_delivery_area
 from .exceptions import OrderReferenceUnavailable
 from .models import Category, MenuItem, Order, OrderItem, RestaurantSettings
 
@@ -42,11 +43,13 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            'id', 'order_ref', 'customer_name', 'phone', 'address',
-            'notes', 'payment_method', 'payment_status',
-            'fulfillment_method', 'delivery_area', 'delivery_fee',
-            'total_amount', 'status', 'is_notified_to_admin', 'created_at',
-            'items', 'items_count'
+            'id', 'order_ref', 'customer_name', 'phone',
+            'order_type', 'delivery_area', 'delivery_fee',
+            'address', 'notes', 'has_allergy',
+            'payment_method', 'payment_status',
+            'subtotal', 'total_amount',
+            'status', 'cancel_reason',
+            'is_notified_to_admin', 'created_at', 'items', 'items_count'
         ]
 
     @extend_schema_field(OpenApiTypes.INT)
@@ -145,16 +148,31 @@ class OrderCreateItemInputSerializer(serializers.Serializer):
 class OrderCreateSerializer(serializers.Serializer):
     """Corps de `POST /api/orders/`.
 
-    Tout champ de prix ou de total envoyé par le client (`price`, `unit_price`,
-    `subtotal`, `total_amount`…) est ignoré : seuls les champs déclarés ici sont lus.
+    Tout champ de prix ou de frais envoyé par le client (`price`, `unit_price`,
+    `subtotal`, `delivery_fee`, `total_amount`…) est ignoré : seuls les champs
+    déclarés ici sont lus.
     """
     customer_name = serializers.CharField(max_length=120, min_length=2)
     phone = serializers.CharField(max_length=30, min_length=6)
-    address = serializers.CharField(min_length=3)
+    order_type = serializers.ChoiceField(choices=Order.ORDER_TYPE_CHOICES, default='delivery')
+    delivery_area = serializers.CharField(
+        max_length=80,
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        default='',
+        help_text="Identifiant du quartier de livraison (ex: grand-yoff). Obligatoire si order_type='delivery'.",
+    )
+    address = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        default='',
+        help_text="Adresse de livraison. Obligatoire si order_type='delivery', facultative si 'pickup'.",
+    )
     notes = serializers.CharField(required=False, allow_blank=True, default='')
+    has_allergy = serializers.BooleanField(required=False, default=False)
     payment_method = serializers.ChoiceField(choices=['cash', 'wave', 'orange_money'], default='cash')
-    fulfillment_method = serializers.ChoiceField(choices=['delivery', 'pickup'], default='delivery', required=False)
-    delivery_area = serializers.CharField(max_length=80, required=False, allow_blank=True, default='')
     items = OrderCreateItemInputSerializer(many=True)
 
     def validate_items(self, value):
@@ -190,14 +208,52 @@ class OrderCreateSerializer(serializers.Serializer):
         if errors:
             raise serializers.ValidationError({'items': errors})
 
-        fulfillment_method = attrs.get('fulfillment_method', 'delivery')
-        delivery_area = attrs.get('delivery_area', '').strip()
-        delivery_fee = 0 if fulfillment_method == 'pickup' else order_rules.get_delivery_fee(delivery_area)
+        field_errors = {}
+        order_type = attrs.get('order_type') or 'delivery'
+        address = (attrs.get('address') or '').strip()
+        raw_area = attrs.get('delivery_area')
+        area_slug = (raw_area or '').strip().lower()
+        initial = self.initial_data if isinstance(self.initial_data, dict) else {}
+
+        delivery_fee = 0
+        if order_type == 'delivery':
+            if len(address) < 3:
+                field_errors['address'] = [
+                    "L'adresse de livraison est obligatoire en mode livraison (minimum 3 caractères)."
+                ]
+            # Si order_type ou delivery_area est fourni dans la requête, delivery_area est obligatoire et vérifié.
+            if 'order_type' in initial or 'delivery_area' in initial:
+                if not area_slug:
+                    field_errors['delivery_area'] = [
+                        "Le quartier de livraison (« delivery_area ») est obligatoire pour une commande en livraison."
+                    ]
+                else:
+                    area = resolve_delivery_area(area_slug)
+                    if area is None:
+                        field_errors['delivery_area'] = [
+                            f"Quartier de livraison inconnu : « {raw_area} »."
+                        ]
+                    else:
+                        attrs['delivery_area'] = area.slug
+                        delivery_fee = area.fee or 0
+            else:
+                attrs['delivery_area'] = ''
+        else:
+            # Mode 'pickup' (à emporter) : pas de frais de livraison, adresse facultative
+            attrs['delivery_area'] = ''
+
+        if field_errors:
+            raise serializers.ValidationError(field_errors)
+
+        attrs['order_type'] = order_type
+        attrs['address'] = address
+
+        # Plafond de montant maximal
         items_subtotal = sum(line['subtotal'] for line in lines)
-        total_amount = items_subtotal + delivery_fee
-        if total_amount > order_rules.MAX_ORDER_AMOUNT:
+        estimated_total = items_subtotal + (delivery_fee or 0)
+        if estimated_total > order_rules.MAX_ORDER_AMOUNT:
             raise serializers.ValidationError({
-                'total_amount': [f"Le montant total de la commande ({total_amount} F CFA) dépasse le plafond autorisé de {order_rules.MAX_ORDER_AMOUNT} F CFA."]
+                'total_amount': [f"Le montant total de la commande ({estimated_total} F CFA) dépasse le plafond autorisé de {order_rules.MAX_ORDER_AMOUNT} F CFA."]
             })
 
         return attrs
@@ -228,6 +284,9 @@ class OrderCreateSerializer(serializers.Serializer):
     def create(self, validated_data):
         payment_method = validated_data['payment_method']
         payment_status = 'pending' if payment_method in ('wave', 'orange_money') else 'unpaid'
+        order_type = validated_data.get('order_type', 'delivery')
+        has_allergy = bool(validated_data.get('has_allergy', False))
+        idempotency_key = validated_data.get('idempotency_key')
 
         for attempt in range(order_rules.ORDER_REF_MAX_ATTEMPTS):
             try:
@@ -237,27 +296,42 @@ class OrderCreateSerializer(serializers.Serializer):
                     if errors:
                         raise serializers.ValidationError({'items': errors})
 
-                    fulfillment_method = validated_data.get('fulfillment_method', 'delivery')
-                    delivery_area = validated_data.get('delivery_area', '').strip()
-                    if fulfillment_method == 'pickup':
+                    subtotal = sum(line['subtotal'] for line in lines)
+
+                    if order_type == 'pickup':
+                        delivery_area = ''
                         delivery_fee = 0
                     else:
-                        delivery_fee = order_rules.get_delivery_fee(delivery_area)
+                        area_slug = validated_data.get('delivery_area', '')
+                        if area_slug:
+                            area = resolve_delivery_area(area_slug)
+                            if area is None:
+                                raise serializers.ValidationError({
+                                    'delivery_area': [f"Quartier de livraison inconnu : « {area_slug} »."]
+                                })
+                            delivery_area = area.slug
+                            delivery_fee = area.fee
+                        else:
+                            delivery_area = ''
+                            delivery_fee = 0
 
-                    items_subtotal = sum(line['subtotal'] for line in lines)
-                    total_amount = items_subtotal + delivery_fee
+                    total_amount = subtotal + delivery_fee if delivery_fee is not None else subtotal
+
                     order = self._create_order_with_unique_ref(
                         customer_name=validated_data['customer_name'].strip(),
                         phone=validated_data['phone'].strip(),
-                        address=validated_data['address'].strip(),
-                        notes=validated_data.get('notes', '').strip(),
-                        payment_method=payment_method,
-                        payment_status=payment_status,
-                        fulfillment_method=fulfillment_method,
+                        order_type=order_type,
                         delivery_area=delivery_area,
                         delivery_fee=delivery_fee,
+                        address=(validated_data.get('address') or '').strip(),
+                        notes=(validated_data.get('notes') or '').strip(),
+                        has_allergy=has_allergy,
+                        payment_method=payment_method,
+                        payment_status=payment_status,
+                        subtotal=subtotal,
                         total_amount=total_amount,
                         status='pending',
+                        idempotency_key=idempotency_key,
                         is_notified_to_admin=False,
                     )
                     OrderItem.objects.bulk_create([OrderItem(order=order, **line) for line in lines])
@@ -352,6 +426,26 @@ class OrderStatusUpdateInputSerializer(serializers.Serializer):
         required=False,
         help_text="Nouveau statut de paiement"
     )
+    cancel_reason = serializers.CharField(
+        max_length=255,
+        required=False,
+        allow_blank=True,
+        help_text="Motif d'annulation (obligatoire si status='cancelled')"
+    )
+
+
+class OrderCancelClientInputSerializer(serializers.Serializer):
+    phone = serializers.CharField(
+        max_length=30,
+        help_text="Numéro de téléphone du client ayant passé la commande"
+    )
+    cancel_reason = serializers.CharField(
+        max_length=255,
+        required=False,
+        allow_blank=True,
+        default='',
+        help_text="Motif d'annulation facultatif"
+    )
 
 
 class OrderStatusUpdateResponseSerializer(serializers.Serializer):
@@ -402,7 +496,17 @@ class OrderTrackResponseSerializer(serializers.Serializer):
     status_label = serializers.CharField(help_text="Libellé lisible du statut (ex: En préparation)")
     payment_status = serializers.CharField(help_text="Statut de paiement (unpaid, pending, paid, refund_pending)")
     payment_status_label = serializers.CharField(help_text="Libellé lisible du statut de paiement")
+    order_type = serializers.ChoiceField(
+        choices=Order.ORDER_TYPE_CHOICES,
+        help_text="Mode de commande (delivery ou pickup)",
+    )
+    subtotal = serializers.IntegerField(help_text="Sous-total des articles en F CFA")
+    delivery_fee = serializers.IntegerField(
+        allow_null=True,
+        help_text="Frais de livraison en F CFA (null si à confirmer par téléphone)",
+    )
     total_amount = serializers.IntegerField(help_text="Montant total en F CFA")
+    cancel_reason = serializers.CharField(allow_blank=True, help_text="Motif d'annulation éventuel")
     created_at = serializers.DateTimeField(help_text="Date et heure de passage de commande")
     items_count = serializers.IntegerField(help_text="Nombre total d'articles commandés")
     items = OrderTrackItemSerializer(many=True, help_text="Liste des articles de la commande")
@@ -413,4 +517,56 @@ class RestaurantSettingsSerializer(serializers.ModelSerializer):
         model = RestaurantSettings
         fields = ['manual_closed', 'closed_message', 'updated_at']
         read_only_fields = ['updated_at']
+
+
+class CustomerUserSerializer(serializers.Serializer):
+    name = serializers.CharField(help_text="Nom complet du client")
+    phone = serializers.CharField(help_text="Numéro de téléphone sénégalais (9 chiffres)")
+    address = serializers.CharField(required=False, allow_blank=True, default='', help_text="Adresse de livraison habituelle")
+
+
+class CustomerRegisterRequestSerializer(serializers.Serializer):
+    name = serializers.CharField(help_text="Prénom et nom du client")
+    phone = serializers.CharField(help_text="Numéro de téléphone sénégalais (ex. 77 856 13 13)")
+    password = serializers.CharField(help_text="Mot de passe (min 4 caractères)")
+    address = serializers.CharField(required=False, default='', help_text="Adresse de livraison facultative")
+
+
+class CustomerRegisterResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField(default=True)
+    message = serializers.CharField()
+    token = serializers.CharField()
+    user = CustomerUserSerializer()
+
+
+class CustomerLoginRequestSerializer(serializers.Serializer):
+    identifier = serializers.CharField(required=False, help_text="Numéro de téléphone ou identifiant")
+    phone = serializers.CharField(required=False, help_text="Numéro de téléphone")
+    username = serializers.CharField(required=False, help_text="Identifiant")
+    password = serializers.CharField(help_text="Mot de passe")
+
+
+class CustomerLoginResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField(default=True)
+    message = serializers.CharField()
+    token = serializers.CharField()
+    user = CustomerUserSerializer()
+
+
+class CustomerProfileResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField(default=True)
+    user = CustomerUserSerializer()
+    orders_count = serializers.IntegerField()
+    orders = OrderSerializer(many=True)
+
+
+class CustomerProfileUpdateRequestSerializer(serializers.Serializer):
+    name = serializers.CharField(required=False, help_text="Nouveau nom du client")
+    address = serializers.CharField(required=False, help_text="Nouvelle adresse de livraison")
+
+
+class CustomerProfileUpdateResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField(default=True)
+    message = serializers.CharField()
+    user = CustomerUserSerializer()
 

@@ -1,0 +1,9 @@
+[Unit]
+Description=Sauvegarde nocturne PostgreSQL BMC FOOD
+After=postgresql.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=/var/www/bmc/deploy/backup.sh

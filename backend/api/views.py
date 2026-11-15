@@ -1,5 +1,5 @@
 import time
-from django.db import OperationalError, transaction
+from django.db import IntegrityError, OperationalError, transaction
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -22,10 +22,12 @@ from . import order_rules
 from .api_schemas import (
     ErrorEnvelopeSerializer,
     HealthResponseSerializer,
+    OrderCancelClientRequestSerializer,
     OrderEnvelopeSerializer,
     OrderListResponseSerializer,
     OrderStatusUpdateRequestSerializer,
 )
+from .delivery_grid import phones_match
 from .exceptions import error_response, first_message
 from .models import Category, MenuItem, Order, RestaurantSettings
 from .serializers import (
@@ -341,8 +343,18 @@ class OrderListCreateView(APIView):
         })
 
     @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                'Idempotency-Key',
+                str,
+                location=OpenApiParameter.HEADER,
+                required=False,
+                description="Clé d'idempotence (UUID) anti-doublon : une 2e requête avec la même clé renvoie la même commande (HTTP 200).",
+            ),
+        ],
         request=OrderCreateSerializer,
         responses={
+            200: OrderEnvelopeSerializer,
             201: OrderEnvelopeSerializer,
             400: ErrorEnvelopeSerializer,
             429: ErrorEnvelopeSerializer,
@@ -350,17 +362,42 @@ class OrderListCreateView(APIView):
         },
     )
     def post(self, request):
+        raw_key = request.headers.get('Idempotency-Key') or request.META.get('HTTP_IDEMPOTENCY_KEY')
+        idempotency_key = raw_key.strip() if isinstance(raw_key, str) and raw_key.strip() else None
+        if idempotency_key and len(idempotency_key) > 100:
+            message = "L'en-tête Idempotency-Key ne doit pas dépasser 100 caractères."
+            return error_response(message, errors={'idempotency_key': [message]})
+
+        if idempotency_key:
+            existing = Order.objects.prefetch_related('items__menu_item').filter(idempotency_key=idempotency_key).first()
+            if existing is not None:
+                return Response({
+                    'success': True,
+                    'message': 'Commande déjà enregistrée (idempotence).',
+                    'order': OrderSerializer(existing).data,
+                }, status=status.HTTP_200_OK)
+
         serializer = OrderCreateSerializer(data=request.data)
         if serializer.is_valid():
             for attempt in range(5):
                 try:
-                    order = serializer.save()
+                    order = serializer.save(idempotency_key=idempotency_key)
                     order_data = OrderSerializer(order).data
                     return Response({
                         'success': True,
                         'message': 'Commande créée avec succès !',
                         'order': order_data
                     }, status=status.HTTP_201_CREATED)
+                except IntegrityError:
+                    if idempotency_key:
+                        existing = Order.objects.prefetch_related('items__menu_item').filter(idempotency_key=idempotency_key).first()
+                        if existing is not None:
+                            return Response({
+                                'success': True,
+                                'message': 'Commande déjà enregistrée (idempotence).',
+                                'order': OrderSerializer(existing).data,
+                            }, status=status.HTTP_200_OK)
+                    raise
                 except OperationalError as e:
                     if 'locked' in str(e).lower() and attempt < 4:
                         serializer.instance = None
@@ -426,11 +463,102 @@ class OrderTrackView(APIView):
             'status_label': status_display,
             'payment_status': order.payment_status,
             'payment_status_label': payment_status_display,
+            'order_type': order.order_type,
+            'subtotal': order.subtotal,
+            'delivery_fee': order.delivery_fee,
             'total_amount': order.total_amount,
+            'cancel_reason': order.cancel_reason,
             'created_at': order.created_at.isoformat(),
             'items_count': sum(item['quantity'] for item in items_data),
             'items': items_data
         })
+
+
+class OrderCancelClientView(APIView):
+    """Annulation d'une commande par le client (`POST /api/orders/<ref>/cancel/`).
+
+    - Requiert le numéro de téléphone de la commande (`{"phone": "..."}`).
+    - Autorisée uniquement lorsque `status == 'pending'`, sinon renvoie HTTP 409 Conflict.
+    """
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'order_track'
+
+    @extend_schema(
+        operation_id='orders_cancel_client',
+        tags=["Commandes - Suivi Client"],
+        summary="Annulation d'une commande en attente par le client",
+        request=OrderCancelClientRequestSerializer,
+        responses={
+            200: OrderEnvelopeSerializer,
+            400: ErrorEnvelopeSerializer,
+            404: ErrorEnvelopeSerializer,
+            409: ErrorEnvelopeSerializer,
+            429: ErrorEnvelopeSerializer,
+        },
+    )
+    def post(self, request, ref):
+        data = request.data
+        if not isinstance(data, dict):
+            return error_response("Corps de requête invalide : un objet JSON est attendu.")
+
+        raw_phone = data.get('phone')
+        if not isinstance(raw_phone, str) or not raw_phone.strip():
+            message = "Le numéro de téléphone est obligatoire pour annuler la commande."
+            return error_response(message, errors={'phone': [message]})
+
+        ref_clean = ref.strip().upper()
+        with transaction.atomic():
+            order = Order.objects.select_for_update().filter(order_ref__iexact=ref_clean).first()
+            if not order:
+                return error_response(
+                    "Commande introuvable.",
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    code='not_found',
+                )
+
+            if not phones_match(raw_phone, order.phone):
+                message = "Le numéro de téléphone ne correspond pas à cette commande."
+                return error_response(message, errors={'phone': [message]})
+
+            if order.status != 'pending':
+                if order.status == 'cancelled':
+                    message = "Cette commande est déjà annulée."
+                else:
+                    message = (
+                        "Cette commande ne peut plus être annulée en ligne car elle n'est plus en attente. "
+                        "Veuillez appeler le restaurant."
+                    )
+                return error_response(
+                    message,
+                    errors={'status': [message]},
+                    status_code=status.HTTP_409_CONFLICT,
+                    code='order_not_cancellable',
+                )
+
+            raw_reason = data.get('cancel_reason')
+            cancel_reason = (
+                raw_reason.strip()[:255]
+                if isinstance(raw_reason, str) and raw_reason.strip()
+                else "Annulée par le client"
+            )
+            order.status = 'cancelled'
+            order.cancel_reason = cancel_reason
+            update_fields = ['status', 'cancel_reason']
+            if order.payment_status == 'paid':
+                order.payment_status = 'refund_pending'
+                update_fields.append('payment_status')
+            order.save(update_fields=update_fields)
+
+        return Response({
+            'success': True,
+            'message': 'Votre commande a été annulée.',
+            'order_ref': order.order_ref,
+            'status': order.status,
+            'payment_status': order.payment_status,
+            'cancel_reason': order.cancel_reason,
+            'order': OrderSerializer(order).data,
+        }, status=status.HTTP_200_OK)
 
 
 class OrderDetailView(APIView):
@@ -479,6 +607,7 @@ class OrderStatusUpdateView(APIView):
 
         new_status = data.get('status')
         new_payment_status = data.get('payment_status')
+        raw_cancel_reason = data.get('cancel_reason')
         if new_status is None and new_payment_status is None:
             message = "Fournir au moins « status » ou « payment_status »."
             return error_response(message, errors={'non_field_errors': [message]})
@@ -486,6 +615,15 @@ class OrderStatusUpdateView(APIView):
         errors = {}
         _check_allowed_value(errors, 'status', new_status, ORDER_STATUS_VALUES)
         _check_allowed_value(errors, 'payment_status', new_payment_status, PAYMENT_STATUS_VALUES)
+        if new_status == 'cancelled':
+            if not isinstance(raw_cancel_reason, str) or not raw_cancel_reason.strip():
+                errors['cancel_reason'] = [
+                    "Le motif d'annulation (« cancel_reason ») est obligatoire pour annuler une commande."
+                ]
+            elif len(raw_cancel_reason.strip()) > 255:
+                errors['cancel_reason'] = [
+                    "Le motif d'annulation ne doit pas dépasser 255 caractères."
+                ]
         if errors:
             return error_response(first_message(errors), errors=errors)
 
@@ -516,6 +654,11 @@ class OrderStatusUpdateView(APIView):
             if new_status is not None and new_status != order.status:
                 order.status = new_status
                 changed.append('status')
+            if new_status == 'cancelled':
+                clean_reason = raw_cancel_reason.strip()
+                if clean_reason != order.cancel_reason:
+                    order.cancel_reason = clean_reason
+                    changed.append('cancel_reason')
             if new_payment_status is not None and new_payment_status != order.payment_status:
                 order.payment_status = new_payment_status
                 changed.append('payment_status')
@@ -527,6 +670,57 @@ class OrderStatusUpdateView(APIView):
             'message': 'Commande mise à jour.' if changed else 'Aucun changement : la commande est déjà dans cet état.',
             'order': OrderSerializer(order).data
         })
+
+
+class OrderConfirmPaymentView(APIView):
+    """Confirmation manuelle du paiement par l'administration (`POST /api/admin/orders/<ref>/confirm-payment/`).
+
+    Passe `payment_status` de `pending` ou `unpaid` vers `paid`.
+    """
+    permission_classes = [IsAdminUser]
+
+    @extend_schema(
+        operation_id='admin_orders_confirm_payment',
+        tags=["Administration - Commandes"],
+        summary="Confirmer le paiement d'une commande",
+        request=None,
+        responses={
+            200: OrderEnvelopeSerializer,
+            400: ErrorEnvelopeSerializer,
+            401: ErrorEnvelopeSerializer,
+            403: ErrorEnvelopeSerializer,
+            404: ErrorEnvelopeSerializer,
+        },
+    )
+    def post(self, request, ref_or_id):
+        with transaction.atomic():
+            order = _find_order(ref_or_id, for_update=True)
+
+            if order.status == 'cancelled':
+                message = "Impossible de confirmer le paiement d'une commande annulée."
+                return error_response(message, errors={'status': [message]})
+
+            if order.payment_status not in ('pending', 'unpaid'):
+                message = (
+                    f"Le paiement ne peut être confirmé que depuis « pending » ou « unpaid » "
+                    f"(état actuel : « {order.payment_status} »)."
+                )
+                return error_response(message, errors={'payment_status': [message]})
+
+            order.payment_status = 'paid'
+            order.save(update_fields=['payment_status'])
+
+        return Response({
+            'success': True,
+            'message': 'Paiement confirmé avec succès.',
+            'order': OrderSerializer(order).data,
+        }, status=status.HTTP_200_OK)
+
+
+@extend_schema(exclude=True)
+class OrderConfirmPaymentAliasView(OrderConfirmPaymentView):
+    """Alias sur `/api/orders/<ref>/confirm-payment/` (exclu du schéma OpenAPI pour éviter les doublons)."""
+    pass
 
 
 @extend_schema_view(
