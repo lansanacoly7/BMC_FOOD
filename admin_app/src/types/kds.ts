@@ -35,6 +35,11 @@ export interface KdsOrder {
   address: string
   notes?: string
   orderType: OrderType
+  deliveryArea?: string | null
+  deliveryFee?: number | null
+  subtotal?: number
+  hasAllergy?: boolean
+  cancelReason?: string | null
   status: KdsOrderStatus
   paymentMethod: PaymentMethod
   paymentStatus: PaymentStatus

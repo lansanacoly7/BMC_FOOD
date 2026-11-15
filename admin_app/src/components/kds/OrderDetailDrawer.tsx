@@ -9,6 +9,8 @@ import {
   Utensils,
   ShoppingBag,
   MessageSquare,
+  AlertOctagon,
+  CheckCircle2,
 } from 'lucide-react'
 import { formatDateTime, formatFcfa } from '../../lib/formatters'
 import type { KdsOrder, KdsOrderStatus, OrderType } from '../../types/kds'
@@ -19,15 +21,31 @@ interface OrderDetailDrawerProps {
   onPrintTicket: (order: KdsOrder) => void
   onTransition?: (orderRef: string, nextStatus: KdsOrderStatus) => void
   onCancel?: (orderRef: string) => void
+  onConfirmPayment?: (orderRef: string) => void
 }
 
 const TYPE_CONFIG: Record<
   OrderType,
-  { label: string; icon: React.FC<{ className?: string }> }
+  { label: string; badgeLabel: string; badgeClass: string; icon: React.FC<{ className?: string }> }
 > = {
-  delivery: { label: 'Livraison', icon: Bike },
-  takeaway: { label: 'À emporter', icon: ShoppingBag },
-  dine_in: { label: 'Sur place', icon: Utensils },
+  delivery: {
+    label: 'Livraison',
+    badgeLabel: 'LIVRAISON',
+    badgeClass: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+    icon: Bike,
+  },
+  takeaway: {
+    label: 'À emporter',
+    badgeLabel: 'À EMPORTER',
+    badgeClass: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
+    icon: ShoppingBag,
+  },
+  dine_in: {
+    label: 'Sur place',
+    badgeLabel: 'SUR PLACE',
+    badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+    icon: Utensils,
+  },
 }
 
 export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
@@ -36,6 +54,7 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
   onPrintTicket,
   onTransition,
   onCancel,
+  onConfirmPayment,
 }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -57,8 +76,10 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
       ? 'Orange Money'
       : 'Espèces'
 
+  const isPaymentPending = order.paymentStatus !== 'paid'
+
   const paymentStatusLabel =
-    order.paymentStatus === 'paid' ? 'Payée' : 'Non payée'
+    order.paymentStatus === 'paid' ? 'Payée' : 'En attente de paiement'
 
   return (
     <div
@@ -72,6 +93,17 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
         className="w-full max-w-md h-full flex flex-col border-l border-line bg-canvas text-ink font-sans shadow-xl overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* BANDEAU ROUGE ALLERGIE EN TÊTE */}
+        {order.hasAllergy && (
+          <div
+            role="alert"
+            className="flex items-center gap-2 bg-red-600 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-inner"
+          >
+            <AlertOctagon className="size-4 shrink-0 animate-pulse" />
+            <span>ATTENTION : Allergie alimentaire signalée</span>
+          </div>
+        )}
+
         {/* EN-TÊTE DU TIROIR */}
         <div className="p-4 border-b border-line bg-surface flex items-start justify-between gap-3 sticky top-0 z-10">
           <div>
@@ -82,9 +114,11 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
               >
                 {order.orderRef}
               </h2>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-medium bg-canvas text-ink-soft border border-line">
-                <TypeIcon className="size-3 text-ink-soft" />
-                <span>{typeConfig.label}</span>
+              <span
+                className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-bold tracking-wider ${typeConfig.badgeClass}`}
+              >
+                <TypeIcon className="size-3 shrink-0" />
+                <span>{typeConfig.badgeLabel}</span>
               </span>
             </div>
             <p className="text-xs text-ink-soft flex items-center gap-1.5">
@@ -109,7 +143,7 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
           <div className="p-3 rounded-lg border border-line bg-surface flex flex-col gap-2">
             <div className="flex items-center justify-between text-xs text-ink-soft font-medium">
               <span>Client</span>
-              <span className="tabular-nums text-ink">
+              <span className={`tabular-nums font-semibold ${order.paymentStatus === 'paid' ? 'text-ok' : 'text-amber-400'}`}>
                 {paymentMethodLabel} · {paymentStatusLabel}
               </span>
             </div>
@@ -119,17 +153,41 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
             {order.phone && (
               <a
                 href={`tel:${order.phone}`}
-                className="flex items-center gap-2 text-xs font-medium text-bmc-gold hover:underline"
+                className="flex items-center gap-2 text-xs font-semibold text-bmc-gold hover:underline"
               >
                 <Phone className="size-3.5" />
                 <span>{order.phone}</span>
               </a>
             )}
 
+            {order.deliveryArea && (
+              <div className="flex items-center gap-1.5 text-xs font-medium text-ink">
+                <MapPin className="size-3.5 shrink-0 text-bmc-gold" />
+                <span>Quartier : <strong>{order.deliveryArea}</strong></span>
+              </div>
+            )}
+
             {order.address && (
               <div className="flex items-start gap-1.5 text-xs text-ink-soft">
                 <MapPin className="size-3.5 shrink-0 mt-0.5 text-ink-faint" />
                 <span>{order.address}</span>
+              </div>
+            )}
+
+            {/* BOUTON CONFIRMER LE PAIEMENT (WAVE / ORANGE MONEY / ESPÈCES) */}
+            {isPaymentPending && (
+              <div className="mt-2 pt-2 border-t border-line">
+                <button
+                  type="button"
+                  onClick={() => onConfirmPayment?.(order.orderRef)}
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-colors cursor-pointer active:scale-[0.99]"
+                >
+                  <CheckCircle2 className="size-4 shrink-0" />
+                  <span>Confirmer le paiement ({paymentMethodLabel})</span>
+                </button>
+                <p className="text-[11px] text-ink-faint text-center mt-1">
+                  Valide l'encaissement de {formatFcfa(order.totalAmount)}
+                </p>
               </div>
             )}
           </div>

@@ -68,6 +68,12 @@ export interface Order {
   phone: string
   address: string
   notes: string
+  order_type?: 'delivery' | 'pickup' | 'dine_in'
+  delivery_area?: string | null
+  delivery_fee?: number | null
+  subtotal?: number
+  has_allergy?: boolean
+  cancel_reason?: string | null
   payment_method: PaymentMethod
   payment_status: PaymentStatus
   total_amount: number
@@ -99,6 +105,9 @@ export interface OrderCreatePayload {
   phone: string
   address: string
   notes?: string
+  order_type?: 'delivery' | 'pickup'
+  delivery_area?: string
+  has_allergy?: boolean
   payment_method: PaymentMethod
   items: OrderCreateItem[]
 }
