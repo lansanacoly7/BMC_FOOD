@@ -9,6 +9,9 @@
 /** Moyens de paiement acceptés par le backend. */
 export type PaymentMethod = 'cash' | 'wave' | 'orange_money'
 
+/** Mode de réception d'une commande : livraison à domicile ou retrait au restaurant. */
+export type OrderType = 'delivery' | 'pickup'
+
 /** État du paiement : `unpaid` (espèces), `pending` (Wave / Orange Money en attente), `paid`. */
 export type PaymentStatus = 'unpaid' | 'pending' | 'paid'
 
@@ -59,25 +62,25 @@ export interface OrderItem {
   subtotal: number
 }
 
-/** Commande complète (OrderSerializer). `total_amount` est toujours recalculé côté serveur. */
+/** Commande complète (OrderSerializer). Les montants (`subtotal`, `delivery_fee`, `total_amount`) font foi côté serveur. */
 export interface Order {
   id: number
   /** Référence visible par le client, ex. « BMC-4821 ». */
   order_ref: string
   customer_name: string
   phone: string
-  address: string
-  notes: string
-  order_type?: 'delivery' | 'pickup' | 'dine_in'
+  order_type?: OrderType | 'dine_in'
   delivery_area?: string | null
   delivery_fee?: number | null
   subtotal?: number
+  address: string
+  notes: string
   has_allergy?: boolean
-  cancel_reason?: string | null
   payment_method: PaymentMethod
   payment_status: PaymentStatus
   total_amount: number
   status: OrderStatus
+  cancel_reason?: string | null
   is_notified_to_admin: boolean
   /** Date ISO 8601 UTC, ex. « 2026-10-21T14:05:00Z ». */
   created_at: string
@@ -103,13 +106,24 @@ export interface OrderCreateItem {
 export interface OrderCreatePayload {
   customer_name: string
   phone: string
-  address: string
-  notes?: string
-  order_type?: 'delivery' | 'pickup'
+  order_type: OrderType
   delivery_area?: string
+  address?: string
+  notes?: string
   has_allergy?: boolean
   payment_method: PaymentMethod
   items: OrderCreateItem[]
+}
+
+/** Réponse de GET /api/health/. */
+export interface HealthResponse {
+  status: string
+  service?: string
+  version?: string
+  server_time?: string
+  is_open?: boolean
+  accepting_orders?: boolean
+  closed_message?: string
 }
 
 /** Réponse de GET /api/menu/. */

@@ -27,6 +27,7 @@ from .views import (
     OrderConfirmPaymentAliasView,
     OrderUnnotifiedEventsView,
     OrderTrackView,
+    RestaurantSettingsView,
 )
 
 # --- Politique d'accès (I7) --------------------------------------------------
@@ -77,6 +78,10 @@ urlpatterns = [
 
     # Promotions & Personnalisation
     path('promotions/', PromotionsView.as_view(), name='promotions'),
+
+    # Réglages opérationnels (Fermeture manuelle / Pause cuisine)
+    path('admin/settings/', RestaurantSettingsView.as_view(), name='admin-restaurant-settings'),
+    path('settings/', RestaurantSettingsView.as_view(), name='restaurant-settings'),
 
     # Ajout de plats au catalogue
     path('menu/items/', MenuItemCreateView.as_view(), name='menu-item-create'),

@@ -8,7 +8,7 @@ from rest_framework import serializers
 from . import order_rules
 from .delivery_grid import resolve_delivery_area
 from .exceptions import OrderReferenceUnavailable
-from .models import Category, MenuItem, Order, OrderItem
+from .models import Category, MenuItem, Order, OrderItem, RestaurantSettings
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -180,8 +180,31 @@ class OrderCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError("Le panier ne peut pas être vide.")
         return value
 
+    def validate_phone(self, value):
+        try:
+            return order_rules.validate_and_normalize_phone(value)
+        except ValueError as e:
+            raise serializers.ValidationError(str(e))
+
+    def validate_notes(self, value):
+        if value and len(value) > order_rules.MAX_NOTE_LENGTH:
+            raise serializers.ValidationError(
+                f"La note ne peut pas dépasser {order_rules.MAX_NOTE_LENGTH} caractères (actuellement {len(value)})."
+            )
+        return value
+
     def validate(self, attrs):
-        _, errors = resolve_cart(attrs['items'])
+        opening_error = order_rules.check_order_opening_hours()
+        if opening_error:
+            raise serializers.ValidationError(opening_error)
+
+        total_quantity = sum(item.get('quantity', 0) for item in attrs.get('items', []))
+        if total_quantity > order_rules.MAX_ORDER_TOTAL_QUANTITY:
+            raise serializers.ValidationError({
+                'items': [f"La quantité totale d'articles ({total_quantity}) dépasse la limite autorisée ({order_rules.MAX_ORDER_TOTAL_QUANTITY})."]
+            })
+
+        lines, errors = resolve_cart(attrs['items'])
         if errors:
             raise serializers.ValidationError({'items': errors})
 
@@ -192,6 +215,7 @@ class OrderCreateSerializer(serializers.Serializer):
         area_slug = (raw_area or '').strip().lower()
         initial = self.initial_data if isinstance(self.initial_data, dict) else {}
 
+        delivery_fee = 0
         if order_type == 'delivery':
             if len(address) < 3:
                 field_errors['address'] = [
@@ -211,6 +235,7 @@ class OrderCreateSerializer(serializers.Serializer):
                         ]
                     else:
                         attrs['delivery_area'] = area.slug
+                        delivery_fee = area.fee or 0
             else:
                 attrs['delivery_area'] = ''
         else:
@@ -222,6 +247,15 @@ class OrderCreateSerializer(serializers.Serializer):
 
         attrs['order_type'] = order_type
         attrs['address'] = address
+
+        # Plafond de montant maximal
+        items_subtotal = sum(line['subtotal'] for line in lines)
+        estimated_total = items_subtotal + (delivery_fee or 0)
+        if estimated_total > order_rules.MAX_ORDER_AMOUNT:
+            raise serializers.ValidationError({
+                'total_amount': [f"Le montant total de la commande ({estimated_total} F CFA) dépasse le plafond autorisé de {order_rules.MAX_ORDER_AMOUNT} F CFA."]
+            })
+
         return attrs
 
     @staticmethod
@@ -324,6 +358,9 @@ class HealthCheckResponseSerializer(serializers.Serializer):
     service = serializers.CharField(default='BMC Food Django REST API')
     version = serializers.CharField(default='2.0.0')
     server_time = serializers.DateTimeField()
+    is_open = serializers.BooleanField(help_text="Indique si le restaurant est dans ses horaires d'ouverture (11h-02h)")
+    accepting_orders = serializers.BooleanField(help_text="Faux si fermeture manuelle, pause cuisine ou hors fenêtre de commande")
+    closed_message = serializers.CharField(allow_blank=True, help_text="Message explicatif si les commandes sont fermées")
 
 
 class CategoryWithItemsSerializer(serializers.ModelSerializer):
@@ -475,6 +512,13 @@ class OrderTrackResponseSerializer(serializers.Serializer):
     items = OrderTrackItemSerializer(many=True, help_text="Liste des articles de la commande")
 
 
+class RestaurantSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RestaurantSettings
+        fields = ['manual_closed', 'closed_message', 'updated_at']
+        read_only_fields = ['updated_at']
+
+
 class CustomerUserSerializer(serializers.Serializer):
     name = serializers.CharField(help_text="Nom complet du client")
     phone = serializers.CharField(help_text="Numéro de téléphone sénégalais (9 chiffres)")
@@ -525,5 +569,4 @@ class CustomerProfileUpdateResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField(default=True)
     message = serializers.CharField()
     user = CustomerUserSerializer()
-
 

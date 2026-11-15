@@ -35,7 +35,35 @@ export class OrderSubmitError extends Error {
   }
 }
 
-const ORDER_FIELDS: OrderField[] = ['customer_name', 'phone', 'address', 'notes', 'payment_method']
+const ORDER_FIELDS: OrderField[] = [
+  'customer_name',
+  'phone',
+  'order_type',
+  'delivery_area',
+  'address',
+  'notes',
+  'has_allergy',
+  'payment_method',
+]
+
+/** Génère un UUID v4 pour l'en-tête Idempotency-Key (avec repli hors contexte HTTPS sur mobile). */
+export function createIdempotencyKey(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    const bytes = new Uint8Array(16)
+    crypto.getRandomValues(bytes)
+    bytes[6] = (bytes[6] & 0x0f) | 0x40
+    bytes[8] = (bytes[8] & 0x3f) | 0x80
+    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
+    const rand = (Math.random() * 16) | 0
+    return (char === 'x' ? rand : (rand & 0x3) | 0x8).toString(16)
+  })
+}
 
 const NETWORK_MESSAGE =
   'Connexion au serveur impossible. Vérifiez votre connexion internet puis réessayez : votre panier et vos informations sont conservés.'
@@ -68,8 +96,14 @@ function allMessages(value: unknown): string[] {
 function toOrderSubmitError(error: unknown): OrderSubmitError {
   if (!(error instanceof ApiError)) return new OrderSubmitError(NETWORK_MESSAGE, 'network')
 
-  const payload = (error.payload ?? {}) as { error?: unknown; errors?: Record<string, unknown> }
-  const errors = payload.errors ?? {}
+  const rawPayload = (error.payload && typeof error.payload === 'object' ? error.payload : {}) as Record<
+    string,
+    unknown
+  >
+  const errors =
+    rawPayload.errors && typeof rawPayload.errors === 'object'
+      ? (rawPayload.errors as Record<string, unknown>)
+      : rawPayload
 
   if (error.status === 400) {
     const fieldErrors: Partial<Record<OrderField, string>> = {}
@@ -78,12 +112,15 @@ function toOrderSubmitError(error: unknown): OrderSubmitError {
       if (message) fieldErrors[field] = message
     }
     const itemErrors = allMessages(errors.items)
+    const nonFieldError = firstMessage(errors.non_field_errors) ?? firstMessage(rawPayload.non_field_errors)
     const hasFieldErrors = Object.keys(fieldErrors).length > 0
-    const message = hasFieldErrors
-      ? 'Certaines informations sont à corriger avant d’envoyer la commande.'
-      : itemErrors.length > 0
-        ? 'Un plat de votre panier pose problème : retirez-le ou modifiez la quantité, puis renvoyez.'
-        : (firstMessage(payload.error) ?? 'La commande n’a pas pu être validée. Vérifiez vos informations.')
+    const message =
+      nonFieldError ??
+      (hasFieldErrors
+        ? 'Certaines informations sont à corriger avant d’envoyer la commande.'
+        : itemErrors.length > 0
+          ? 'Un plat de votre panier pose problème : retirez-le ou modifiez la quantité, puis renvoyez.'
+          : (firstMessage(rawPayload.error) ?? 'La commande n’a pas pu être validée. Vérifiez vos informations.'))
     return new OrderSubmitError(message, 'validation', fieldErrors, itemErrors)
   }
 
@@ -99,7 +136,7 @@ function toOrderSubmitError(error: unknown): OrderSubmitError {
     )
   }
 
-  const serverMessage = firstMessage(payload.error)
+  const serverMessage = firstMessage(rawPayload.error)
   return new OrderSubmitError(
     serverMessage ?? `Le serveur n’a pas pu enregistrer la commande (erreur ${error.status}). Réessayez dans un instant.`,
     'server',
@@ -120,30 +157,46 @@ export function buildOrderPayload(items: CartItem[], customer: OrderCustomerDeta
     .map((item) => `• ${item.quantity} × ${item.product.name} : ${item.note}`)
   const notes = [customer.notes?.trim() ?? '', ...customizations].filter(Boolean).join('\n')
 
-  return {
+  const payload: OrderCreatePayload = {
     customer_name: customer.customer_name.trim(),
     phone: customer.phone.trim(),
-    address: customer.address.trim(),
+    order_type: customer.order_type,
     notes,
+    has_allergy: Boolean(customer.has_allergy),
     payment_method: customer.payment_method,
     items: [...quantities].map(([id, quantity]) => ({ id, quantity })),
   }
+
+  if (customer.order_type === 'delivery') {
+    const area = customer.delivery_area?.trim()
+    if (area) payload.delivery_area = area
+    payload.address = customer.address?.trim() ?? ''
+  }
+
+  return payload
 }
 
 /**
  * Envoie la commande à `POST /api/orders/` et renvoie la commande enregistrée par le serveur
- * (référence BMC-XXXX, montant recalculé). Lève une OrderSubmitError en cas d'échec.
+ * (référence BMC-XXXX, montants calculés). Lève une OrderSubmitError en cas d'échec.
  */
-export async function submitOrder(items: CartItem[], customer: OrderCustomerDetails): Promise<Order> {
+export async function submitOrder(
+  items: CartItem[],
+  customer: OrderCustomerDetails,
+  idempotencyKey: string = createIdempotencyKey(),
+): Promise<Order> {
   if (items.length === 0) {
     throw new OrderSubmitError('Votre panier est vide : ajoutez au moins un plat.', 'validation')
   }
 
   const controller = new AbortController()
-  const timer = window.setTimeout(() => controller.abort(), SUBMIT_TIMEOUT_MS)
+  const timer = globalThis.setTimeout(() => controller.abort(), SUBMIT_TIMEOUT_MS)
   try {
     const { order } = await apiRequest<OrderResponse>('/orders/', {
       method: 'POST',
+      headers: {
+        'Idempotency-Key': idempotencyKey,
+      },
       body: JSON.stringify(buildOrderPayload(items, customer)),
       signal: controller.signal,
     })
@@ -151,6 +204,6 @@ export async function submitOrder(items: CartItem[], customer: OrderCustomerDeta
   } catch (error) {
     throw toOrderSubmitError(error)
   } finally {
-    window.clearTimeout(timer)
+    globalThis.clearTimeout(timer)
   }
 }

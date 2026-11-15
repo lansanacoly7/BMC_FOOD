@@ -1,8 +1,17 @@
 import { useCallback, useRef, useState } from 'react'
 import { recordOrder } from '../services/clientData'
-import { type OrderCustomerDetails, OrderSubmitError, submitOrder } from '../services/orders'
-import type { Order } from '../types'
+import {
+  createIdempotencyKey,
+  type OrderCustomerDetails,
+  OrderSubmitError,
+  submitOrder,
+} from '../services/orders'
+import type { CartItem, Order } from '../types'
 import { useCart } from './useCart'
+
+function cartFingerprint(items: CartItem[]): string {
+  return items.map((item) => `${item.product.code}:${item.quantity}:${item.note ?? ''}`).join('|')
+}
 
 export type OrderSubmissionStatus = 'idle' | 'submitting' | 'success' | 'error'
 
@@ -34,6 +43,9 @@ export function useOrderSubmission(): OrderSubmission {
   const [error, setError] = useState<OrderSubmitError | null>(null)
   // Garde synchrone : l'état React ne bloque pas un deuxième appui arrivé avant le prochain rendu.
   const inFlight = useRef(false)
+  // Clé d'idempotence propre à la tentative courante, conservée en cas de nouvel essai après erreur.
+  const idempotencyKeyRef = useRef<string | null>(null)
+  const attemptCartRef = useRef<string | null>(null)
 
   const submit = useCallback(
     async (customer: OrderCustomerDetails) => {
@@ -41,8 +53,17 @@ export function useOrderSubmission(): OrderSubmission {
       inFlight.current = true
       setStatus('submitting')
       setError(null)
+
+      const fingerprint = cartFingerprint(items)
+      if (!idempotencyKeyRef.current || attemptCartRef.current !== fingerprint) {
+        idempotencyKeyRef.current = createIdempotencyKey()
+        attemptCartRef.current = fingerprint
+      }
+
       try {
-        const created = await submitOrder(items, customer)
+        const created = await submitOrder(items, customer, idempotencyKeyRef.current)
+        idempotencyKeyRef.current = null
+        attemptCartRef.current = null
         recordOrder(created)
         setOrder(created)
         setStatus('success')
@@ -69,6 +90,8 @@ export function useOrderSubmission(): OrderSubmission {
   }, [])
 
   const reset = useCallback(() => {
+    idempotencyKeyRef.current = null
+    attemptCartRef.current = null
     setOrder(null)
     setError(null)
     setStatus('idle')

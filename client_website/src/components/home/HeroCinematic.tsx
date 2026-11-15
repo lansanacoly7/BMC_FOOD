@@ -243,14 +243,14 @@ export function HeroCinematic({ onExploreMenu, isRevealed = true }: HeroCinemati
               </button>
             </motion.div>
 
-            {/* Statut en direct, à l'heure de Dakar */}
+            {/* Statut en direct (/api/health/ + heure de Dakar) */}
             <motion.div variants={pick(riseIn)} className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-300 sm:text-sm">
               <span className="flex items-center gap-2">
                 <span className="relative flex size-2">
-                  {opening.isOpen && !reduceMotion && <span className="absolute inset-0 animate-ping rounded-full bg-bmc-success opacity-60" />}
-                  <span className={`relative size-2 rounded-full ${opening.isOpen ? 'bg-bmc-success' : 'bg-bmc-gold'}`} />
+                  {opening.acceptingOrders && !reduceMotion && <span className="absolute inset-0 animate-ping rounded-full bg-bmc-success opacity-60" />}
+                  <span className={`relative size-2 rounded-full ${opening.acceptingOrders ? 'bg-bmc-success' : 'bg-bmc-gold'}`} />
                 </span>
-                <span className="font-medium text-white">{opening.isOpen ? "Ouvert jusqu'à 02h" : `Fermé · réouverture ${opening.reopensLabel}`}</span>
+                <span className="font-medium text-white">{opening.label}</span>
               </span>
               <span className="text-zinc-400">{OPENING_HOURS_LABEL}</span>
               <span className="text-zinc-200">Livraison à Dakar</span>

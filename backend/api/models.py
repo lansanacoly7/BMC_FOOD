@@ -100,6 +100,11 @@ class Order(models.Model):
         ('refund_pending', 'Remboursement en attente'),
     ]
 
+    FULFILLMENT_CHOICES = [
+        ('delivery', 'Livraison à domicile'),
+        ('pickup', 'À emporter (sur place)'),
+    ]
+
     order_ref = models.CharField(max_length=20, unique=True, db_index=True)
     customer_name = models.CharField(max_length=120)
     phone = models.CharField(max_length=30)
@@ -205,3 +210,33 @@ class Customer(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.phone})"
+
+
+class RestaurantSettings(models.Model):
+    """
+    Configuration opérationnelle et interrupteur d'urgence du restaurant (ligne unique / singleton).
+    Permet à l'administration de mettre la cuisine en pause ou de fermer le restaurant manuellement.
+    """
+    manual_closed = models.BooleanField(
+        default=False,
+        help_text="Fermeture manuelle ou pause cuisine activée par l'administration."
+    )
+    closed_message = models.TextField(
+        blank=True,
+        default="",
+        help_text="Message explicatif affiché aux clients lors d'une fermeture manuelle ou pause."
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Paramètres du restaurant"
+        verbose_name_plural = "Paramètres du restaurant"
+
+    @classmethod
+    def get_settings(cls):
+        obj, _ = cls.objects.get_or_create(id=1)
+        return obj
+
+    def __str__(self):
+        state = "Fermé / Pause" if self.manual_closed else "Ouvert / Normal"
+        return f"RestaurantSettings ({state})"

@@ -42,7 +42,7 @@ export function TopHeader({
   onOpenAuth,
   clientUser,
 }: TopHeaderProps) {
-  const { isOpen } = useOpeningStatus()
+  const { acceptingOrders, isPaused } = useOpeningStatus()
   const [compact, setCompact] = useState(false)
   const [hidden, setHidden] = useState(false)
 
@@ -147,8 +147,12 @@ export function TopHeader({
             ))}
 
             <span className="flex items-center gap-2 text-sm text-zinc-400">
-              <span className={`size-2 rounded-full ${isOpen ? 'bg-bmc-success' : 'bg-zinc-500'}`} />
-              {isOpen ? 'Ouvert · jusqu’à 02h' : 'Fermé'}
+              <span
+                className={`size-2 rounded-full ${
+                  acceptingOrders ? 'bg-bmc-success' : isPaused ? 'bg-bmc-gold' : 'bg-zinc-500'
+                }`}
+              />
+              {acceptingOrders ? 'Ouvert · jusqu’à 02h' : isPaused ? 'En pause' : 'Fermé'}
             </span>
           </nav>
 

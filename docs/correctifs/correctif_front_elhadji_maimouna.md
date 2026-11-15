@@ -1,23 +1,20 @@
-# Correctif pour El Hadji et Maïmouna : fusion des deux branches du site client
+# Correctif pour El Hadji : reprendre ta branche sur le nouveau `develop`
 
-Branches testées : `feature/frontend/elhadji-commande-v1` (El Hadji, `a86b33f`) et `Dev_MaimounaSall` (Maïmouna, `afbb74b`), toutes deux à jour sur `develop`.
+Mise à jour du 15 nov. : la branche de Maïmouna (lint à 0, page de suivi, annulation client) est fusionnée dans `develop`, ainsi que le backend V1 d'Ibrahima, qui accepte déjà `order_type`, `delivery_area`, `has_allergy` et `Idempotency-Key`. `test` est aligné.
 
-Résultat sur chacune, seule : `tsc -b` à 0 erreur et `npm run build` à 0 erreur. Mais les deux branches **modifient les mêmes fichiers et ne se fusionnent pas ensemble** (conflit constaté sur GitHub). Fichiers en commun : `ProvisionalCheckout.tsx`, `OrderConfirmation.tsx`, `TopHeader.tsx`, `types/index.ts`.
+Ta branche `feature/frontend/elhadji-commande-v1` (`a86b33f`) est correcte seule (`tsc` et build à 0 erreur), mais elle **entre en conflit** avec le travail de Maïmouna.
 
-## Ordre de fusion
-1. **Maïmouna d'abord** (sa branche passe sans conflit avec `develop`, le lint est à 0).
-2. **El Hadji reprend ensuite sa branche sur le `develop` mis à jour** (`git merge origin/develop`), résout les conflits en gardant les deux fonctions (envoi de `order_type` et `Idempotency-Key` d'un côté, suivi et annulation de l'autre), puis relance les vérifications.
-Je préviens quand la branche de Maïmouna est fusionnée dans `develop`.
-
-## Pour El Hadji
-- **`npm run lint` : 2 erreurs** (règle « setState dans un effet », vers la ligne 118 d'un des fichiers touchés). Ce sont les mêmes que Maïmouna a corrigées dans sa branche ; en reprenant `develop` après sa fusion, elles disparaîtront ou seront à corriger à la main. Objectif : lint à 0.
-- Ton site envoie `order_type`, `delivery_area`, `has_allergy` et `Idempotency-Key`, ce qui est conforme au contrat. Le backend de Pathé n'est pas encore aligné (il attend `fulfillment_method` et ignore la clé) : voir `correctif_pathe_v1_contrat_api.md`. Ne change rien côté site pour l'instant.
-- Fais un test de bout en bout avec le vrai backend dès que la branche de Pathé est fusionnée : commande à emporter sans adresse, livraison avec un quartier, double clic, restaurant en pause.
-
-## Pour Maïmouna
-- Le lint est à 0 et le build passe : bon travail.
-- La page de suivi appelle `GET /api/orders/track/<ref>/` (conforme). L'annulation appelle `POST /api/orders/<ref>/cancel/` : cet endpoint n'existe pas encore côté backend, donc le bouton affichera une erreur en production tant que Pathé et Ibrahima ne l'ont pas livré. Prévois un message clair (« Annulation impossible pour le moment, appelez le restaurant ») en cas de 404 ou de 5xx.
-- Vérifie la page de suivi sur mobile 360 px avec une commande réelle (statuts en attente, en préparation, prête, livrée, annulée).
+## À faire
+1. `git fetch` puis `git merge origin/develop` dans ta branche.
+2. Conflits attendus : `ProvisionalCheckout.tsx`, `OrderConfirmation.tsx`, `TopHeader.tsx`, `types/index.ts`. **Garde les deux fonctions :** ton envoi de `order_type`, `delivery_area`, `has_allergy`, de `Idempotency-Key`, les montants du serveur, le bandeau fermé ; et la page de suivi, l'annulation et les corrections de lint de Maïmouna.
+3. `npm run lint` doit être à **0 erreur** (tu en avais 2, de la même famille que celles qu'elle a corrigées).
+4. `npx tsc -b` et `npm run build` à 0 erreur.
+5. **Test de bout en bout avec le vrai backend** (le backend d'Ibrahima est dans `develop`) : commande à emporter sans adresse, livraison avec un quartier (le total vient du serveur), double clic sur « Commander » (une seule commande), allergie cochée. Le bandeau « fermé ou pause » dépend de la branche de Pathé : il n'affichera la pause manuelle qu'après sa fusion.
 
 ## Quand c'est corrigé
-Préviens-moi : je fusionne sur une copie de `develop`, je relance `tsc`, le build, le lint et je vérifie les conflits.
+Préviens-moi : je fusionne sur une copie de `develop`, je relance `tsc`, le build, le lint, et je pousse.
+
+---
+
+# Note pour Maïmouna
+Ta branche est fusionnée dans `develop`. Ton bouton d'annulation appelle `POST /api/orders/<ref>/cancel/`, qui existe maintenant (backend d'Ibrahima) : fais un essai complet avec une vraie commande en attente, puis une commande déjà en préparation (le message d'erreur doit être clair). Vérifie aussi la page de suivi sur mobile 360 px.
