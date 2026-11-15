@@ -222,6 +222,16 @@ cd /var/www/bmc/backend
 '
 ```
 
+Révoquez impérativement tous les jetons d'authentification éventuellement issus d'une ancienne base ou d'un environnement de préproduction avant l'ouverture au public (d'anciens jetons de développement ayant figuré dans l'historique Git) :
+```bash
+sudo -u bmc bash -c '
+set -a && source /etc/bmc/backend.env && set +a
+cd /var/www/bmc/backend
+/var/www/bmc/venv/bin/python manage.py revoke_all_tokens --yes
+'
+```
+*(Sans `--yes`, la commande refuse toute suppression afin d'éviter une coupure accidentelle.)*
+
 *(Important : en production, ne relancez jamais `seed_bmc --reset` après la mise en ligne, sous peine d'écraser les prix et disponibilités modifiés par le gérant.)*
 
 ---
@@ -278,11 +288,21 @@ sudo systemctl status caddy --no-pager
    ```
    Doit renvoyer `401` ou `403` (jamais `200`).
 
-3. **Commande de test de bout en bout** :
+3. **Audit de sécurité Django (`manage.py check --deploy`)** :
+   ```bash
+   sudo -u bmc bash -c 'set -a && source /etc/bmc/backend.env && set +a && cd /var/www/bmc/backend && /var/www/bmc/venv/bin/python manage.py check --deploy'
+   ```
+   Avec la configuration [`deploy/env.production.example`](../deploy/env.production.example), la commande doit se terminer sans erreur critique (code `0`) et ne laisser que ces **6 avertissements connus et acceptés** en V1 :
+   - `security.W008` (`SECURE_SSL_REDIRECT`) : laissé à `0` car Caddy gère déjà la terminaison TLS et la redirection HTTP → HTTPS en frontal (l'activer côté Django sans `SECURE_PROXY_SSL_HEADER` provoquerait une boucle de redirections).
+   - `security.W005` (`SECURE_HSTS_INCLUDE_SUBDOMAINS`) et `security.W021` (`SECURE_HSTS_PRELOAD`) : `HSTS` est déjà actif sur 1 an (`DJANGO_SECURE_HSTS_SECONDS=31536000`) ; l'extension aux sous-domaines et la soumission *preload* restent désactivées au lancement afin de ne pas bloquer définitivement d'éventuels sous-domaines tiers ou outils internes.
+   - `drf_spectacular.W002` (3 occurrences : `CustomerLoginView`, `CustomerProfileView`, `CustomerRegisterView` dans `backend/api/auth_views.py`) : avertissements de génération du schéma OpenAPI sans impact sur l'exécution ; la documentation API reste de toute façon inaccessible en production (`BMC_API_DOCS_PUBLIC=0`).
+
+4. **Commande de test de bout en bout** :
    - Ouvrez `https://bmcfood.sn`, vérifiez le chargement des photos du menu et du hero vidéo.
    - Passez une commande test (paiement en espèces, téléphone fictif ou du gérant avec note `"TEST DEPLOIEMENT"`).
    - Ouvrez `https://admin.bmcfood.sn`, connectez-vous avec les identifiants créés via `createsuperuser` à l'étape 6, et vérifiez que la commande apparaît en temps réel dans le KDS.
    - Annulez la commande test côté admin (ou vérifiez qu'aucune fausse commande n'est laissée active en cuisine).
+   - Si des comptes/jetons de recette ont été utilisés avant l'ouverture réelle, relancez `/var/www/bmc/venv/bin/python manage.py revoke_all_tokens --yes` puis reconnectez uniquement le compte du gérant.
 
 ---
 
