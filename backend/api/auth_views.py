@@ -74,6 +74,7 @@ class StaffTokenView(ObtainAuthToken):
         return Response({'success': True, 'token': token.key, 'username': user.get_username()})
 
 
+@extend_schema(exclude=True)
 class CustomerRegisterView(APIView):
     """Inscription autonome d'un client avec numéro de téléphone sénégalais."""
     authentication_classes = []
@@ -129,6 +130,7 @@ class CustomerRegisterView(APIView):
         }, status=status.HTTP_201_CREATED)
 
 
+@extend_schema(exclude=True)
 class CustomerLoginView(APIView):
     """Connexion autonome d'un client avec téléphone + mot de passe."""
     authentication_classes = []
@@ -178,6 +180,7 @@ class CustomerLoginView(APIView):
         })
 
 
+@extend_schema(exclude=True)
 class CustomerProfileView(APIView):
     """Profil du client connecté et historique de ses commandes."""
     permission_classes = [IsAuthenticated]

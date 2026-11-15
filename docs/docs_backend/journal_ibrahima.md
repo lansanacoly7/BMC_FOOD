@@ -119,8 +119,22 @@
 
 ---
 
-## Synthèse finale des vérifications
+## Synthèse finale des vérifications (I1 à I22)
 - **Tests Django** : 87/87 tests au vert (100% de réussite).
 - **OpenAPI Schema** : Validation `spectacular --validate --fail-on-warn` avec 0 erreur et 0 warning.
 - **Migrations** : `makemigrations --check` propre, aucun changement résiduel.
 - **Qualité globale** : Standard 10/10 atteint sur l'ensemble des modules I1 à I22.
+
+---
+
+## Tâches V1 — Correction des règles métier essentielles (`docs/taches_v1.md`, section 2)
+
+| # | Tâche V1 | Statut | Livrables & Preuves |
+|---|----------|--------|---------------------|
+| V1-1 | **Mode de commande (`order_type`) & allergie (`has_allergy`)** | **Validée** | `order_type` (`delivery` / `pickup`), `address` obligatoire uniquement en livraison, `has_allergy` (défaut `False`), migration `0006_deliveryarea_and_order_v1_fields.py`. |
+| V1-2 | **Frais de livraison calculés par le serveur** | **Validée** | Modèle `DeliveryArea` (51 quartiers, zones 1 à 9 selon `delivery.ts`), seed idempotent dans `seed_bmc.py` et migration `0006`, calcul de `subtotal`, `delivery_fee` (ou `null` si quartier éloigné) et `total_amount`. Quartier inconnu → 400. |
+| V1-3 | **Anti-doublon avec `Idempotency-Key`** | **Validée** | En-tête `Idempotency-Key` stocké sur `Order.idempotency_key` (unique) ; un second appel avec la même clé renvoie la commande existante avec HTTP 200 OK. |
+| V1-4 | **Suivi I13 enrichi sans données personnelles** | **Validée** | `GET /api/orders/track/<ref>/` enrichi avec `order_type`, `subtotal`, `delivery_fee`, `cancel_reason` ; zéro donnée personnelle (`customer_name`, `phone`, `address`, `notes` exclus). |
+| V1-5 | **Annulation client (409 hors `pending`) & admin avec motif** | **Validée** | `POST /api/orders/<ref>/cancel/` avec vérification du téléphone (200 si `pending`, 409 sinon) ; `PATCH /api/orders/<ref>/status/` vers `cancelled` exige `cancel_reason` non vide. |
+| V1-6 | **Confirmation de paiement admin (`confirm-payment`)** | **Validée** | `POST /api/admin/orders/<ref>/confirm-payment/` (et alias `/api/orders/<ref>/confirm-payment/`) bascule `payment_status` de `pending` ou `unpaid` vers `paid`. |
+| V1-7 | **Tests, migrations et documentation du contrat** | **Validée** | 109/109 tests au vert (`manage.py test api`), `makemigrations --check --dry-run` propre, `spectacular --validate --fail-on-warn` à 0 erreur et 0 warning, documentation mise à jour. |
