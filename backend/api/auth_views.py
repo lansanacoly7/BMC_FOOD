@@ -20,8 +20,9 @@ from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
+
+from .throttling import ProxiedScopedRateThrottle
 
 from .api_schemas import AuthTokenRequestSerializer, AuthTokenResponseSerializer, ErrorEnvelopeSerializer
 from .authentication import get_token_ttl_seconds
@@ -44,7 +45,7 @@ class StaffTokenView(ObtainAuthToken):
     """Échange identifiant + mot de passe d'un compte staff contre un jeton d'API (I7, I16)."""
     authentication_classes = []
     permission_classes = [AllowAny]
-    throttle_classes = [ScopedRateThrottle]
+    throttle_classes = [ProxiedScopedRateThrottle]
     throttle_scope = 'auth'  # limite de tentatives (protection contre la force brute)
 
     @extend_schema(
@@ -78,7 +79,7 @@ class CustomerRegisterView(APIView):
     """Inscription autonome d'un client avec numéro de téléphone sénégalais."""
     authentication_classes = []
     permission_classes = [AllowAny]
-    throttle_classes = [ScopedRateThrottle]
+    throttle_classes = [ProxiedScopedRateThrottle]
     throttle_scope = 'auth'
 
     def post(self, request):
@@ -133,7 +134,7 @@ class CustomerLoginView(APIView):
     """Connexion autonome d'un client avec téléphone + mot de passe."""
     authentication_classes = []
     permission_classes = [AllowAny]
-    throttle_classes = [ScopedRateThrottle]
+    throttle_classes = [ProxiedScopedRateThrottle]
     throttle_scope = 'auth'
 
     def post(self, request):

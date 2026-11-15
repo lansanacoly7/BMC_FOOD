@@ -16,6 +16,8 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
+from .throttling import ProxiedScopedRateThrottle
+
 from . import order_rules
 from .api_schemas import (
     ErrorEnvelopeSerializer,
@@ -238,7 +240,7 @@ class OrderListCreateView(APIView):
     def get_throttles(self):
         if getattr(self, 'request', None) and self.request.method == 'POST':
             self.throttle_scope = 'order_create'
-            return [ScopedRateThrottle()]
+            return [ProxiedScopedRateThrottle()]
         return []
 
     @extend_schema(
@@ -345,7 +347,7 @@ class OrderTrackView(APIView):
     Protégé par une limitation de débit anti-énumération et référence à 6 chiffres.
     """
     permission_classes = [AllowAny]
-    throttle_classes = [ScopedRateThrottle]
+    throttle_classes = [ProxiedScopedRateThrottle]
     throttle_scope = 'order_track'
 
     @extend_schema(

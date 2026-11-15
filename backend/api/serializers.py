@@ -43,8 +43,10 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = [
             'id', 'order_ref', 'customer_name', 'phone', 'address',
-            'notes', 'payment_method', 'payment_status', 'total_amount',
-            'status', 'is_notified_to_admin', 'created_at', 'items', 'items_count'
+            'notes', 'payment_method', 'payment_status',
+            'fulfillment_method', 'delivery_area', 'delivery_fee',
+            'total_amount', 'status', 'is_notified_to_admin', 'created_at',
+            'items', 'items_count'
         ]
 
     @extend_schema_field(OpenApiTypes.INT)
@@ -151,6 +153,8 @@ class OrderCreateSerializer(serializers.Serializer):
     address = serializers.CharField(min_length=3)
     notes = serializers.CharField(required=False, allow_blank=True, default='')
     payment_method = serializers.ChoiceField(choices=['cash', 'wave', 'orange_money'], default='cash')
+    fulfillment_method = serializers.ChoiceField(choices=['delivery', 'pickup'], default='delivery', required=False)
+    delivery_area = serializers.CharField(max_length=80, required=False, allow_blank=True, default='')
     items = OrderCreateItemInputSerializer(many=True)
 
     def validate_items(self, value):
@@ -203,7 +207,15 @@ class OrderCreateSerializer(serializers.Serializer):
                     if errors:
                         raise serializers.ValidationError({'items': errors})
 
-                    total_amount = sum(line['subtotal'] for line in lines)
+                    fulfillment_method = validated_data.get('fulfillment_method', 'delivery')
+                    delivery_area = validated_data.get('delivery_area', '').strip()
+                    if fulfillment_method == 'pickup':
+                        delivery_fee = 0
+                    else:
+                        delivery_fee = order_rules.get_delivery_fee(delivery_area)
+
+                    items_subtotal = sum(line['subtotal'] for line in lines)
+                    total_amount = items_subtotal + delivery_fee
                     order = self._create_order_with_unique_ref(
                         customer_name=validated_data['customer_name'].strip(),
                         phone=validated_data['phone'].strip(),
@@ -211,6 +223,9 @@ class OrderCreateSerializer(serializers.Serializer):
                         notes=validated_data.get('notes', '').strip(),
                         payment_method=payment_method,
                         payment_status=payment_status,
+                        fulfillment_method=fulfillment_method,
+                        delivery_area=delivery_area,
+                        delivery_fee=delivery_fee,
                         total_amount=total_amount,
                         status='pending',
                         is_notified_to_admin=False,

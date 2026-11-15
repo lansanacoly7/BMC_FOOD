@@ -16,14 +16,14 @@ class SeedBmcCommandTests(TestCase):
         MenuItem.objects.all().delete()
 
     def test_seed_creates_official_catalog(self):
-        """Vérifie que le seed peuple fidèlement les 7 catégories et 43 articles officiels (Décision X1 & P11)."""
+        """Vérifie que le seed peuple fidèlement les catégories et les articles du catalogue (incluant boissons, sauces et accompagnements)."""
         out = StringIO()
         call_command('seed_bmc', reset=True, stdout=out)
 
-        self.assertEqual(Category.objects.count(), 7)
-        self.assertEqual(MenuItem.objects.count(), 43)
+        self.assertEqual(Category.objects.count(), 11)
+        self.assertEqual(MenuItem.objects.count(), 56)
 
-        tacos_simples = MenuItem.objects.filter(category__name="Tacos simples")
+        tacos_simples = MenuItem.objects.filter(category__name="Tacos simples", code__startswith="ts-")
         self.assertEqual(tacos_simples.count(), 19)
 
         special = MenuItem.objects.filter(is_daily_special=True)
@@ -35,12 +35,12 @@ class SeedBmcCommandTests(TestCase):
         Validation P12 :
         1. Chaque article possède une URL d'image renseignée.
         2. Format strictement conforme à : /images/products/<slug>.webp.
-        3. Tous les 43 slugs d'images sont 100% uniques sans collision.
+        3. Tous les slugs d'images sont 100% uniques sans collision.
         """
         call_command('seed_bmc', reset=True, stdout=StringIO())
 
         items = MenuItem.objects.all()
-        self.assertEqual(items.count(), 43)
+        self.assertEqual(items.count(), 56)
 
         image_pattern = re.compile(r"^/images/products/([a-z0-9\-]+)\.webp$")
         seen_slugs = set()
@@ -60,7 +60,7 @@ class SeedBmcCommandTests(TestCase):
             )
             seen_slugs.add(slug)
 
-        self.assertEqual(len(seen_slugs), 43)
+        self.assertEqual(len(seen_slugs), 56)
 
     def test_seed_non_destructive_preserves_admin_modifications(self):
         """

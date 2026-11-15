@@ -112,6 +112,47 @@ class Command(BaseCommand):
                     {"code": "ts-17", "name": "Tacos viande hot dog royal", "price": 4500, "desc": "Viande, saucisse hot dog et garniture royale.", "popular": False, "special": False},
                     {"code": "ts-18", "name": "Tacos poulet hot dog royal", "price": 4500, "desc": "Poulet, saucisse hot dog et garniture royale.", "popular": False, "special": False},
                     {"code": "ts-19", "name": "Tacos XL simple", "price": 5000, "desc": "Format géant classique pour les gros appétits.", "popular": False, "special": False},
+                    {"code": "sw-1", "name": "Sandwich Chawarma Dakar", "price": 2000, "desc": "Pain pita toasté, fines lamelles de poulet épicé, crème d'ail toum et navets marinés.", "popular": True, "special": False},
+                ]
+            },
+            # 8. Sauces
+            {
+                "category": "Sauces",
+                "icon": "Soup",
+                "items": [
+                    {"code": "sc-1", "name": "Sauce Fromagère maison", "price": 500, "desc": "La sauce fromagère BMC Food.", "popular": True, "special": False},
+                    {"code": "sc-2", "name": "Sauce Algérienne pimentée", "price": 500, "desc": "Sauce relevée avec oignons frits et pointe de piment doux.", "popular": False, "special": False},
+                    {"code": "sc-3", "name": "Sauce Samouraï piquante", "price": 500, "desc": "Sauce rouge onctueuse au piment rouge et poivron.", "popular": False, "special": False},
+                ]
+            },
+            # 9. Poulet & Finger Food
+            {
+                "category": "Poulet & Finger Food",
+                "icon": "Drumstick",
+                "items": [
+                    {"code": "pl-1", "name": "Tenders de poulet croustillants (x5)", "price": 3000, "desc": "5 aiguillettes de poulet panées à la main, ultra croustillantes, servies avec sauce au choix.", "popular": True, "special": False},
+                    {"code": "pl-2", "name": "Ailes de poulet BBQ (x6)", "price": 3000, "desc": "6 ailes marinées glacées au barbecue sucré et graines de sésame dorées.", "popular": False, "special": False},
+                ]
+            },
+            # 10. Accompagnements
+            {
+                "category": "Accompagnements",
+                "icon": "Sparkles",
+                "items": [
+                    {"code": "ac-1", "name": "Portion de frites maison", "price": 1000, "desc": "Frites dorées, croustillantes à l’extérieur et fondantes à cœur.", "popular": True, "special": False},
+                    {"code": "ac-2", "name": "Pastels Dakar au poisson (x5)", "price": 1500, "desc": "Beignets dakarais dorés farcis au poisson assaisonné, servis avec sauce tomate pimentée.", "popular": True, "special": False},
+                ]
+            },
+            # 11. Boissons
+            {
+                "category": "Boissons",
+                "icon": "Coffee",
+                "items": [
+                    {"code": "bv-1", "name": "Boissons fraîches au choix (33cl)", "price": 800, "desc": "Coca-Cola, Fanta, Sprite ou Eau minérale gazeuse fraîche.", "popular": False, "special": False},
+                    {"code": "bv-2", "name": "Bissap glacé", "price": 800, "desc": "Canette BMC Food au bissap, servie bien fraîche.", "popular": False, "special": False},
+                    {"code": "bv-3", "name": "Bouye glacé", "price": 800, "desc": "Canette BMC Food au bouye, servie bien fraîche.", "popular": False, "special": False},
+                    {"code": "bv-4", "name": "Mangue glacée", "price": 800, "desc": "Canette BMC Food à la mangue, servie bien fraîche.", "popular": False, "special": False},
+                    {"code": "bv-5", "name": "Tamarin glacé", "price": 800, "desc": "Canette BMC Food au tamarin, servie bien fraîche.", "popular": False, "special": False},
                 ]
             }
         ]

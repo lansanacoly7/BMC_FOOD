@@ -67,6 +67,11 @@ class Order(models.Model):
         ('refund_pending', 'Remboursement en attente'),
     ]
 
+    FULFILLMENT_CHOICES = [
+        ('delivery', 'Livraison à domicile'),
+        ('pickup', 'À emporter (sur place)'),
+    ]
+
     order_ref = models.CharField(max_length=20, unique=True, db_index=True)
     customer_name = models.CharField(max_length=120)
     phone = models.CharField(max_length=30)
@@ -74,6 +79,9 @@ class Order(models.Model):
     notes = models.TextField(blank=True, default='')
     payment_method = models.CharField(max_length=20, choices=PAYMENT_CHOICES, default='cash')
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='unpaid')
+    fulfillment_method = models.CharField(max_length=20, choices=FULFILLMENT_CHOICES, default='delivery')
+    delivery_area = models.CharField(max_length=80, blank=True, default='', help_text="Identifiant du quartier de livraison (ex: grand-yoff)")
+    delivery_fee = models.PositiveIntegerField(default=0, help_text="Frais de livraison en F CFA calculés par le serveur")
     total_amount = models.PositiveIntegerField(help_text="Montant total en F CFA, calculé par le serveur")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', db_index=True)
     is_notified_to_admin = models.BooleanField(
