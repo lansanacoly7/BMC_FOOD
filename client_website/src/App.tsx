@@ -106,6 +106,20 @@ export default function App() {
     else setIsAuthModalOpen(true)
   }
 
+  // Gestion centralisée du panier BMC Food (Pape Aliou)
+  const { items, itemCount, subtotal, isCartOpen, openCart, closeCart, addToCart, updateQuantity, removeFromCart, clearCart } = useCart()
+
+  // Hooks de données officiels BMC Food (avec support fallback)
+  const { specials, isLoading: isSpecialsLoading } = useDailySpecials()
+  const { items: menuProducts, isLoading: isMenuLoading } = useMenu()
+
+  // Produits de la recherche : la carte du serveur, avec les boissons BMC en renfort si le serveur n'en renvoie pas
+  const searchProducts = useMemo(() => {
+    const base = menuProducts.length > 0 ? menuProducts : FALLBACK_PRODUCTS
+    const hasDrinks = base.some((p) => p.category_name?.toLowerCase().includes('boisson') || p.code.toLowerCase().startsWith('bv'))
+    return hasDrinks ? base : [...base, ...FALLBACK_PRODUCTS.filter((p) => p.code.startsWith('bv'))]
+  }, [menuProducts])
+
   // « Commander à nouveau » : retrouve chaque plat dans la carte actuelle (par code, sinon par nom) et le remet au panier
   const reorderFromHistory = (order: OrderSummary) => {
     let added = 0
@@ -135,20 +149,6 @@ export default function App() {
     setClientUser(null)
     handleNavigate('home')
   }
-
-  // Gestion centralisée du panier BMC Food (Pape Aliou)
-  const { items, itemCount, subtotal, isCartOpen, openCart, closeCart, addToCart, updateQuantity, removeFromCart, clearCart } = useCart()
-
-  // Hooks de données officiels BMC Food (avec support fallback)
-  const { specials, isLoading: isSpecialsLoading } = useDailySpecials()
-  const { items: menuProducts, isLoading: isMenuLoading } = useMenu()
-
-  // Produits de la recherche : la carte du serveur, avec les boissons BMC en renfort si le serveur n'en renvoie pas
-  const searchProducts = useMemo(() => {
-    const base = menuProducts.length > 0 ? menuProducts : FALLBACK_PRODUCTS
-    const hasDrinks = base.some((p) => p.category_name?.toLowerCase().includes('boisson') || p.code.toLowerCase().startsWith('bv'))
-    return hasDrinks ? base : [...base, ...FALLBACK_PRODUCTS.filter((p) => p.code.startsWith('bv'))]
-  }, [menuProducts])
 
   if (isCheckingOut) {
     return (

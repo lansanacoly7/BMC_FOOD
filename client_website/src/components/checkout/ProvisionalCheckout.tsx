@@ -77,14 +77,17 @@ export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: Provisio
   })
 
   // Si le client se connecte pendant la commande, on complète les champs encore vides
-  useEffect(() => {
-    if (!clientUser) return
-    setForm((current) => ({
-      ...current,
-      customer_name: current.customer_name || clientUser.name,
-      phone: current.phone || clientUser.phone,
-    }))
-  }, [clientUser])
+  const [prevClientUser, setPrevClientUser] = useState(clientUser)
+  if (clientUser !== prevClientUser) {
+    setPrevClientUser(clientUser)
+    if (clientUser) {
+      setForm((current) => ({
+        ...current,
+        customer_name: current.customer_name || clientUser.name,
+        phone: current.phone || clientUser.phone,
+      }))
+    }
+  }
 
   const [mode, setMode] = useState<FulfillmentMode>(() => {
     try {
