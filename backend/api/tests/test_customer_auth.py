@@ -170,3 +170,47 @@ class CustomerAuthTests(TestCase):
         }, format='json')
         self.assertEqual(res_11.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
 
+    def test_customer_profile_lists_orders_normalized_with_country_code(self):
+        """Le profil client (9 chiffres) retrouve les commandes stockées au format '+221XXXXXXXXX' ou espacé."""
+        reg = self.client.post('/api/auth/customer/register/', {
+            'name': 'Moussa Diop',
+            'phone': '77 999 88 77',
+            'password': 'Password123',
+        }, format='json')
+        self.assertEqual(reg.status_code, status.HTTP_201_CREATED)
+        token = reg.data['token']
+
+        Order.objects.create(
+            order_ref='BMC-NORM01',
+            customer_name='Moussa Diop',
+            phone='+221779998877',
+            payment_method='cash',
+            subtotal=3500,
+            total_amount=3500,
+        )
+        Order.objects.create(
+            order_ref='BMC-NORM02',
+            customer_name='Moussa Diop',
+            phone='77 999 88 77',
+            payment_method='wave',
+            subtotal=2000,
+            total_amount=2000,
+        )
+        Order.objects.create(
+            order_ref='BMC-OTHER1',
+            customer_name='Autre Client',
+            phone='+221770001122',
+            payment_method='cash',
+            subtotal=2500,
+            total_amount=2500,
+        )
+
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
+        res = self.client.get('/api/auth/customer/profile/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        refs = [o['order_ref'] for o in res.data['orders']]
+        self.assertEqual(res.data['orders_count'], 2)
+        self.assertIn('BMC-NORM01', refs)
+        self.assertIn('BMC-NORM02', refs)
+        self.assertNotIn('BMC-OTHER1', refs)
+

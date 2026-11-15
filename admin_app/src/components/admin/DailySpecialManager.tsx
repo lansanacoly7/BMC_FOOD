@@ -1,6 +1,7 @@
 import { Eye, Plus, SearchX, Sparkles } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { createMenuItem, fetchDailySpecials, toggleDailySpecial } from '../../services/api'
+import { useEffect, useMemo, useState } from 'react'
+import { isBackendUnreachable } from '../../api/client'
+import { createMenuItem, fetchDailySpecials, fetchMenu, toggleDailySpecial } from '../../services/api'
 import type { Product } from '../../types'
 import { NewDishModal, type NewDishValues } from './NewDishModal'
 import {
@@ -119,14 +120,17 @@ const FALLBACK_PRODUCTS: Product[] = [
   },
 ]
 
-const CATEGORY_OPTIONS: SegmentOption<string>[] = [
-  { id: 'all', label: 'Toutes' },
-  { id: 'tacos', label: 'Tacos panés' },
-  { id: 'burgers', label: 'Burgers' },
-  { id: 'boissons', label: 'Boissons' },
+const DEFAULT_DISH_CATEGORIES = [
+  'Tacos panés',
+  'Tacos jambon pané',
+  'Tacos Royal pané',
+  'Tacos Hot Dog pané',
+  'Tacos XL pané',
+  'Tacos simples',
+  'Burgers',
+  'Boissons',
+  'Sauces',
 ]
-
-const DISH_CATEGORIES = ['Tacos panés', 'Burgers', 'Tacos simples', 'Boissons', 'Spécialités']
 
 const DISH_PHOTOS = [
   { url: '/images/products/tacos-viande-pane.webp', label: 'Tacos viande pané' },
@@ -139,8 +143,9 @@ const DISH_PHOTOS = [
 ]
 
 export function DailySpecialManager() {
-  const [products, setProducts] = useState<Product[]>(FALLBACK_PRODUCTS)
-  const [activeCodes, setActiveCodes] = useState<string[]>(['tp-1'])
+  const [products, setProducts] = useState<Product[]>([])
+  const [activeCodes, setActiveCodes] = useState<string[]>([])
+  const [dishCategories, setDishCategories] = useState<string[]>(DEFAULT_DISH_CATEGORIES)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [isUpdating, setIsUpdating] = useState<number | null>(null)
@@ -156,51 +161,91 @@ export function DailySpecialManager() {
     setTimeout(() => setNotification(null), 3500)
   }
 
-  // Chargement depuis l'API Django
+  // Chargement du catalogue complet et du Plat du Jour actif depuis Django
   useEffect(() => {
     let isMounted = true
-    void fetchDailySpecials()
-      .then((response) => {
+    const controller = new AbortController()
+
+    void Promise.all([
+      fetchMenu(controller.signal),
+      fetchDailySpecials(controller.signal),
+    ])
+      .then(([menuRes, specialsRes]) => {
         if (!isMounted) return
-        if (response && response.success) {
-          const codes = (response.daily_specials || []).map((s) => s.code)
-          setActiveCodes(codes)
-          // Mettre à jour l'état is_daily_special dans products
-          setProducts((prev) =>
-            prev.map((p) => ({
-              ...p,
-              is_daily_special: codes.includes(p.code),
-            })),
+
+        const codes = specialsRes?.success && !specialsRes.is_fallback
+          ? (specialsRes.daily_specials || []).map((s) => s.code)
+          : []
+
+        if (menuRes?.success && Array.isArray(menuRes.items)) {
+          const mapped: Product[] = menuRes.items.map((item) => ({
+            id: item.id,
+            code: item.code,
+            name: item.name,
+            category: item.category ?? 1,
+            category_name: item.category_name ?? 'Carte',
+            description: item.description ?? '',
+            price: item.price,
+            image_url: item.image_url || '/images/products/tacos-viande-pane.webp',
+            is_available: item.is_available,
+            is_daily_special: codes.includes(item.code) || Boolean(item.is_daily_special),
+            popular: Boolean(item.popular),
+          }))
+          setProducts(mapped)
+          setActiveCodes(
+            codes.length > 0
+              ? codes
+              : mapped.filter((p) => p.is_daily_special).map((p) => p.code),
+          )
+          const categoryNames = (menuRes.categories ?? [])
+            .map((c) => c.name)
+            .filter(Boolean)
+          if (categoryNames.length > 0) {
+            setDishCategories(categoryNames)
+          }
+        }
+      })
+      .catch((err) => {
+        if (!isMounted || controller.signal.aborted) return
+        if (import.meta.env.DEV && isBackendUnreachable(err)) {
+          setProducts(FALLBACK_PRODUCTS)
+          setActiveCodes(FALLBACK_PRODUCTS.filter((p) => p.is_daily_special).map((p) => p.code))
+        } else {
+          showNotification(
+            err instanceof Error ? err.message : 'Impossible de charger la carte depuis le serveur.',
+            'error',
           )
         }
       })
-      .catch(() => {})
+
     return () => {
       isMounted = false
+      controller.abort()
     }
   }, [])
 
-  // Basculer un plat en plat du jour (peut être activé ou désactivé)
+  // Basculer un plat en plat du jour (Règle D5 : un seul plat du jour actif côté serveur)
   const handleToggleSpecial = async (product: Product) => {
     setIsUpdating(product.id)
     const isCurrentlyActive = activeCodes.includes(product.code)
+    const desiredState = !isCurrentlyActive
     try {
-      await toggleDailySpecial(product.id)
-      const nextCodes = isCurrentlyActive
-        ? activeCodes.filter((c) => c !== product.code)
-        : [...activeCodes, product.code]
+      const res = await toggleDailySpecial(product.id, desiredState)
+      const isNowActive = Boolean(res?.item?.is_daily_special ?? desiredState)
+      const nextCodes = isNowActive ? [product.code] : []
 
       setActiveCodes(nextCodes)
       setProducts((prev) =>
-        prev.map((p) =>
-          p.code === product.code ? { ...p, is_daily_special: !isCurrentlyActive } : p,
-        ),
+        prev.map((p) => ({
+          ...p,
+          is_daily_special: isNowActive ? p.code === product.code : false,
+        })),
       )
 
       showNotification(
-        isCurrentlyActive
-          ? `« ${product.name} » a été retiré des Plats du Jour.`
-          : `« ${product.name} » est maintenant Plat du Jour !`,
+        isNowActive
+          ? `« ${product.name} » est maintenant le Plat du Jour sur le site client !`
+          : `« ${product.name} » a été retiré des Plats du Jour.`,
       )
     } catch (err: unknown) {
       showNotification(
@@ -238,17 +283,24 @@ export function DailySpecialManager() {
         price: res.item?.price || parseInt(values.price, 10),
         image_url: res.item?.image_url || values.imageUrl,
         is_available: true,
-        is_daily_special: newIsDailySpecial,
+        is_daily_special: Boolean(res.item?.is_daily_special ?? newIsDailySpecial),
         popular: false,
       }
 
-      setProducts((prev) => [createdItem, ...prev])
-      if (newIsDailySpecial) {
-        setActiveCodes((prev) => [...prev, createdItem.code])
+      if (createdItem.is_daily_special) {
+        // Garantit la règle D5 côté UI si le backend active ce nouveau plat
+        setActiveCodes([createdItem.code])
+        setProducts((prev) => [
+          createdItem,
+          ...prev.map((p) => ({ ...p, is_daily_special: false })),
+        ])
+      } else {
+        setProducts((prev) => [createdItem, ...prev])
       }
 
-      showNotification(`Plat « ${createdItem.name} » ajouté.`)
+      showNotification(`Plat « ${createdItem.name} » ajouté au catalogue client.`)
       setIsAddModalOpen(false)
+      setNewIsDailySpecial(false)
     } catch (err: unknown) {
       showNotification(
         err instanceof Error ? err.message : "Le plat n'a pas pu être ajouté. Réessayez.",
@@ -261,14 +313,25 @@ export function DailySpecialManager() {
 
   const activeProducts = products.filter((p) => activeCodes.includes(p.code))
 
+  const categoryOptions = useMemo<SegmentOption<string>[]>(
+    () => [
+      { id: 'all', label: 'Toutes' },
+      { id: 'tacos', label: 'Tacos' },
+      { id: 'burgers', label: 'Burgers' },
+      { id: 'boissons', label: 'Boissons' },
+    ],
+    [],
+  )
+
   // Plats du jour en tête de liste
   const filteredProducts = products
     .filter((p) => {
+      const catName = (p.category_name || '').toLowerCase()
       const matchCat =
         selectedCategory === 'all' ||
-        (selectedCategory === 'tacos' && (p.category === 1 || p.category_name?.toLowerCase().includes('tacos'))) ||
-        (selectedCategory === 'burgers' && (p.category === 2 || p.category_name?.toLowerCase().includes('burger'))) ||
-        (selectedCategory === 'boissons' && (p.category === 5 || p.category_name?.toLowerCase().includes('boisson')))
+        (selectedCategory === 'tacos' && catName.includes('tacos')) ||
+        (selectedCategory === 'burgers' && catName.includes('burger')) ||
+        (selectedCategory === 'boissons' && catName.includes('boisson'))
 
       const q = searchQuery.toLowerCase().trim()
       const matchSearch =
@@ -307,7 +370,7 @@ export function DailySpecialManager() {
         <Toolbar>
           <Segmented
             label="Filtrer par catégorie"
-            options={CATEGORY_OPTIONS}
+            options={categoryOptions}
             value={selectedCategory}
             onChange={setSelectedCategory}
           />
@@ -380,7 +443,7 @@ export function DailySpecialManager() {
 
       {isAddModalOpen && (
         <NewDishModal
-          categories={DISH_CATEGORIES}
+          categories={dishCategories}
           photos={DISH_PHOTOS}
           isSubmitting={isSubmittingNew}
           onClose={() => setIsAddModalOpen(false)}

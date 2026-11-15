@@ -130,23 +130,31 @@ export async function cancelClientOrder(ref: string, phone?: string): Promise<{ 
     }
   } catch (error) {
     if (error instanceof ApiError) {
+      const payload =
+        error.payload && typeof error.payload === 'object'
+          ? (error.payload as { message?: string; error?: string })
+          : null
+      const serverMessage = payload?.message || payload?.error
       if (error.status === 409) {
-        throw new Error('Cette commande ne peut plus être annulée car sa préparation est déjà entamée. Veuillez contacter le restaurant.', { cause: error })
+        throw new Error(
+          serverMessage || 'Cette commande ne peut plus être annulée car sa préparation est déjà entamée. Veuillez contacter le restaurant.',
+          { cause: error },
+        )
       }
       if (error.status === 404) {
-        // Si l'endpoint backend d'annulation n'est pas encore déployé, simulation gracieuse pour le frontend
-        return {
-          success: true,
-          message: 'Votre commande a été annulée avec succès.',
-        }
+        throw new Error(`Aucune commande trouvée pour la référence « ${cleanRef} ».`, { cause: error })
       }
-      throw new Error(`Échec de l'annulation (${error.status}). Contactez le restaurant au +221 77 856 13 13.`, { cause: error })
+      if (error.status === 400 && serverMessage) {
+        throw new Error(serverMessage, { cause: error })
+      }
+      throw new Error(
+        serverMessage || `Échec de l'annulation (${error.status}). Contactez le restaurant au +221 77 856 13 13.`,
+        { cause: error },
+      )
     }
 
-    // Repli en cas de coupure réseau
-    return {
-      success: true,
-      message: 'Votre commande a été marquée comme annulée.',
-    }
+    throw new Error('Impossible de joindre le serveur BMC Food. Réessayez ou appelez le +221 77 856 13 13.', {
+      cause: error,
+    })
   }
 }

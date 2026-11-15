@@ -136,6 +136,7 @@ export interface MenuResponse {
 export interface DailySpecialResponse {
   success: boolean
   count: number
+  is_fallback?: boolean
   daily_specials: Product[]
 }
 

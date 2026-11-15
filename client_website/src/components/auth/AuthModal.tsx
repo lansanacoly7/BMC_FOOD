@@ -1,8 +1,8 @@
 import { useEffect, useId, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { AlertCircle, ArrowLeft, Check, Eye, EyeOff, KeyRound, Lock, LogOut, Phone, User, X } from 'lucide-react'
+import { AlertCircle, Check, Eye, EyeOff, Lock, LogOut, Phone, User, X } from 'lucide-react'
 import { API_BASE_URL } from '../../services/api'
-import { loadProfile } from '../../services/clientData'
+import { clearClientToken, loadProfile, saveProfile, setClientToken, syncCustomerAccount } from '../../services/clientData'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 
@@ -19,17 +19,11 @@ interface AuthModalProps {
   onLogout?: () => void
 }
 
-type View = 'login' | 'register' | 'otp'
+type View = 'login' | 'register'
 
 const USER_STORAGE_KEY = 'bmc_client_user'
 const PHONE_PATTERN = /^(?:\+221|00221)?(?:7[05678]|33)\d{7}$/
 const MIN_PASSWORD_LENGTH = 4
-
-/**
- * Code de vérification SIMULÉ : aucun SMS n'est envoyé tant qu'il n'y a pas de service SMS.
- * À remplacer par une vraie vérification côté serveur avant la mise en production.
- */
-const SIMULATED_OTP = '454647'
 
 /** Adresse de l'application cuisine (administration), pour les comptes du personnel. */
 const ADMIN_URL: string | undefined = import.meta.env.VITE_ADMIN_URL ?? (import.meta.env.DEV ? 'http://localhost:5174/' : undefined)
@@ -101,7 +95,6 @@ export function AuthModal({ isOpen, onClose, onSuccess, onLogout }: AuthModalPro
   const [registerConfirm, setRegisterConfirm] = useState('')
   const [showRegisterPassword, setShowRegisterPassword] = useState(false)
   const [showRegisterConfirm, setShowRegisterConfirm] = useState(false)
-  const [otpCode, setOtpCode] = useState('')
 
   const [currentUser, setCurrentUser] = useState<ClientUser | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -123,7 +116,6 @@ export function AuthModal({ isOpen, onClose, onSuccess, onLogout }: AuthModalPro
       }
       setError(null)
       setSuccess(null)
-      setOtpCode('')
       setStaffRecognized(false)
       setView('login')
     }
@@ -141,16 +133,32 @@ export function AuthModal({ isOpen, onClose, onSuccess, onLogout }: AuthModalPro
     return () => window.removeEventListener('keydown', onKey)
   }, [isOpen, onClose, confirmLogout])
 
-  const finishLogin = (user: ClientUser, message: string) => {
+  const finishLogin = (user: ClientUser, message: string, token?: string, address?: string) => {
+    if (token) {
+      setClientToken(token)
+    }
     try {
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user))
     } catch {
       /* le compte reste valable pour la session */
     }
+    const existingProfile = loadProfile()
+    const [first = '', ...rest] = user.name.trim().split(/\s+/)
+    saveProfile({
+      ...existingProfile,
+      firstName: existingProfile.firstName || first,
+      lastName: existingProfile.lastName || rest.join(' '),
+      address: existingProfile.address || address || '',
+      contactName: user.name,
+      contactPhone: user.phone,
+    })
+    if (token) {
+      void syncCustomerAccount()
+    }
     setCurrentUser(user)
     setSuccess(message)
     onSuccess?.(user)
-    window.setTimeout(onClose, 1200)
+    window.setTimeout(onClose, 900)
   }
 
   const handleLogin = async (event: React.FormEvent) => {
@@ -163,63 +171,76 @@ export function AuthModal({ isOpen, onClose, onSuccess, onLogout }: AuthModalPro
       return
     }
 
+    const cleanPhone = cleanId.replace(/\s+/g, '')
+    const isPhone = PHONE_PATTERN.test(cleanPhone)
+
     setIsLoading(true)
 
-    // 1. Compte du personnel : l'API vérifie les identifiants (jeton staff, débit limité)
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/token/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ username: cleanId, password }),
-      })
-      if (response.ok) {
-        setIsLoading(false)
-        setStaffRecognized(true)
-        setSuccess('Compte du personnel reconnu. Connectez-vous depuis l’application cuisine.')
+      // Identifiant non-téléphonique : vérification d'un compte du personnel
+      if (!isPhone) {
+        const staffRes = await fetch(`${API_BASE_URL}/auth/token/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ username: cleanId, password }),
+        })
+        if (staffRes.ok) {
+          setStaffRecognized(true)
+          setSuccess('Compte du personnel reconnu. Connectez-vous depuis l’application cuisine.')
+          return
+        }
+        setError('Identifiant ou mot de passe incorrect. Pour un compte client, saisissez votre numéro (ex. 77 856 13 13).')
         return
       }
-    } catch {
-      /* serveur injoignable : on poursuit avec la connexion client */
-    }
 
-    // 2. Compte client : le numéro doit être un numéro sénégalais valide
-    const cleanPhone = cleanId.replace(/\s+/g, '')
-    if (!PHONE_PATTERN.test(cleanPhone)) {
-      setIsLoading(false)
-      setError('Identifiant ou mot de passe incorrect. Pour un compte client, saisissez votre numéro (ex. 77 856 13 13).')
-      return
-    }
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      setIsLoading(false)
-      setError(`Le mot de passe doit comporter au moins ${MIN_PASSWORD_LENGTH} caractères.`)
-      return
-    }
-
-    window.setTimeout(() => {
-      setIsLoading(false)
-      // On reprend le nom déjà enregistré pour ce numéro, sinon un nom générique
-      let name = 'Client BMC'
-      try {
-        const saved = JSON.parse(localStorage.getItem(USER_STORAGE_KEY) ?? 'null') as ClientUser | null
-        const profile = loadProfile()
-        if (saved?.phone === cleanPhone && saved.name) name = saved.name
-        else if (profile.firstName || profile.lastName) name = `${profile.firstName} ${profile.lastName}`.trim()
-      } catch {
-        /* nom générique */
+      if (password.length < MIN_PASSWORD_LENGTH) {
+        setError(`Le mot de passe doit comporter au moins ${MIN_PASSWORD_LENGTH} caractères.`)
+        return
       }
-      finishLogin({ name, phone: cleanPhone }, 'Connexion réussie. Bienvenue chez BMC Food.')
-    }, 400)
+
+      const response = await fetch(`${API_BASE_URL}/auth/customer/login/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ phone: cleanPhone, password }),
+      })
+      const payload = (await response.json().catch(() => null)) as {
+        success?: boolean
+        token?: string
+        message?: string
+        error?: string
+        user?: { name: string; phone: string; address?: string }
+      } | null
+
+      if (!response.ok || !payload?.success || !payload.token || !payload.user) {
+        setError(payload?.error || payload?.message || 'Numéro de téléphone ou mot de passe incorrect.')
+        return
+      }
+
+      finishLogin(
+        { name: payload.user.name, phone: payload.user.phone },
+        payload.message || 'Connexion réussie. Bienvenue chez BMC Food.',
+        payload.token,
+        payload.user.address,
+      )
+    } catch {
+      setError('Impossible de joindre le serveur BMC Food. Réessayez dans un instant.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const handleRegister = (event: React.FormEvent) => {
+  const handleRegister = async (event: React.FormEvent) => {
     event.preventDefault()
     setError(null)
 
-    if (!registerName.trim()) {
+    const cleanName = registerName.trim()
+    const cleanPhone = registerPhone.replace(/\s+/g, '')
+
+    if (!cleanName) {
       setError('Indiquez votre prénom et votre nom.')
       return
     }
-    if (!PHONE_PATTERN.test(registerPhone.replace(/\s+/g, ''))) {
+    if (!PHONE_PATTERN.test(cleanPhone)) {
       setError('Numéro invalide (ex. 77 856 13 13).')
       return
     }
@@ -233,32 +254,44 @@ export function AuthModal({ isOpen, onClose, onSuccess, onLogout }: AuthModalPro
     }
 
     setIsLoading(true)
-    window.setTimeout(() => {
-      setIsLoading(false)
-      setView('otp')
-    }, 400)
-  }
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/customer/register/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          name: cleanName,
+          phone: cleanPhone,
+          password: registerPassword,
+        }),
+      })
+      const payload = (await response.json().catch(() => null)) as {
+        success?: boolean
+        token?: string
+        message?: string
+        error?: string
+        user?: { name: string; phone: string; address?: string }
+      } | null
 
-  const handleVerifyOtp = (event: React.FormEvent) => {
-    event.preventDefault()
-    setError(null)
+      if (!response.ok || !payload?.success || !payload.token || !payload.user) {
+        setError(payload?.error || payload?.message || 'Impossible de créer le compte.')
+        return
+      }
 
-    if (otpCode.trim() !== SIMULATED_OTP) {
-      setError('Code incorrect. Vérifiez les 6 chiffres.')
-      return
-    }
-
-    setIsLoading(true)
-    window.setTimeout(() => {
-      setIsLoading(false)
       finishLogin(
-        { name: registerName.trim(), phone: registerPhone.replace(/\s+/g, '') },
-        'Numéro validé. Votre compte est créé.',
+        { name: payload.user.name, phone: payload.user.phone },
+        payload.message || 'Compte créé avec succès. Bienvenue chez BMC Food !',
+        payload.token,
+        payload.user.address,
       )
-    }, 400)
+    } catch {
+      setError('Impossible de joindre le serveur BMC Food. Réessayez dans un instant.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleConfirmLogout = () => {
+    clearClientToken()
     try {
       localStorage.removeItem(USER_STORAGE_KEY)
     } catch {
@@ -272,14 +305,12 @@ export function AuthModal({ isOpen, onClose, onSuccess, onLogout }: AuthModalPro
     onClose()
   }
 
-  const title = currentUser ? 'Mon compte' : view === 'login' ? 'Connexion' : view === 'register' ? 'Inscription' : 'Vérification'
+  const title = currentUser ? 'Mon compte' : view === 'login' ? 'Connexion' : 'Inscription'
   const subtitle = currentUser
     ? 'Vos coordonnées sont reprises à chaque commande.'
     : view === 'login'
       ? 'Connectez-vous avec votre numéro de téléphone.'
-      : view === 'register'
-        ? 'Créez votre compte en quelques secondes.'
-        : `Entrez le code reçu au +221 ${registerPhone}.`
+      : 'Créez votre compte client BMC Food en quelques secondes.'
 
   return (
     <>
@@ -409,7 +440,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, onLogout }: AuthModalPro
                     </button>
                   </p>
                 </form>
-              ) : view === 'register' ? (
+              ) : (
                 <form onSubmit={handleRegister} className="space-y-4" noValidate>
                   <Field id={`${baseId}-name`} label="Prénom et nom" icon={User}>
                     <input
@@ -468,7 +499,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, onLogout }: AuthModalPro
                   </Field>
 
                   <button type="submit" disabled={isLoading} className={primaryButton}>
-                    {isLoading ? <span className="size-4 animate-spin rounded-full border-2 border-black border-t-transparent" /> : 'Continuer'}
+                    {isLoading ? <span className="size-4 animate-spin rounded-full border-2 border-black border-t-transparent" /> : 'Créer mon compte'}
                   </button>
 
                   <p className="border-t border-white/10 pt-4 text-center text-sm text-zinc-400">
@@ -484,54 +515,6 @@ export function AuthModal({ isOpen, onClose, onSuccess, onLogout }: AuthModalPro
                       Se connecter
                     </button>
                   </p>
-                </form>
-              ) : (
-                <form onSubmit={handleVerifyOtp} className="space-y-4" noValidate>
-                  <div className="rounded-xl border border-white/10 bg-zinc-950 p-4 text-center">
-                    <p className="text-sm text-zinc-300">Un code de vérification est envoyé par SMS.</p>
-                    {/* Vérification simulée : le code est affiché tant qu'il n'y a pas de service SMS */}
-                    <p className="mt-2 text-sm text-zinc-400">
-                      Code de test :{' '}
-                      <button
-                        type="button"
-                        onClick={() => setOtpCode(SIMULATED_OTP)}
-                        className="cursor-pointer font-mono font-bold text-bmc-gold underline-offset-4 hover:underline"
-                        title="Toucher pour le saisir automatiquement"
-                      >
-                        {SIMULATED_OTP}
-                      </button>
-                    </p>
-                  </div>
-
-                  <Field id={`${baseId}-otp`} label="Code à 6 chiffres" icon={KeyRound}>
-                    <input
-                      id={`${baseId}-otp`}
-                      type="text"
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      maxLength={6}
-                      value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                      placeholder="000000"
-                      className={`${inputClass} text-center font-mono text-lg tracking-widest`}
-                    />
-                  </Field>
-
-                  <button type="submit" disabled={isLoading} className={primaryButton}>
-                    {isLoading ? <span className="size-4 animate-spin rounded-full border-2 border-black border-t-transparent" /> : 'Valider mon inscription'}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setView('register')
-                      setError(null)
-                    }}
-                    className="inline-flex h-11 cursor-pointer items-center gap-1.5 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
-                  >
-                    <ArrowLeft className="size-4" aria-hidden="true" />
-                    Modifier mes informations
-                  </button>
                 </form>
               )}
             </motion.div>

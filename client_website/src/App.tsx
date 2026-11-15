@@ -18,7 +18,7 @@ import { useIsDesktop } from './hooks/useIsDesktop'
 import { ContactView } from './components/contact/ContactView'
 import { ProfileView } from './components/profile/ProfileView'
 import { TrackOrderView } from './components/tracking/TrackOrderView'
-import { type OrderSummary, USER_KEY } from './services/clientData'
+import { clearClientToken, type OrderSummary, USER_KEY } from './services/clientData'
 import { normalize } from './data/productOptions'
 import { ProvisionalCheckout } from './components/checkout/ProvisionalCheckout'
 import { AuthModal, type ClientUser } from './components/auth/AuthModal'
@@ -160,6 +160,7 @@ export default function App() {
   }
 
   const handleLogout = () => {
+    clearClientToken()
     try {
       localStorage.removeItem(USER_KEY)
     } catch {

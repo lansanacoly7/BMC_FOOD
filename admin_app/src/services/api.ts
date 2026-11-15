@@ -1,3 +1,4 @@
+import { apiClient, ApiError as ClientApiError, getAuthToken } from '../api/client'
 import type {
   AcknowledgeOrdersPayload,
   AcknowledgeOrdersResponse,
@@ -12,14 +13,8 @@ import type {
 /** URL de base de l'API Django REST, surchargeable via VITE_API_BASE_URL dans .env.local. */
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '/api').replace(/\/+$/, '')
 
-const TOKEN_KEY = 'bmc_admin_token'
-
 export function getAdminToken(): string | null {
-  try {
-    return localStorage.getItem(TOKEN_KEY)
-  } catch {
-    return null
-  }
+  return getAuthToken()
 }
 
 /** Erreur HTTP portant le statut et le corps JSON renvoyés par l'API (ex. erreurs de validation DRF). */
@@ -35,30 +30,30 @@ export class ApiError extends Error {
   }
 }
 
+function extractApiErrorMessage(payload: unknown): string | null {
+  if (!payload || typeof payload !== 'object') return null
+  const record = payload as Record<string, unknown>
+  for (const key of ['error', 'message', 'detail']) {
+    if (typeof record[key] === 'string' && record[key].trim()) {
+      return record[key].trim()
+    }
+  }
+  return null
+}
+
 /**
- * Appelle l'API et renvoie le corps JSON typé.
- * Ajoute automatiquement l'en-tête Authorization: Token <token> si l'admin est connecté.
- * Lève une ApiError si le statut HTTP n'est pas 2xx, ou l'erreur réseau d'origine si le serveur est injoignable.
+ * Appelle l'API via `apiClient` (partage jeton Staff, CSRF, timeout et expiration de session 401).
  */
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const headers = new Headers(init.headers)
-  headers.set('Accept', 'application/json')
-  if (init.body && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json')
+  try {
+    return await apiClient<T>(path, init)
+  } catch (err) {
+    if (err instanceof ClientApiError) {
+      const serverMsg = extractApiErrorMessage(err.payload)
+      throw new ApiError(serverMsg || err.message, err.status, err.payload)
+    }
+    throw err
   }
-
-  const token = getAdminToken()
-  if (token && !headers.has('Authorization')) {
-    headers.set('Authorization', `Token ${token}`)
-  }
-
-  const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers })
-  const payload: unknown = await response.json().catch(() => null)
-
-  if (!response.ok) {
-    throw new ApiError(`${init.method ?? 'GET'} ${path} a échoué (HTTP ${response.status})`, response.status, payload)
-  }
-  return payload as T
 }
 
 /** Commandes pas encore signalées à la cuisine : leur présence déclenche la sonnerie. */
@@ -110,20 +105,60 @@ export interface MenuCatalogItem {
   price: number
   image_url: string
   is_available: boolean
+  is_daily_special?: boolean
+  popular?: boolean
   discount_percent?: number | null
   promo_price?: number | null
 }
 
+export interface MenuCatalogCategory {
+  id: number
+  name: string
+  slug: string
+  icon?: string
+  items_count?: number
+  items: MenuCatalogItem[]
+}
+
 /** Carte complète du restaurant (GET /api/menu/, public). */
-export function fetchMenu(signal?: AbortSignal): Promise<{ success: boolean; items: MenuCatalogItem[] }> {
-  return apiRequest<{ success: boolean; items: MenuCatalogItem[] }>('/menu/', { signal })
+export function fetchMenu(signal?: AbortSignal): Promise<{
+  success: boolean
+  total_items?: number
+  categories?: MenuCatalogCategory[]
+  items: MenuCatalogItem[]
+}> {
+  return apiRequest('/menu/', { signal })
 }
 
 /** Active/désactive un plat du jour (PATCH /api/daily-special/<id>/toggle/). */
-export function toggleDailySpecial(id: number): Promise<ToggleDailySpecialResponse> {
+export function toggleDailySpecial(id: number, isDailySpecial?: boolean): Promise<ToggleDailySpecialResponse> {
   return apiRequest<ToggleDailySpecialResponse>(`/daily-special/${id}/toggle/`, {
     method: 'PATCH',
+    ...(typeof isDailySpecial === 'boolean' ? { body: JSON.stringify({ is_daily_special: isDailySpecial }) } : {}),
   })
+}
+
+export interface PromotionRecord {
+  id: number
+  code: string
+  name: string
+  category?: string
+  price: number
+  image_url?: string
+  description?: string
+  discountPercent?: number
+  isPromo?: boolean
+  active?: boolean
+}
+
+export interface StaffMemberRecord {
+  id: number
+  username: string
+  role: string
+  email: string
+  is_active: boolean
+  is_superuser: boolean
+  date_joined: string
 }
 
 /** Créer un nouveau plat au catalogue (POST /api/menu/items/). */
@@ -136,7 +171,7 @@ export function createMenuItem(data: {
   is_available?: boolean
   is_daily_special?: boolean
   popular?: boolean
-}): Promise<{ success: boolean; message: string; item: any }> {
+}): Promise<{ success: boolean; message: string; item: MenuCatalogItem }> {
   return apiRequest('/menu/items/', {
     method: 'POST',
     body: JSON.stringify(data),
@@ -144,12 +179,14 @@ export function createMenuItem(data: {
 }
 
 /** Récupère les promotions actives (GET /api/promotions/). */
-export function fetchPromotions(signal?: AbortSignal): Promise<{ success: boolean; promotions: any[] }> {
+export function fetchPromotions(signal?: AbortSignal): Promise<{ success: boolean; promotions: PromotionRecord[] }> {
   return apiRequest('/promotions/', { signal })
 }
 
 /** Enregistre la liste des promotions (POST /api/promotions/). */
-export function savePromotions(promotions: any[]): Promise<{ success: boolean; message: string; promotions: any[] }> {
+export function savePromotions(
+  promotions: PromotionRecord[],
+): Promise<{ success: boolean; message: string; promotions: PromotionRecord[] }> {
   return apiRequest('/promotions/', {
     method: 'POST',
     body: JSON.stringify(promotions),
@@ -157,12 +194,16 @@ export function savePromotions(promotions: any[]): Promise<{ success: boolean; m
 }
 
 /** Liste des comptes employés (GET /api/staff/). */
-export function fetchStaff(signal?: AbortSignal): Promise<{ success: boolean; staff: any[] }> {
+export function fetchStaff(signal?: AbortSignal): Promise<{ success: boolean; staff: StaffMemberRecord[] }> {
   return apiRequest('/staff/', { signal })
 }
 
 /** Créer un compte employé (POST /api/staff/). */
-export function createStaff(data: { username: string; password: string; role?: string }): Promise<{ success: boolean; staff_member: any }> {
+export function createStaff(data: {
+  username: string
+  password: string
+  role?: string
+}): Promise<{ success: boolean; staff_member: StaffMemberRecord }> {
   return apiRequest('/staff/', {
     method: 'POST',
     body: JSON.stringify(data),

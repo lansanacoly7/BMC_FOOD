@@ -47,17 +47,30 @@ export async function fetchRestaurantStatus(): Promise<RestaurantStatus> {
   }
 
   try {
-    const res = await apiClient<{
-      is_open?: boolean
-      accepting_orders?: boolean
-      closed_message?: string
-      manual_closed?: boolean
-    }>('/health/')
+    const [healthRes, settingsRes] = await Promise.all([
+      apiClient<{
+        is_open?: boolean
+        accepting_orders?: boolean
+        closed_message?: string
+      }>('/health/'),
+      apiClient<{
+        manual_closed?: boolean
+        closed_message?: string
+      }>('/admin/settings/'),
+    ])
 
-    const isOpen = res?.is_open ?? true
-    const manualClosed = res?.manual_closed ?? local.manualClosed
-    const acceptingOrders = res?.accepting_orders ?? (!manualClosed && isOpen)
-    const closedMessage = res?.closed_message || local.closedMessage
+    const isOpen = healthRes?.is_open ?? true
+    const manualClosed = Boolean(settingsRes?.manual_closed)
+    const acceptingOrders =
+      typeof healthRes?.accepting_orders === 'boolean'
+        ? healthRes.accepting_orders
+        : isOpen && !manualClosed
+    const closedMessage =
+      typeof settingsRes?.closed_message === 'string'
+        ? settingsRes.closed_message
+        : (healthRes?.closed_message ?? '')
+
+    saveLocalSettings(manualClosed, closedMessage)
 
     return {
       isOpen,
@@ -80,15 +93,14 @@ export async function fetchRestaurantStatus(): Promise<RestaurantStatus> {
 
 /**
  * Met à jour le paramétrage manuel d'ouverture et le message client
- * Appelle PATCH /api/admin/settings/ (Contrat V1)
+ * Appelle PATCH /api/admin/settings/ puis relit /api/health/ (Contrat V1)
  */
 export async function updateRestaurantSettings(params: {
   manual_closed: boolean
   closed_message: string
 }): Promise<RestaurantStatus> {
-  saveLocalSettings(params.manual_closed, params.closed_message)
-
   if (USE_MOCK) {
+    saveLocalSettings(params.manual_closed, params.closed_message)
     await new Promise((resolve) => setTimeout(resolve, 150))
     return {
       isOpen: true,
@@ -99,9 +111,7 @@ export async function updateRestaurantSettings(params: {
   }
 
   try {
-    const res = await apiClient<{
-      is_open?: boolean
-      accepting_orders?: boolean
+    const settingsRes = await apiClient<{
       manual_closed?: boolean
       closed_message?: string
     }>('/admin/settings/', {
@@ -112,16 +122,43 @@ export async function updateRestaurantSettings(params: {
       }),
     })
 
+    let isOpen = true
+    let acceptingOrders = !(settingsRes?.manual_closed ?? params.manual_closed)
+    let healthMessage = ''
+    try {
+      const healthRes = await apiClient<{
+        is_open?: boolean
+        accepting_orders?: boolean
+        closed_message?: string
+      }>('/health/')
+      isOpen = healthRes?.is_open ?? true
+      acceptingOrders =
+        typeof healthRes?.accepting_orders === 'boolean'
+          ? healthRes.accepting_orders
+          : isOpen && !settingsRes?.manual_closed
+      healthMessage = healthRes?.closed_message ?? ''
+    } catch {
+      // L'enregistrement admin a déjà réussi ; on calcule au plus juste.
+    }
+
+    const manualClosed = Boolean(settingsRes?.manual_closed ?? params.manual_closed)
+    const closedMessage =
+      typeof settingsRes?.closed_message === 'string'
+        ? settingsRes.closed_message
+        : healthMessage || params.closed_message
+
+    saveLocalSettings(manualClosed, closedMessage)
+
     return {
-      isOpen: res?.is_open ?? true,
-      acceptingOrders: res?.accepting_orders ?? !params.manual_closed,
-      manualClosed: res?.manual_closed ?? params.manual_closed,
-      closedMessage: res?.closed_message || params.closed_message,
+      isOpen,
+      acceptingOrders,
+      manualClosed,
+      closedMessage,
     }
   } catch (error) {
-    // Si l'endpoint backend V1 de Pathé est en cours de déploiement
-    if (import.meta.env.DEV) {
-      console.warn("Backend /admin/settings/ indisponible, réglage conservé en mémoire locale :", error)
+    if (import.meta.env.DEV && isBackendUnreachable(error)) {
+      console.warn('Backend /admin/settings/ injoignable, réglage conservé localement :', error)
+      saveLocalSettings(params.manual_closed, params.closed_message)
       return {
         isOpen: true,
         acceptingOrders: !params.manual_closed,

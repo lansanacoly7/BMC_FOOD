@@ -26,6 +26,7 @@ from .throttling import ProxiedScopedRateThrottle
 
 from .api_schemas import AuthTokenRequestSerializer, AuthTokenResponseSerializer, ErrorEnvelopeSerializer
 from .authentication import get_token_ttl_seconds
+from .delivery_grid import phones_match
 from .models import Customer, Order
 from .serializers import (
     CustomerLoginRequestSerializer,
@@ -231,7 +232,38 @@ class CustomerProfileView(APIView):
         phone = customer.phone if customer else user.username
         address = customer.address if customer else ''
 
-        orders = Order.objects.filter(phone=phone).prefetch_related('items__menu_item').order_by('-created_at')[:20]
+        clean_9 = clean_phone_number(phone)
+        if clean_9:
+            variants = list(dict.fromkeys([
+                phone,
+                clean_9,
+                f"+221{clean_9}",
+                f"00221{clean_9}",
+                f"221{clean_9}",
+            ]))
+            # OrderCreateSerializer normalise en '+221XXXXXXXXX' alors que Customer.phone est sur 9 chiffres.
+            candidate_rows = (
+                Order.objects.filter(
+                    Q(phone__in=variants) | Q(phone__endswith=clean_9[-2:])
+                )
+                .order_by('-created_at')
+                .values_list('id', 'phone')
+            )
+            matched_ids = [
+                oid for oid, order_phone in candidate_rows
+                if phones_match(order_phone, clean_9)
+            ][:20]
+            orders = list(
+                Order.objects.filter(id__in=matched_ids)
+                .prefetch_related('items__menu_item')
+                .order_by('-created_at')
+            ) if matched_ids else []
+        else:
+            orders = list(
+                Order.objects.filter(phone=phone)
+                .prefetch_related('items__menu_item')
+                .order_by('-created_at')[:20]
+            )
 
         return Response({
             'success': True,
@@ -240,7 +272,7 @@ class CustomerProfileView(APIView):
                 'phone': phone,
                 'address': address
             },
-            'orders_count': orders.count(),
+            'orders_count': len(orders),
             'orders': OrderSerializer(orders, many=True).data
         })
 

@@ -76,12 +76,16 @@ export const RestaurantPage: React.FC = () => {
     try {
       const updated = await updateRestaurantSettings({
         manual_closed: isManualClosed,
-        closed_message: message.trim() || 'Le restaurant est actuellement fermé.',
+        closed_message: isManualClosed
+          ? (message.trim() || 'Le restaurant est actuellement fermé.')
+          : message.trim(),
       })
       setStatus(updated)
+      setIsManualClosed(updated.manualClosed)
+      setMessage(updated.closedMessage)
       setNotice({
         type: 'success',
-        message: isManualClosed
+        message: updated.manualClosed
           ? 'Restaurant mis en pause / fermé avec succès. Les nouvelles commandes sont bloquées.'
           : 'Restaurant ouvert ! Les commandes sont à nouveau acceptées en direct.',
       })

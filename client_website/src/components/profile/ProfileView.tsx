@@ -27,7 +27,9 @@ import {
   loadProfile,
   refreshHistory,
   saveProfile,
+  syncCustomerAccount,
   toggleFavoriteOrder,
+  updateCustomerAccount,
   USER_KEY,
 } from '../../services/clientData'
 import type { ClientUser } from '../auth/AuthModal'
@@ -56,7 +58,7 @@ const TABS: { id: Tab; label: string }[] = [
 ]
 
 /** Étapes d'une commande, dans l'ordre : sert à remplir la barre de progression. */
-const ORDER_STEPS: OrderStatus[] = ['pending', 'confirmed', 'preparing', 'delivering', 'delivered']
+const ORDER_STEPS: OrderStatus[] = ['pending', 'confirmed', 'preparing', 'ready', 'delivering', 'delivered']
 
 const STATUS: Record<OrderStatus, { label: string; chip: string }> = {
   pending: { label: 'En attente', chip: 'bg-white/10 text-zinc-200' },
@@ -180,16 +182,26 @@ export function ProfileView({ user, onUserChange, onLogout, onOpenAuth, onExplor
 
   const refresh = async () => {
     setIsRefreshing(true)
-    setHistory(await refreshHistory(loadHistory()))
+    const synced = await syncCustomerAccount()
+    setHistory(await refreshHistory(synced.history))
     setIsRefreshing(false)
   }
 
-  // Au premier affichage, met à jour le statut des commandes récentes (silencieux si le serveur est injoignable).
+  // Au premier affichage, synchronise le compte client et le statut des commandes récentes.
   useEffect(() => {
     let cancelled = false
-    refreshHistory(loadHistory()).then((list) => {
+    void (async () => {
+      const synced = await syncCustomerAccount()
+      if (cancelled) return
+      if (synced.user) {
+        setDraft((current) => ({
+          ...current,
+          address: current.address || synced.user?.address || '',
+        }))
+      }
+      const list = await refreshHistory(synced.history)
       if (!cancelled) setHistory(list)
-    })
+    })()
     return () => {
       cancelled = true
     }
@@ -263,6 +275,7 @@ export function ProfileView({ user, onUserChange, onLogout, onOpenAuth, onExplor
 
     saveProfile(draft)
     const fullName = `${draft.firstName} ${draft.lastName}`.trim() || user.name
+    void updateCustomerAccount({ name: fullName, address: draft.address })
     const updated: ClientUser = { name: fullName, phone: phone.replace(/\s+/g, ''), email: draft.email.trim() || undefined }
     try {
       localStorage.setItem(USER_KEY, JSON.stringify(updated))

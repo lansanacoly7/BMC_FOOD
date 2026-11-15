@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Eye, Plus, SearchX, Tag } from 'lucide-react'
-import { createMenuItem, fetchPromotions, savePromotions } from '../services/api'
+import { isBackendUnreachable } from '../api/client'
+import { createMenuItem, fetchMenu, fetchPromotions, savePromotions } from '../services/api'
 import { NewDishModal, type NewDishValues } from '../components/admin/NewDishModal'
 import {
   Badge,
@@ -141,13 +142,22 @@ const DISCOUNTS = [10, 15, 20, 25]
 
 const CATEGORY_OPTIONS: SegmentOption<string>[] = [
   { id: 'all', label: 'Toutes' },
-  { id: 'tacos', label: 'Tacos panés' },
+  { id: 'tacos', label: 'Tacos' },
   { id: 'burgers', label: 'Burgers' },
-  { id: 'poulet', label: 'Poulet' },
   { id: 'boissons', label: 'Boissons' },
 ]
 
-const DISH_CATEGORIES = ['Tacos panés', 'Burgers', 'Poulet', 'Boissons']
+const DEFAULT_DISH_CATEGORIES = [
+  'Tacos panés',
+  'Tacos jambon pané',
+  'Tacos Royal pané',
+  'Tacos Hot Dog pané',
+  'Tacos XL pané',
+  'Tacos simples',
+  'Burgers',
+  'Boissons',
+  'Sauces',
+]
 
 const DISH_PHOTOS = [
   { url: '/images/products/tacos-viande-pane.webp', label: 'Tacos viande pané' },
@@ -160,7 +170,8 @@ const DISH_PHOTOS = [
 ]
 
 export const PromotionsPage: React.FC = () => {
-  const [products, setProducts] = useState<PromoItem[]>(INITIAL_CATALOG)
+  const [products, setProducts] = useState<PromoItem[]>([])
+  const [dishCategories, setDishCategories] = useState<string[]>(DEFAULT_DISH_CATEGORIES)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [editingProduct, setEditingProduct] = useState<PromoItem | null>(null)
@@ -172,50 +183,78 @@ export const PromotionsPage: React.FC = () => {
   const [newDiscountPercent, setNewDiscountPercent] = useState<number>(20)
   const [newSetPromo, setNewSetPromo] = useState<boolean>(true)
   const [isSubmittingNew, setIsSubmittingNew] = useState(false)
-
-  // Charger depuis le backend
-  useEffect(() => {
-    let isMounted = true
-    void fetchPromotions()
-      .then((res) => {
-        if (!isMounted) return
-        if (res && res.success && Array.isArray(res.promotions) && res.promotions.length > 0) {
-          const promoMap = new Map<string, number>()
-          res.promotions.forEach((p: any) => {
-            if (p.isPromo || p.active) {
-              promoMap.set(p.code, p.discountPercent || 20)
-            }
-          })
-
-          setProducts((prev) =>
-            prev.map((item) => {
-              if (promoMap.has(item.code)) {
-                return { ...item, isPromo: true, discountPercent: promoMap.get(item.code) }
-              }
-              return item
-            }),
-          )
-        }
-      })
-      .catch(() => {})
-    return () => {
-      isMounted = false
-    }
-  }, [])
+  const [isSavingPromo, setIsSavingPromo] = useState(false)
 
   const showNotification = (message: string, type: NoticeState['type'] = 'success') => {
     setNotification({ message, type })
-    setTimeout(() => setNotification(null), 3000)
+    setTimeout(() => setNotification(null), 3500)
   }
 
-  // Sauvegarder dans le backend
-  const persistPromotions = async (updatedProducts: PromoItem[]) => {
-    try {
-      const promoList = updatedProducts.filter((p) => p.isPromo)
-      await savePromotions(promoList)
-    } catch {
-      // Ignorer erreur silencieuse
+  // Charger le catalogue réel et les promotions actives depuis le backend Django
+  useEffect(() => {
+    let isMounted = true
+    const controller = new AbortController()
+
+    void Promise.all([
+      fetchMenu(controller.signal),
+      fetchPromotions(controller.signal),
+    ])
+      .then(([menuRes, promoRes]) => {
+        if (!isMounted) return
+
+        const promoMap = new Map<string, number>()
+        if (promoRes?.success && Array.isArray(promoRes.promotions)) {
+          promoRes.promotions.forEach((p) => {
+            if (p && typeof p.code === 'string' && p.isPromo !== false && p.active !== false) {
+              promoMap.set(p.code, Number(p.discountPercent) || 20)
+            }
+          })
+        }
+
+        if (menuRes?.success && Array.isArray(menuRes.items)) {
+          const merged: PromoItem[] = menuRes.items.map((item) => {
+            const discountPercent = promoMap.get(item.code)
+            return {
+              id: item.id,
+              code: item.code,
+              name: item.name,
+              category: item.category_name || 'Carte',
+              price: item.price,
+              image_url: item.image_url || '/images/products/tacos-viande-pane.webp',
+              description: item.description || '',
+              isPromo: promoMap.has(item.code),
+              discountPercent,
+            }
+          })
+          setProducts(merged)
+          const categoryNames = (menuRes.categories ?? []).map((c) => c.name).filter(Boolean)
+          if (categoryNames.length > 0) {
+            setDishCategories(categoryNames)
+          }
+        }
+      })
+      .catch((err) => {
+        if (!isMounted || controller.signal.aborted) return
+        if (import.meta.env.DEV && isBackendUnreachable(err)) {
+          setProducts(INITIAL_CATALOG)
+        } else {
+          showNotification(
+            err instanceof Error ? err.message : 'Impossible de charger les promotions depuis le serveur.',
+            'error',
+          )
+        }
+      })
+
+    return () => {
+      isMounted = false
+      controller.abort()
     }
+  }, [])
+
+  // Sauvegarder dans le backend
+  const persistPromotions = async (updatedProducts: PromoItem[]): Promise<void> => {
+    const promoList = updatedProducts.filter((p) => p.isPromo)
+    await savePromotions(promoList)
   }
 
   // Ouvrir le dialogue de configuration de promotion
@@ -225,27 +264,53 @@ export const PromotionsPage: React.FC = () => {
   }
 
   // Appliquer la promotion
-  const handleApplyPromo = () => {
-    if (!editingProduct) return
+  const handleApplyPromo = async () => {
+    if (!editingProduct || isSavingPromo) return
+    const target = editingProduct
+    const previous = products
     const updated = products.map((p) =>
-      p.id === editingProduct.id
+      p.id === target.id
         ? { ...p, isPromo: true, discountPercent: selectedPercent }
         : p,
     )
-    setProducts(updated)
-    void persistPromotions(updated)
-    showNotification(`Promotion appliquée sur « ${editingProduct.name} » (-${selectedPercent}%)`)
-    setEditingProduct(null)
+    setIsSavingPromo(true)
+    try {
+      await persistPromotions(updated)
+      setProducts(updated)
+      showNotification(`Promotion appliquée sur « ${target.name} » (-${selectedPercent}%)`)
+      setEditingProduct(null)
+    } catch (err) {
+      setProducts(previous)
+      showNotification(
+        err instanceof Error ? err.message : 'Impossible d’enregistrer la promotion.',
+        'error',
+      )
+    } finally {
+      setIsSavingPromo(false)
+    }
   }
 
   // Retirer la promotion
-  const handleRemovePromo = (product: PromoItem) => {
+  const handleRemovePromo = async (product: PromoItem) => {
+    if (isSavingPromo) return
+    const previous = products
     const updated = products.map((p) => (p.id === product.id ? { ...p, isPromo: false } : p))
-    setProducts(updated)
-    void persistPromotions(updated)
-    showNotification(`Promotion retirée pour « ${product.name} »`)
-    if (editingProduct?.id === product.id) {
-      setEditingProduct(null)
+    setIsSavingPromo(true)
+    try {
+      await persistPromotions(updated)
+      setProducts(updated)
+      showNotification(`Promotion retirée pour « ${product.name} »`)
+      if (editingProduct?.id === product.id) {
+        setEditingProduct(null)
+      }
+    } catch (err) {
+      setProducts(previous)
+      showNotification(
+        err instanceof Error ? err.message : 'Impossible de retirer la promotion.',
+        'error',
+      )
+    } finally {
+      setIsSavingPromo(false)
     }
   }
 
@@ -277,12 +342,17 @@ export const PromotionsPage: React.FC = () => {
       }
 
       const updated = [newItem, ...products]
+      if (newSetPromo) {
+        await persistPromotions(updated)
+      }
       setProducts(updated)
-      void persistPromotions(updated)
-      showNotification(`Plat « ${newItem.name} » ajouté${newSetPromo ? ' avec promotion' : ''}.`)
+      showNotification(`Plat « ${newItem.name} » ajouté${newSetPromo ? ' avec promotion' : ''} au catalogue.`)
       setIsAddModalOpen(false)
-    } catch {
-      showNotification("Le plat n'a pas pu être ajouté. Réessayez.", 'error')
+    } catch (err) {
+      showNotification(
+        err instanceof Error ? err.message : "Le plat n'a pas pu être ajouté. Réessayez.",
+        'error',
+      )
     } finally {
       setIsSubmittingNew(false)
     }
@@ -298,12 +368,12 @@ export const PromotionsPage: React.FC = () => {
   // Filtrage du catalogue, plats en promotion en tête
   const filteredProducts = products
     .filter((p) => {
+      const cat = p.category.toLowerCase()
       const matchCat =
         selectedCategory === 'all' ||
-        (selectedCategory === 'tacos' && p.category.toLowerCase().includes('tacos')) ||
-        (selectedCategory === 'burgers' && p.category.toLowerCase().includes('burger')) ||
-        (selectedCategory === 'poulet' && p.category.toLowerCase().includes('poulet')) ||
-        (selectedCategory === 'boissons' && p.category.toLowerCase().includes('boisson'))
+        (selectedCategory === 'tacos' && cat.includes('tacos')) ||
+        (selectedCategory === 'burgers' && cat.includes('burger')) ||
+        (selectedCategory === 'boissons' && cat.includes('boisson'))
 
       const q = searchQuery.toLowerCase().trim()
       const matchSearch =
@@ -505,7 +575,7 @@ export const PromotionsPage: React.FC = () => {
                     </Td>
                     <Td className="text-right">
                       {product.isPromo ? (
-                        <Button size="sm" variant="danger" onClick={() => handleRemovePromo(product)}>
+                        <Button size="sm" variant="danger" disabled={isSavingPromo} onClick={() => void handleRemovePromo(product)}>
                           Retirer
                         </Button>
                       ) : (
@@ -533,7 +603,7 @@ export const PromotionsPage: React.FC = () => {
               <Button variant="ghost" onClick={() => setEditingProduct(null)}>
                 Annuler
               </Button>
-              <Button variant="primary" onClick={handleApplyPromo}>
+              <Button variant="primary" isLoading={isSavingPromo} onClick={() => void handleApplyPromo()}>
                 Publier la promotion
               </Button>
             </>
@@ -569,7 +639,7 @@ export const PromotionsPage: React.FC = () => {
 
       {isAddModalOpen && (
         <NewDishModal
-          categories={DISH_CATEGORIES}
+          categories={dishCategories}
           photos={DISH_PHOTOS}
           isSubmitting={isSubmittingNew}
           onClose={() => setIsAddModalOpen(false)}

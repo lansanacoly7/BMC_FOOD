@@ -13,6 +13,9 @@ export interface MenuState {
   refetch: () => Promise<void>
 }
 
+/** Rafraîchissement périodique du catalogue pour refléter les nouveaux plats ou indisponibilités ajoutés en admin. */
+const MENU_REFRESH_INTERVAL_MS = 30_000
+
 /** Hook de récupération du catalogue officiel BMC Food via GET /api/menu/. */
 export function useMenu(): MenuState {
   const [categories, setCategories] = useState<MenuCategory[]>([])
@@ -29,8 +32,13 @@ export function useMenu(): MenuState {
 
   useEffect(() => {
     const controller = new AbortController()
+    let refreshTimer: number | undefined
+    let isFetching = false
 
-    const load = async () => {
+    const load = async (isBackground = false) => {
+      if (isFetching) return
+      isFetching = true
+      window.clearTimeout(refreshTimer)
       try {
         const response = await apiRequest<MenuResponse>('/menu/', {
           signal: controller.signal,
@@ -58,20 +66,34 @@ export function useMenu(): MenuState {
         }
       } catch {
         if (controller.signal.aborted) return
-        setCategories(getFallbackMenuCategories())
-        setItems(FALLBACK_PRODUCTS)
-        setIsUsingFallback(true)
+        // En arrière-plan, conserver le dernier catalogue valide si une requête échoue ponctuellement
+        if (!isBackground) {
+          setCategories(getFallbackMenuCategories())
+          setItems(FALLBACK_PRODUCTS)
+          setIsUsingFallback(true)
+        }
       } finally {
+        isFetching = false
         if (!controller.signal.aborted) {
           setIsLoading(false)
+          refreshTimer = window.setTimeout(() => void load(true), MENU_REFRESH_INTERVAL_MS)
         }
       }
     }
 
-    void load()
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void load(true)
+      }
+    }
+
+    void load(false)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
       controller.abort()
+      window.clearTimeout(refreshTimer)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [refreshTrigger])
 
