@@ -8,6 +8,12 @@ from .auth_views import (
     CustomerLoginView,
     CustomerProfileView,
 )
+from .promotions_staff_views import (
+    MenuItemCreateView,
+    PromotionsView,
+    StaffListView,
+    StaffDetailView,
+)
 from .views import (
     HealthCheckView,
     MenuView,
@@ -62,6 +68,16 @@ urlpatterns = [
     path('auth/customer/login/', CustomerLoginView.as_view(), name='customer-login'),
     path('auth/login/', CustomerLoginView.as_view(), name='auth-login'),
     path('auth/customer/profile/', CustomerProfileView.as_view(), name='customer-profile'),
+
+    # Promotions & Personnalisation
+    path('promotions/', PromotionsView.as_view(), name='promotions'),
+
+    # Ajout de plats au catalogue
+    path('menu/items/', MenuItemCreateView.as_view(), name='menu-item-create'),
+
+    # Gestion des comptes employés (Staff)
+    path('staff/', StaffListView.as_view(), name='staff-list-create'),
+    path('staff/<int:pk>/', StaffDetailView.as_view(), name='staff-delete'),
 
     # Documentation OpenAPI (accès réglé par SPECTACULAR_SETTINGS['SERVE_PERMISSIONS'])
     path('schema/', SpectacularAPIView.as_view(), name='schema'),

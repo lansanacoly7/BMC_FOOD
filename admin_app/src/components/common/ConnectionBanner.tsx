@@ -1,6 +1,7 @@
 import React from 'react'
-import { AlertCircle, WifiOff, RefreshCw } from 'lucide-react'
+import { AlertCircle, RefreshCw, WifiOff } from 'lucide-react'
 import type { ApiConnectionState } from '../../hooks/useOrders'
+import { Button } from '../ui/primitives'
 
 interface ConnectionBannerProps {
   connectionState: ApiConnectionState
@@ -18,35 +19,29 @@ export const ConnectionBanner: React.FC<ConnectionBannerProps> = ({
   }
 
   const isOffline = connectionState === 'offline'
+  const isDemo = connectionState === 'demo'
+  const Icon = isOffline ? WifiOff : AlertCircle
 
   return (
     <div
-      className="w-full px-6 py-2.5 flex items-center justify-between text-sm font-bold shadow-md z-30 transition-all border-b"
-      style={{
-        backgroundColor: isOffline ? '#334155' : 'var(--kds-urgency-danger)',
-        borderColor: isOffline ? '#475569' : '#DC2626',
-        color: '#FFFFFF',
-      }}
       role="alert"
+      className={`flex shrink-0 items-center justify-between gap-4 border-b border-line px-4 py-2 text-left text-sm font-medium sm:px-6 ${
+        isDemo ? 'bg-warn-soft text-warn' : 'bg-bad-soft text-bad'
+      }`}
     >
-      <div className="flex items-center gap-3">
-        {isOffline ? <WifiOff size={20} strokeWidth={2.5} /> : <AlertCircle size={20} strokeWidth={2.5} />}
+      <div className="flex min-w-0 items-center gap-2.5">
+        <Icon className="size-4 shrink-0" />
         <span>
-          {isOffline
-            ? 'Connexion réseau interrompue. Les commandes locales sont conservées.'
-            : 'Impossible de joindre le serveur Django. Vérifiez le backend ou relancez la tentative.'}
+          {isDemo
+            ? 'Serveur injoignable : ces commandes sont des exemples, rien n’est enregistré.'
+            : isOffline
+              ? 'Connexion réseau interrompue. Les commandes locales sont conservées.'
+              : 'Serveur injoignable. Vérifiez le backend, puis réessayez.'}
         </span>
       </div>
-
-      <button
-        type="button"
-        onClick={onRetry}
-        disabled={isRetrying}
-        className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider bg-white/20 hover:bg-white/30 text-white transition-all disabled:opacity-50"
-      >
-        <RefreshCw size={14} className={isRetrying ? 'animate-spin' : ''} />
-        <span>Réessayer</span>
-      </button>
+      <Button size="sm" icon={RefreshCw} onClick={onRetry} isLoading={isRetrying}>
+        Réessayer
+      </Button>
     </div>
   )
 }

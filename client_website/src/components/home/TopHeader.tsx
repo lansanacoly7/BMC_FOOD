@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Menu, Phone, Search } from 'lucide-react'
-import { isOpenAt } from '../../lib/greeting'
+import { useOpeningStatus } from '../../hooks/useOpeningStatus'
 
 interface TopHeaderProps {
   cartItemCount?: number
@@ -41,7 +41,7 @@ export function TopHeader({
   onOpenAuth,
   clientUser,
 }: TopHeaderProps) {
-  const isOpen = isOpenAt()
+  const { isOpen } = useOpeningStatus()
   const [compact, setCompact] = useState(false)
   const [hidden, setHidden] = useState(false)
 

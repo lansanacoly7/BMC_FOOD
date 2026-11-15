@@ -72,7 +72,7 @@ export const MOCK_ORDERS: Order[] = [
       {
         id: 105,
         menu_item: 14,
-        menu_item_code: 'bv-1',
+        menu_item_code: 'bv-2',
         item_name: 'Canette Bissap BMC',
         unit_price: 1000,
         quantity: 1,

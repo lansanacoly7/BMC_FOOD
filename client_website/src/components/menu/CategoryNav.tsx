@@ -30,17 +30,17 @@ export function CategoryNav({
   return (
     <nav
       aria-label="Catégories du menu"
-      className="scrollbar-none -mx-4 flex items-center gap-3.5 sm:gap-5 overflow-x-auto px-4 py-3 sm:mx-0 sm:px-0"
+      className="scrollbar-none -mx-4 flex items-start gap-2 overflow-x-auto px-4 py-3 sm:mx-0 sm:gap-3 sm:px-0"
     >
       {/* Option "Tous" en rondelle avec anneau or */}
       <button
         type="button"
         onClick={() => onSelectCategory('all')}
-        className={`group flex shrink-0 flex-col items-center gap-2 transition-all cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-bmc-gold rounded-full p-1
+        className={`group flex w-[5.25rem] shrink-0 flex-col items-center gap-2 transition-all cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-bmc-gold rounded-2xl p-1 sm:w-24
           ${activeCategoryId === 'all' ? 'scale-105' : 'opacity-85 hover:opacity-100'}`}
       >
         <div
-          className={`relative size-16 sm:size-18 overflow-hidden rounded-full border-2 transition-all shadow-md
+          className={`relative size-16 shrink-0 sm:size-18 overflow-hidden rounded-full border-2 transition-all shadow-md
             ${
               activeCategoryId === 'all'
                 ? 'border-bmc-gold ring-3 ring-bmc-gold/50 shadow-bmc-gold/20'
@@ -60,7 +60,7 @@ export function CategoryNav({
           </div>
         </div>
         <span
-          className={`text-xs font-bold transition-colors whitespace-nowrap
+          className={`line-clamp-2 w-full text-center text-xs font-bold leading-tight transition-colors
             ${activeCategoryId === 'all' ? 'text-bmc-gold font-bold' : 'text-zinc-300 group-hover:text-white'}`}
         >
           Tous les plats
@@ -78,11 +78,11 @@ export function CategoryNav({
             type="button"
             onClick={() => onSelectCategory(cat.id)}
             aria-pressed={isActive}
-            className={`group flex shrink-0 flex-col items-center gap-2 transition-all cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-bmc-gold rounded-full p-1
+            className={`group flex w-[5.25rem] shrink-0 flex-col items-center gap-2 transition-all cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-bmc-gold rounded-2xl p-1 sm:w-24
               ${isActive ? 'scale-105' : 'opacity-85 hover:opacity-100'}`}
           >
             <div
-              className={`relative size-16 sm:size-18 overflow-hidden rounded-full border-2 transition-all shadow-md
+              className={`relative size-16 shrink-0 sm:size-18 overflow-hidden rounded-full border-2 transition-all shadow-md
                 ${
                   isActive
                     ? 'border-bmc-gold ring-3 ring-bmc-gold/50 shadow-bmc-gold/20'
@@ -97,7 +97,7 @@ export function CategoryNav({
               />
             </div>
             <span
-              className={`text-xs font-bold transition-colors whitespace-nowrap
+              className={`line-clamp-2 w-full text-center text-xs font-bold leading-tight transition-colors
                 ${isActive ? 'text-bmc-gold font-bold' : 'text-zinc-300 group-hover:text-white'}`}
             >
               {cat.name}

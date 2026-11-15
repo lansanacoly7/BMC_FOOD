@@ -1,4 +1,5 @@
-import { ArrowRight, ShoppingBag, X } from 'lucide-react'
+import { ArrowRight, Clock, ShoppingBag, X } from 'lucide-react'
+import { useOpeningStatus } from '../../hooks/useOpeningStatus'
 import { AnimatePresence, motion, useDragControls } from 'motion/react'
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react'
 import { formatFcfa } from '../../lib/format'
@@ -44,6 +45,7 @@ export function CartDrawer({
     confirmOpenRef.current = confirmOpen
   }, [confirmOpen])
   const handleEscape = useEffectEvent(onClose)
+  const opening = useOpeningStatus()
 
   const itemCount = items.reduce((count, item) => count + item.quantity, 0)
   const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
@@ -196,20 +198,39 @@ export function CartDrawer({
                     {formatFcfa(subtotal)}
                   </span>
                 </div>
+                {/* Hors horaires : le panier est gardé, seule la validation attend la réouverture */}
+                {!opening.isOpen && (
+                  <p role="status" className="mt-3 flex items-start gap-2.5 rounded-xl border border-bmc-gold/30 bg-bmc-gold/10 px-3.5 py-3 text-sm leading-snug text-zinc-200">
+                    <Clock className="mt-0.5 size-4 shrink-0 text-bmc-gold" aria-hidden="true" />
+                    <span>
+                      <strong className="font-semibold text-white">BMC est fermé pour le moment.</strong> Réouverture {opening.reopensLabel}, votre panier vous attend.
+                    </span>
+                  </p>
+                )}
                 {/* Ligne des Boutons d'Action : Valider à gauche (Or), Annuler à droite (Rouge) sur la même ligne */}
                 <div className="mt-4 flex flex-row items-center gap-2.5 sm:gap-3 w-full">
                   {/* 1. Bouton Valider la commande (Côté gauche, Or brossé BMC) */}
                   <motion.button
                     type="button"
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.97 }}
+                    whileHover={opening.isOpen ? { scale: 1.01 } : undefined}
+                    whileTap={opening.isOpen ? { scale: 0.97 } : undefined}
                     onClick={onCheckout}
-                    aria-label="Valider la commande"
-                    className="flex-1 h-12 sm:h-14 inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-2xl bg-bmc-gold font-display text-xs sm:text-base font-bold uppercase tracking-wider text-black hover:brightness-110 cursor-pointer transition-all whitespace-nowrap min-w-0"
+                    disabled={!opening.isOpen}
+                    aria-label={opening.isOpen ? 'Valider la commande' : `Commande impossible : BMC est fermé, réouverture ${opening.reopensLabel}`}
+                    className="flex-1 h-12 sm:h-14 inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-2xl bg-bmc-gold font-display text-xs sm:text-base font-bold uppercase tracking-wider text-black hover:brightness-110 cursor-pointer transition-all whitespace-nowrap min-w-0 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-400 disabled:hover:brightness-100"
                   >
-                    <span className="sm:hidden">Valider</span>
-                    <span className="hidden sm:inline">Valider la commande</span>
-                    <ArrowRight className="size-4 sm:size-5 text-black stroke-[2.5] shrink-0" aria-hidden="true" />
+                    {opening.isOpen ? (
+                      <>
+                        <span className="sm:hidden">Valider</span>
+                        <span className="hidden sm:inline">Valider la commande</span>
+                        <ArrowRight className="size-4 sm:size-5 text-black stroke-[2.5] shrink-0" aria-hidden="true" />
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="size-4 sm:size-5 shrink-0" aria-hidden="true" />
+                        <span>Fermé</span>
+                      </>
+                    )}
                   </motion.button>
 
                   {/* 2. Bouton Annuler la commande (Côté droit, Rouge officiel BMC) */}

@@ -1,5 +1,5 @@
 /** URL de base de l'API Django REST, surchargeable via VITE_API_BASE_URL dans .env.local. */
-export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api').replace(/\/+$/, '')
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '/api').replace(/\/+$/, '')
 
 /** Erreur HTTP portant le statut et le corps JSON renvoyés par l'API (ex. erreurs de validation DRF). */
 export class ApiError extends Error {

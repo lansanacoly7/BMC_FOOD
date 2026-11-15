@@ -78,7 +78,7 @@ export function ProductCard({ product, onAdd, onSelect, badge, originalPrice }: 
 
       <div className="flex flex-1 flex-col justify-between p-3.5 text-left">
         <div>
-          <h3 className="line-clamp-1 font-display text-sm font-bold text-white sm:text-base">
+          <h3 className="line-clamp-1 font-display text-sm font-bold text-white transition-colors duration-300 group-hover:text-bmc-gold sm:text-base">
             {onSelect ? (
               // Lien étiré : toute la carte ouvre la fiche, à la souris comme au clavier.
               <button

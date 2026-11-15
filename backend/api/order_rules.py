@@ -39,8 +39,9 @@ def generate_order_ref():
 ORDER_STATUS_TRANSITIONS = {
     'pending': ('confirmed', 'cancelled'),
     'confirmed': ('preparing', 'cancelled'),
-    'preparing': ('delivering', 'cancelled'),
-    'delivering': ('delivered',),
+    'preparing': ('ready', 'delivering', 'cancelled'),
+    'ready': ('delivering', 'delivered', 'cancelled'),
+    'delivering': ('delivered', 'cancelled'),
     'delivered': (),
     'cancelled': (),
 }

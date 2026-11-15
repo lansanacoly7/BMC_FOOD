@@ -57,8 +57,8 @@ export interface ChronoThresholds {
 }
 
 export const DEFAULT_THRESHOLDS: ChronoThresholds = {
-  warningMinutes: 10,
-  dangerMinutes: 15,
+  warningMinutes: 15,
+  dangerMinutes: 25,
 }
 
 export interface ColumnDefinition {

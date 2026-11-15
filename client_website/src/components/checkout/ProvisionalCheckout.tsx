@@ -2,7 +2,9 @@ import { AlertTriangle, ArrowLeft, Check, Clock, ExternalLink, LoaderCircle, Loc
 import { type FormEvent, useEffect, useId, useState } from 'react'
 import { loadProfile, saveProfile, USER_KEY } from '../../services/clientData'
 import { useCart } from '../../hooks/useCart'
+import { useOpeningStatus } from '../../hooks/useOpeningStatus'
 import { useOrderSubmission } from '../../hooks/useOrderSubmission'
+import { isOpenAt, OPENING_HOURS_LABEL } from '../../lib/openingHours'
 import { findDeliveryArea } from '../../lib/delivery'
 import { formatFcfa } from '../../lib/format'
 import { getProductImageUrl } from '../../lib/productImages'
@@ -54,6 +56,9 @@ export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: Provisio
   const formId = useId()
   const { items, subtotal } = useCart()
   const { status, isSubmitting, order, error, submit, clearError, reset } = useOrderSubmission()
+  // Hors horaires (heure de Dakar) : le formulaire reste rempli, mais l'envoi attend la réouverture.
+  const opening = useOpeningStatus()
+  const isClosed = !opening.isOpen
   // Préremplit avec le compte et l'adresse enregistrés dans « Mon compte », s'ils existent
   // Priorité au compte connecté, sinon aux coordonnées de la dernière commande ; l'adresse mémorisée est reprise telle quelle.
   const [form, setForm] = useState<OrderCustomerDetails>(() => {
@@ -179,6 +184,11 @@ export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: Provisio
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
+    // Le statut se rafraîchit toutes les 30 s : on revérifie à l'instant du clic (client resté sur la page après 02h).
+    if (!isOpenAt()) {
+      opening.refresh()
+      return
+    }
     setIsWaveModalOpen(true)
     setIsOmModalOpen(true)
     // Retrait : adresse du restaurant et mention « à emporter » pour la cuisine
@@ -293,6 +303,18 @@ export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: Provisio
             </div>
           </div>
         </header>
+
+        {isClosed && (
+          <div role="alert" className="mb-5 flex gap-3 rounded-2xl border border-bmc-gold/35 bg-bmc-gold/10 px-4 py-3.5 text-sm text-zinc-200">
+            <Clock className="mt-0.5 size-5 shrink-0 text-bmc-gold" aria-hidden="true" />
+            <div className="flex flex-col gap-1">
+              <p className="font-semibold text-white">BMC est fermé pour le moment, la commande ne peut pas être envoyée.</p>
+              <p>
+                Réouverture {opening.reopensLabel} ({OPENING_HOURS_LABEL}). Votre panier et vos coordonnées sont gardés.
+              </p>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div role="alert" className="mb-5 flex gap-3 rounded-2xl border border-red-500/40 bg-red-950/60 px-4 py-3.5 text-sm text-red-200">
@@ -533,7 +555,7 @@ export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: Provisio
                 <OrderSubmitButton
                   isSubmitting={isSubmitting}
                   amount={subtotal + (deliveryFee ?? 0)}
-                  disabled={items.length === 0}
+                  disabled={items.length === 0 || isClosed}
                 />
               </div>
             </section>

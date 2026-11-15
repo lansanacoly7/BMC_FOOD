@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Pause, Play, Volume2, VolumeX } from 'lucide-react'
+import { Pause, Play } from 'lucide-react'
 import {
   AnimatePresence,
   motion,
@@ -42,17 +42,17 @@ export function CulinaryVideoShowcase() {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [index, setIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(reduceMotion)
-  const [isMuted, setIsMuted] = useState(true)
   const [progress, setProgress] = useState(0)
   const isOnScreen = useInView(sectionRef, { amount: 0.3 })
   const scene = SCENES[index]
 
   // Ouverture du cadre au défilement : de la carte arrondie au plein écran.
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start end', 'start start'] })
-  const inset = useTransform(scrollYProgress, [0, 1], reduceMotion ? [0, 0] : [6, 0])
-  const radius = useTransform(scrollYProgress, [0, 1], reduceMotion ? [0, 0] : [32, 0])
+  const inset = useTransform(scrollYProgress, [0, 1], reduceMotion ? [0, 0] : [4, 0])
+  const radius = useTransform(scrollYProgress, [0, 1], reduceMotion ? [0, 0] : [28, 0])
   const clipPath = useMotionTemplate`inset(${inset}% ${inset}% ${inset}% ${inset}% round ${radius}px)`
-  const videoScale = useTransform(scrollYProgress, [0, 1], reduceMotion ? [1, 1] : [1.18, 1])
+  // Léger recul seulement : les vidéos sont déjà cadrées serré, un zoom plus fort les rendrait illisibles.
+  const videoScale = useTransform(scrollYProgress, [0, 1], reduceMotion ? [1, 1] : [1.06, 1])
 
   // Lecture seulement à l'écran et si le client n'a pas mis en pause.
   useEffect(() => {
@@ -67,21 +67,17 @@ export function CulinaryVideoShowcase() {
     setProgress(0)
   }
 
-  const toggleMute = () => {
-    const next = !isMuted
-    setIsMuted(next)
-    if (videoRef.current) videoRef.current.muted = next
-  }
-
   return (
     <section
       ref={sectionRef}
       aria-labelledby="culinary-showcase-title"
-      className="relative mt-16 bg-bmc-black sm:mt-24"
+      className="relative mt-12 bg-bmc-black sm:mt-24"
     >
       <motion.div
         style={{ clipPath }}
-        className="relative h-[88svh] max-h-[60rem] min-h-[34rem] w-full overflow-hidden bg-black sm:h-svh"
+        // Téléphone : cadre 4:3 (les vidéos sont en 16:9, un cadre en hauteur les zoomait à l'excès) et la suite de la page reste visible.
+        // Grand écran : un peu moins que la hauteur de l'écran, pour deviner qu'on peut continuer à défiler.
+        className="relative aspect-[4/3] w-full overflow-hidden bg-black sm:aspect-auto sm:h-[72svh] sm:max-h-[48rem] sm:min-h-[26rem]"
       >
         {/* VIDÉO (fondu enchaîné d'une scène à l'autre) */}
         <motion.div style={{ scale: videoScale }} className="absolute inset-0">
@@ -94,7 +90,8 @@ export function CulinaryVideoShowcase() {
               }}
               src={scene.src}
               poster={POSTER}
-              muted={isMuted}
+              // Toujours muette : pas de son sur cette vidéo d'ambiance.
+              muted
               playsInline
               preload="auto"
               onEnded={() => goTo((index + 1) % SCENES.length)}
@@ -114,9 +111,9 @@ export function CulinaryVideoShowcase() {
 
         {/* Voiles : fondu vers le noir de la page en bas, lisibilité des barres de progression en haut */}
         <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-1/3 bg-linear-to-t from-bmc-black via-black/30 to-transparent" />
-        <div aria-hidden="true" className="absolute inset-x-0 top-0 h-40 bg-linear-to-b from-black/70 to-transparent" />
+        <div aria-hidden="true" className="absolute inset-x-0 top-0 h-20 bg-linear-to-b from-black/70 to-transparent sm:h-40" />
 
-        <div className="relative mx-auto flex h-full max-w-7xl flex-col justify-between px-4 pb-24 pt-24 sm:px-6 sm:pb-24 sm:pt-28 lg:px-8 lg:pb-20">
+        <div className="relative mx-auto flex h-full max-w-7xl flex-col justify-between px-4 pb-3 pt-3 sm:px-6 sm:pb-10 sm:pt-10 lg:px-8 lg:pb-12">
           {/* PROGRESSION DES SCÈNES */}
           <ol className="grid grid-cols-5 gap-2 sm:gap-3" aria-label="Scènes de la vidéo">
             {SCENES.map((item, i) => {
@@ -161,17 +158,9 @@ export function CulinaryVideoShowcase() {
                 type="button"
                 onClick={() => setIsPaused((paused) => !paused)}
                 aria-label={isPaused ? 'Lancer la vidéo' : 'Mettre la vidéo en pause'}
-                className="grid size-12 cursor-pointer place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/30 backdrop-blur-md transition-colors hover:text-bmc-gold hover:ring-bmc-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold"
+                className="grid size-10 cursor-pointer place-items-center rounded-full bg-black/45 sm:size-12 text-white ring-1 ring-white/30 backdrop-blur-md transition-colors hover:text-bmc-gold hover:ring-bmc-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold"
               >
                 {isPaused ? <Play className="ml-0.5 size-5 fill-current" aria-hidden="true" /> : <Pause className="size-5" aria-hidden="true" />}
-              </button>
-              <button
-                type="button"
-                onClick={toggleMute}
-                aria-label={isMuted ? 'Activer le son' : 'Couper le son'}
-                className="grid size-12 cursor-pointer place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/30 backdrop-blur-md transition-colors hover:text-bmc-gold hover:ring-bmc-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold"
-              >
-                {isMuted ? <VolumeX className="size-5" aria-hidden="true" /> : <Volume2 className="size-5 text-bmc-gold" aria-hidden="true" />}
               </button>
             </div>
           </div>

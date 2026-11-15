@@ -73,8 +73,6 @@ const CODE_TO_IMAGE: Record<string, string> = {
   'fr-1': '/images/products/frites-maison.webp',
   'sc-assortiment': '/images/products/sauces-assortiment.webp',
   'sc-1': '/images/products/sauces-assortiment.webp',
-  'bb-fraiches': '/images/products/boissons-fraiches.webp',
-  'bb-1': '/images/products/boissons-fraiches.webp',
   'bv-2': '/images/products/canette-bissap-bmc.webp',
   'bv-3': '/images/products/canette-bouye-bmc.webp',
   'bv-4': '/images/products/canette-mangue-bmc.webp',

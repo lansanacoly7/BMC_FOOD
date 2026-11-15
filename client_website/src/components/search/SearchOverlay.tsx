@@ -1,4 +1,5 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useId, useMemo, useRef, useState } from 'react'
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 import { AnimatePresence, motion } from 'motion/react'
 import { ArrowRight, Check, Plus, Search, X } from 'lucide-react'
 import { getProductImageUrl } from '../../lib/productImages'
@@ -38,22 +39,31 @@ export function SearchOverlay({ isOpen, onClose, products: allProducts, onAdd, o
   const [query, setQuery] = useState('')
   const [addedCode, setAddedCode] = useState<string | null>(null)
 
+  // Fermeture : on vide la recherche à ce moment-là, la prochaine ouverture repart d'un champ vide.
+  // (La vider à l'ouverture, dans l'effet ci-dessous, l'effaçait aussi pendant la saisie : l'accueil recrée
+  // onClose à chaque rafraîchissement, ce qui relançait l'effet quelques secondes après.)
+  const close = () => {
+    setQuery('')
+    onClose()
+  }
+  const handleEscape = useEffectEvent(close)
+
+  // Page figée derrière la recherche.
+  useBodyScrollLock(isOpen)
+
+  // Ne dépend que de l'ouverture : rien ne se relance tant que la fenêtre reste ouverte.
   useEffect(() => {
     if (!isOpen) return
-    setQuery('')
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
     const focusTimer = window.setTimeout(() => inputRef.current?.focus(), 50)
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') handleEscape()
     }
     window.addEventListener('keydown', onKey)
     return () => {
       window.clearTimeout(focusTimer)
       window.removeEventListener('keydown', onKey)
-      document.body.style.overflow = previousOverflow
     }
-  }, [isOpen, onClose])
+  }, [isOpen])
 
   const trimmed = query.trim()
   const results = useMemo(() => {
@@ -81,7 +91,7 @@ export function SearchOverlay({ isOpen, onClose, products: allProducts, onAdd, o
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={close}
             aria-hidden="true"
             className="fixed inset-0 bg-black/70"
           />
@@ -128,7 +138,7 @@ export function SearchOverlay({ isOpen, onClose, products: allProducts, onAdd, o
               </div>
               <button
                 type="button"
-                onClick={onClose}
+                onClick={close}
                 className="h-12 shrink-0 cursor-pointer px-3 text-sm font-medium text-zinc-300 hover:text-white"
               >
                 Fermer
@@ -159,7 +169,7 @@ export function SearchOverlay({ isOpen, onClose, products: allProducts, onAdd, o
                       <button
                         type="button"
                         onClick={() => {
-                          onClose()
+                          close()
                           onSelect(product)
                         }}
                         className="min-w-0 flex-1 cursor-pointer text-left transition-opacity hover:opacity-75"
@@ -191,7 +201,7 @@ export function SearchOverlay({ isOpen, onClose, products: allProducts, onAdd, o
               <button
                 type="button"
                 onClick={() => {
-                  onClose()
+                  close()
                   onOpenMenu()
                 }}
                 className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-white/15 text-sm font-semibold text-white transition-colors hover:border-white/30"

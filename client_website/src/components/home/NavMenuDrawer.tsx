@@ -1,6 +1,7 @@
 import { Clock, MapPin, Phone, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { CATEGORIES } from '../../data/categories'
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 
 interface NavMenuDrawerProps {
   isOpen: boolean
@@ -16,6 +17,9 @@ interface NavMenuDrawerProps {
  * Déclenché par le bouton menu hamburger de l'en-tête (TopHeader).
  */
 export function NavMenuDrawer({ isOpen, onClose, onSelectCategory, onNavigate, onOpenAuth, clientUser }: NavMenuDrawerProps) {
+  // Page figée derrière le menu ouvert.
+  useBodyScrollLock(isOpen)
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -36,7 +40,7 @@ export function NavMenuDrawer({ isOpen, onClose, onSelectCategory, onNavigate, o
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="relative z-10 flex h-full w-[85%] max-w-xs flex-col justify-between overflow-y-auto border-l border-white/10 bg-zinc-950 p-5 text-white"
+            className="relative z-10 flex h-full w-[85%] max-w-xs flex-col justify-between overflow-y-auto overscroll-contain border-l border-white/10 bg-zinc-950 p-5 text-white"
             aria-label="Menu principal"
           >
             <div className="space-y-6">
