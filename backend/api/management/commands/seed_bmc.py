@@ -1,7 +1,8 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils.text import slugify
-from api.models import Category, MenuItem, OrderItem
+from api.delivery_grid import seed_delivery_areas
+from api.models import Category, MenuItem, DeliveryArea, OrderItem
 
 # Codes d'articles retirés de la carte (bv-1 : « Boissons fraîches au choix (33cl) », retiré à la demande de BMC).
 RETIRED_CODES = ["bv-1"]
@@ -212,13 +213,17 @@ class Command(BaseCommand):
                     item.delete()
                 items_retired += 1
 
+            areas_created, areas_updated = seed_delivery_areas(reset=reset)
+
         total_categories = Category.objects.count()
         total_items = MenuItem.objects.count()
+        total_areas = DeliveryArea.objects.count()
 
         self.stdout.write(
             self.style.SUCCESS(
                 f"Succès : Seed {mode_label} terminé. "
                 f"Catégories (créées: {cats_created}, màj: {cats_updated}, total: {total_categories}) | "
-                f"Articles (créés: {items_created}, màj: {items_updated}, retirés: {items_retired}, total: {total_items})."
+                f"Articles (créés: {items_created}, màj: {items_updated}, retirés: {items_retired}, total: {total_items}) | "
+                f"Quartiers (créés: {areas_created}, màj: {areas_updated}, total: {total_areas})."
             )
         )
