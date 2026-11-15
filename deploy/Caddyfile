@@ -1,0 +1,76 @@
+# Configuration Caddy (Caddy v2) — BMC FOOD
+# Remplacer bmcfood.sn et admin.bmcfood.sn par votre domaine réel avant mise en service.
+# HTTPS (certificats Let's Encrypt) et redirection HTTP -> HTTPS sont gérés automatiquement.
+#
+# Choix d'architecture : sous-domaine dédié (admin.bmcfood.sn) pour l'application admin/KDS.
+# Pourquoi : admin_app référence ses visuels depuis la racine (/images/...). Un sous-domaine
+# permet de servir le site client à la racine de bmcfood.sn et l'admin à la racine de
+# admin.bmcfood.sn, tout en gardant l'API en chemin relatif (/api) sur les deux hôtes sans CORS.
+
+(django_backend) {
+	# API Django REST Framework (Gunicorn sur 127.0.0.1:8000)
+	# Caddy transmet automatiquement Host, X-Forwarded-For et X-Forwarded-Proto.
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8000 {
+			transport http {
+				dial_timeout 10s
+				response_header_timeout 60s
+			}
+		}
+	}
+
+	# Fichiers statiques Django collectés par collectstatic (Admin Django, Swagger si activé)
+	handle_path /static/* {
+		root * /var/www/bmc/backend/staticfiles
+		file_server
+	}
+
+	# Fichiers médias Django
+	handle_path /media/* {
+		root * /var/www/bmc/backend/media
+		file_server
+	}
+}
+
+www.bmcfood.sn {
+	redir https://bmcfood.sn{uri} permanent
+}
+
+# Site client (racine)
+bmcfood.sn {
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	import django_backend
+
+	handle {
+		root * /var/www/bmc/client_website/dist
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+# Application Administration & KDS Cuisine (sous-domaine documenté)
+admin.bmcfood.sn {
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Robots-Tag "noindex, nofollow"
+	}
+
+	import django_backend
+
+	handle {
+		root * /var/www/bmc/admin_app/dist
+		try_files {path} /index.html
+		file_server
+	}
+}
