@@ -12,6 +12,7 @@ interface OrderConfirmationProps {
   /** Livraison chez le client (par défaut) ou retrait au restaurant si le serveur ne précise pas order_type. */
   fulfillment?: OrderType
   onNewOrder: () => void
+  onTrackOrder?: (orderRef: string) => void
 }
 
 const containerVariants: Variants = {
@@ -47,8 +48,10 @@ export function OrderConfirmation({
   deliveryAreaName,
   fulfillment = 'delivery',
   onNewOrder,
+  onTrackOrder,
 }: OrderConfirmationProps) {
-  const orderType: OrderType = order.order_type ?? fulfillment
+  const orderType: OrderType =
+    order.order_type === 'pickup' || order.order_type === 'delivery' ? order.order_type : fulfillment
   const isPickup = orderType === 'pickup'
   const isPaid = order.payment_status === 'paid'
 
@@ -254,6 +257,18 @@ export function OrderConfirmation({
 
         {/* 6. BOUTONS D'ACTION (Page 12) AVEC MICRO-INTERACTIONS FLUIDES */}
         <motion.div variants={itemVariants} className="mt-8 space-y-3 pb-4">
+          {onTrackOrder && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="button"
+              onClick={() => onTrackOrder(order.order_ref)}
+              className="flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-zinc-900 border border-bmc-gold/45 font-display text-base font-bold text-bmc-gold transition-all hover:bg-zinc-850 hover:border-bmc-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bmc-gold cursor-pointer"
+            >
+              <span>Suivre ma commande en direct</span>
+            </motion.button>
+          )}
+
           {/* Bouton 1 (Or BMC, texte charbon, JAMAIS blanc — Charte P. 12) */}
           <motion.a
             whileHover={{ scale: 1.02 }}

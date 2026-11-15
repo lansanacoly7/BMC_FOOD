@@ -16,7 +16,7 @@ export type OrderType = 'delivery' | 'pickup'
 export type PaymentStatus = 'unpaid' | 'pending' | 'paid'
 
 /** Cycle de vie d'une commande (Order.STATUS_CHOICES). */
-export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'delivering' | 'delivered' | 'cancelled'
+export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivering' | 'delivered' | 'cancelled'
 
 /** Catégorie du menu (CategorySerializer). `icon` est un nom d'icône lucide-react, ex. « Flame ». */
 export interface Category {
@@ -69,7 +69,7 @@ export interface Order {
   order_ref: string
   customer_name: string
   phone: string
-  order_type?: OrderType
+  order_type?: OrderType | 'dine_in'
   delivery_area?: string | null
   delivery_fee?: number | null
   subtotal?: number
@@ -80,7 +80,7 @@ export interface Order {
   payment_status: PaymentStatus
   total_amount: number
   status: OrderStatus
-  cancel_reason?: string
+  cancel_reason?: string | null
   is_notified_to_admin: boolean
   /** Date ISO 8601 UTC, ex. « 2026-10-21T14:05:00Z ». */
   created_at: string

@@ -22,6 +22,9 @@ from .views import (
     OrderListCreateView,
     OrderDetailView,
     OrderStatusUpdateView,
+    OrderCancelClientView,
+    OrderConfirmPaymentView,
+    OrderConfirmPaymentAliasView,
     OrderUnnotifiedEventsView,
     OrderTrackView,
 )
@@ -56,6 +59,9 @@ urlpatterns = [
     path('orders/', OrderListCreateView.as_view(), name='order-list-create'),
     path('orders/events/unnotified/', OrderUnnotifiedEventsView.as_view(), name='order-unnotified-events'),
     path('orders/track/<str:ref>/', OrderTrackView.as_view(**PUBLIC), name='order-track'),
+    path('orders/<str:ref>/cancel/', OrderCancelClientView.as_view(**PUBLIC), name='order-cancel-client'),
+    path('orders/<str:ref_or_id>/confirm-payment/', OrderConfirmPaymentAliasView.as_view(), name='order-confirm-payment'),
+    path('admin/orders/<str:ref_or_id>/confirm-payment/', OrderConfirmPaymentView.as_view(), name='admin-order-confirm-payment'),
     path('orders/<str:ref_or_id>/', OrderDetailView.as_view(), name='order-detail'),
     path('orders/<str:ref_or_id>/status/', OrderStatusUpdateView.as_view(), name='order-status-update'),
 

@@ -8,15 +8,16 @@ interface TopHeaderProps {
   onOpenSearch?: () => void
   onToggleMenu?: () => void
   onSelectCategory?: (categoryId: string) => void
-  currentPage?: 'home' | 'menu' | 'contact' | 'profile'
-  onNavigate?: (page: 'home' | 'menu' | 'contact') => void
+  currentPage?: 'home' | 'menu' | 'track' | 'contact' | 'profile'
+  onNavigate?: (page: 'home' | 'menu' | 'track' | 'contact') => void
   onOpenAuth?: () => void
   clientUser?: { name: string; phone: string } | null
 }
 
-const NAV_ITEMS: { page: 'home' | 'menu' | 'contact'; label: string }[] = [
+const NAV_ITEMS: { page: 'home' | 'menu' | 'track' | 'contact'; label: string }[] = [
   { page: 'home', label: 'Accueil' },
   { page: 'menu', label: 'La carte' },
+  { page: 'track', label: 'Suivre ma commande' },
   { page: 'contact', label: 'Contact' },
 ]
 

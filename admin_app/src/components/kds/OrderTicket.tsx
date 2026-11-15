@@ -4,6 +4,7 @@ import {
   ShoppingBag,
   Utensils,
   AlertTriangle,
+  AlertOctagon,
   ArrowRight,
   ChevronUp,
   MoreHorizontal,
@@ -11,6 +12,8 @@ import {
   Eye,
   XCircle,
   MessageSquare,
+  MapPin,
+  Phone,
 } from 'lucide-react'
 import { formatDuration, formatFcfa, getElapsedSeconds } from '../../lib/formatters'
 import { DEFAULT_KDS_THRESHOLDS, type ChronoThresholds } from '../../styles/kdsTokens'
@@ -34,11 +37,26 @@ interface OrderTicketProps {
 
 const TYPE_CONFIG: Record<
   OrderType,
-  { label: string; icon: React.FC<{ className?: string }> }
+  { label: string; badgeLabel: string; badgeClass: string; icon: React.FC<{ className?: string }> }
 > = {
-  delivery: { label: 'Livraison', icon: Bike },
-  takeaway: { label: 'À emporter', icon: ShoppingBag },
-  dine_in: { label: 'Sur place', icon: Utensils },
+  delivery: {
+    label: 'Livraison',
+    badgeLabel: 'LIVRAISON',
+    badgeClass: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+    icon: Bike,
+  },
+  takeaway: {
+    label: 'À emporter',
+    badgeLabel: 'À EMPORTER',
+    badgeClass: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
+    icon: ShoppingBag,
+  },
+  dine_in: {
+    label: 'Sur place',
+    badgeLabel: 'SUR PLACE',
+    badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+    icon: Utensils,
+  },
 }
 
 function extractNeighborhood(address?: string): string {
@@ -75,7 +93,7 @@ export const OrderTicket: React.FC<OrderTicketProps> = ({
   const TypeIcon = typeConfig.icon
 
   const displayRef = order.orderRef.replace(/^#?BMC-?/, '')
-  const neighborhood = order.orderType === 'delivery' ? extractNeighborhood(order.address) : ''
+  const neighborhood = order.orderType === 'delivery' ? (order.deliveryArea || extractNeighborhood(order.address)) : ''
 
   const action = getTicketAction(order)
 
@@ -94,23 +112,49 @@ export const OrderTicket: React.FC<OrderTicketProps> = ({
   return (
     <article
       className={`relative flex select-none flex-col rounded-xl border bg-surface text-left transition-colors ${
-        isOverdue ? 'border-bad' : 'border-line'
+        order.hasAllergy
+          ? 'border-red-500/80 ring-1 ring-red-500/30'
+          : isOverdue
+          ? 'border-bad'
+          : 'border-line'
       }`}
     >
+      {/* BANDEAU ROUGE ALLERGIE */}
+      {order.hasAllergy && (
+        <div
+          role="alert"
+          className="flex items-center justify-between gap-2 rounded-t-[11px] bg-red-600 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white shadow-inner"
+        >
+          <span className="flex items-center gap-1.5">
+            <AlertOctagon className="size-4 shrink-0 animate-pulse" />
+            ALLERGIE SIGNALÉE
+          </span>
+          {order.notes && (
+            <span
+              className="max-w-[210px] truncate text-[11px] font-semibold normal-case text-red-100"
+              title={order.notes}
+            >
+              {order.notes}
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center gap-2 px-3 pb-1 pt-2.5">
         <span className="font-display text-xl font-bold leading-none tabular-nums text-ink">
           #{displayRef}
         </span>
-        {/* Le libellé cède la place au chrono quand la colonne est étroite ; l'icône reste */}
+
+        {/* Badge LIVRAISON / À EMPORTER */}
         <span
           title={typeConfig.label}
-          className="@container flex min-w-0 flex-1 items-center gap-1 text-[13px] text-ink-soft"
+          className={`inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-bold tracking-wider ${typeConfig.badgeClass}`}
         >
-          <TypeIcon className="size-3.5 shrink-0" />
-          <span className="hidden whitespace-nowrap @[84px]:inline">{typeConfig.label}</span>
+          <TypeIcon className="size-3 shrink-0" />
+          <span>{typeConfig.badgeLabel}</span>
         </span>
 
-        <div className="flex shrink-0 items-center gap-0.5">
+        <div className="ml-auto flex shrink-0 items-center gap-0.5">
           {isOverdue ? (
             <span
               role="alert"
@@ -174,14 +218,37 @@ export const OrderTicket: React.FC<OrderTicketProps> = ({
         </div>
       </div>
 
-      <div className="flex items-baseline justify-between gap-3 px-3 pb-2 text-sm">
-        <p className="min-w-0 truncate text-ink-soft">
-          {order.customerName}
-          {neighborhood && <span className="text-ink-faint"> · {neighborhood}</span>}
-        </p>
-        <span className="shrink-0 tabular-nums text-ink-soft">
-          {formatFcfa(order.totalAmount)}
-        </span>
+      {/* INFOS CLIENT, MONTANT ET LIVRAISON (QUARTIER + TÉLÉPHONE) */}
+      <div className="flex flex-col gap-1 px-3 pb-2 text-sm">
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="min-w-0 truncate font-medium text-ink">
+            {order.customerName}
+          </p>
+          <span className="shrink-0 font-display font-semibold tabular-nums text-ink">
+            {formatFcfa(order.totalAmount)}
+          </span>
+        </div>
+
+        {order.orderType === 'delivery' && (
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs">
+            {neighborhood && (
+              <span className="inline-flex items-center gap-1 font-semibold text-ink-soft">
+                <MapPin className="size-3 shrink-0 text-bmc-gold" />
+                <span>{neighborhood}</span>
+              </span>
+            )}
+            {order.phone && (
+              <a
+                href={`tel:${order.phone}`}
+                className="inline-flex items-center gap-1 font-semibold text-bmc-gold hover:underline"
+                title="Appeler le client"
+              >
+                <Phone className="size-3 shrink-0" />
+                <span>{order.phone}</span>
+              </a>
+            )}
+          </div>
+        )}
       </div>
 
       {order.notes && (

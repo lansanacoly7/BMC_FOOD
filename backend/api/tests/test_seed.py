@@ -2,7 +2,7 @@ import re
 from io import StringIO
 from django.core.management import call_command
 from django.test import TestCase
-from api.models import Category, MenuItem
+from api.models import Category, DeliveryArea, MenuItem
 
 
 class SeedBmcCommandTests(TestCase):
@@ -133,3 +133,27 @@ class SeedBmcCommandTests(TestCase):
 
         self.assertFalse(MenuItem.objects.filter(code="bv-1").exists())
         self.assertEqual(MenuItem.objects.filter(category__name="Boissons").count(), 4)
+
+    def test_seed_populates_delivery_areas_idempotently(self):
+        """Vérifie que seed_bmc initialise les 51 quartiers de livraison et préserve les tarifs modifiés sans --reset."""
+        DeliveryArea.objects.all().delete()
+        call_command('seed_bmc', stdout=StringIO())
+        self.assertEqual(DeliveryArea.objects.count(), 51)
+
+        gy = DeliveryArea.objects.get(slug='grand-yoff')
+        self.assertEqual(gy.fee, 1000)
+        gy.fee = 1200
+        gy.save()
+
+        # Sans --reset : le tarif modifié en admin est préservé
+        call_command('seed_bmc', stdout=StringIO())
+        gy.refresh_from_db()
+        self.assertEqual(gy.fee, 1200)
+
+        # Avec --reset : retour au tarif officiel (1000 F CFA)
+        call_command('seed_bmc', reset=True, stdout=StringIO())
+        gy.refresh_from_db()
+        self.assertEqual(gy.fee, 1000)
+
+        distant = DeliveryArea.objects.get(slug='autre-destination-plus-eloignee')
+        self.assertIsNone(distant.fee)

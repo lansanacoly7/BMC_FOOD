@@ -56,13 +56,14 @@ interface ProvisionalCheckoutProps {
   clientUser?: { name: string; phone: string } | null
   onBack: () => void
   onNewOrder: () => void
+  onTrackOrder?: (ref: string) => void
 }
 
 /**
  * Écran « Finaliser la commande » : deux colonnes sur grand écran (coordonnées à gauche, paiement et
  * récapitulatif à droite) pour tenir sans défiler ; une seule colonne compacte sur téléphone.
  */
-export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: ProvisionalCheckoutProps) {
+export function ProvisionalCheckout({ clientUser, onBack, onNewOrder, onTrackOrder }: ProvisionalCheckoutProps) {
   const formId = useId()
   const { items, subtotal } = useCart()
   const { status, isSubmitting, order, error, submit, clearError, reset } = useOrderSubmission()
@@ -85,6 +86,19 @@ export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: Provisio
       return EMPTY_FORM
     }
   })
+
+  // Si le client se connecte pendant la commande, on complète les champs encore vides
+  const [prevClientUser, setPrevClientUser] = useState(clientUser)
+  if (clientUser !== prevClientUser) {
+    setPrevClientUser(clientUser)
+    if (clientUser) {
+      setForm((current) => ({
+        ...current,
+        customer_name: current.customer_name || clientUser.name,
+        phone: current.phone || clientUser.phone,
+      }))
+    }
+  }
 
   const [mode, setMode] = useState<OrderType>(() => {
     try {
@@ -244,6 +258,14 @@ export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: Provisio
           reset()
           onNewOrder()
         }}
+        onTrackOrder={
+          onTrackOrder
+            ? (ref) => {
+                reset()
+                onTrackOrder(ref)
+              }
+            : undefined
+        }
       />
     )
   }

@@ -10,6 +10,7 @@ import { AdminSidebar } from './components/common/AdminSidebar'
 import { ConnectionBanner } from './components/common/ConnectionBanner'
 import { Toast } from './components/common/Toast'
 import { Notice } from './components/ui/primitives'
+import { CancelOrderModal } from './components/kds/CancelOrderModal'
 import { OrderDetailDrawer } from './components/kds/OrderDetailDrawer'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { useNow } from './hooks/useNow'
@@ -20,6 +21,7 @@ import { DailySpecialPage } from './pages/DailySpecialPage'
 import { KdsPage } from './pages/KdsPage'
 import { LoginPage } from './pages/LoginPage'
 import { PromotionsPage } from './pages/PromotionsPage'
+import { RestaurantPage } from './pages/RestaurantPage'
 import { StaffPage } from './pages/StaffPage'
 import { TransactionsPage } from './pages/TransactionsPage'
 import type { KdsOrder, KdsOrderStatus, OrderType } from './types/kds'
@@ -49,6 +51,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [typeFilter, setTypeFilter] = useState<'all' | OrderType>('all')
   const [selectedOrder, setSelectedOrder] = useState<KdsOrder | null>(null)
+  const [cancellingOrder, setCancellingOrder] = useState<KdsOrder | null>(null)
 
   const searchInputRef = useRef<HTMLInputElement>(null)
 
@@ -69,6 +72,8 @@ export default function App() {
     toggleAudio,
     refresh,
     transitionOrder,
+    cancelOrderWithReason,
+    confirmPayment,
     undoTransition,
     activeUndoAction,
     acknowledgeNewOrders,
@@ -109,7 +114,8 @@ export default function App() {
       searchInputRef.current?.focus()
     },
     onEscape: () => {
-      if (selectedOrder) setSelectedOrder(null)
+      if (cancellingOrder) setCancellingOrder(null)
+      else if (selectedOrder) setSelectedOrder(null)
       else if (searchQuery) setSearchQuery('')
     },
     onRefresh: () => void refresh(),
@@ -123,8 +129,26 @@ export default function App() {
     await transitionOrder(orderRef, nextStatus)
   }
 
-  const handleCancelOrder = async (orderRef: string) => {
-    await transitionOrder(orderRef, 'cancelled')
+  const handleCancelOrderClick = (orderRef: string) => {
+    const cleanRef = orderRef.replace(/^#/, '')
+    const target = orders.find((o) => o.orderRef.replace(/^#/, '') === cleanRef)
+    if (target) {
+      setCancellingOrder(target)
+    }
+  }
+
+  const handleConfirmCancel = async (orderRef: string, reason: string) => {
+    await cancelOrderWithReason(orderRef, reason)
+    if (selectedOrder?.orderRef === orderRef) {
+      setSelectedOrder(null)
+    }
+  }
+
+  const handleConfirmPayment = async (orderRef: string) => {
+    await confirmPayment(orderRef)
+    if (selectedOrder?.orderRef === orderRef) {
+      setSelectedOrder((prev) => (prev ? { ...prev, paymentStatus: 'paid' } : null))
+    }
   }
 
   const handlePrintTicket = (order: KdsOrder) => {
@@ -226,12 +250,14 @@ export default function App() {
         />
 
                 <main className="flex-1 flex flex-col min-h-0 overflow-hidden" role="main">
-          {headerTab === 'special' ? (
+          {headerTab === 'restaurant' ? (
+            <RestaurantPage />
+          ) : headerTab === 'special' ? (
             <DailySpecialPage />
           ) : headerTab === 'promotions' ? (
             <PromotionsPage />
           ) : headerTab === 'transactions' ? (
-            <TransactionsPage orders={orders} />
+            <TransactionsPage orders={orders} onConfirmPayment={handleConfirmPayment} />
           ) : headerTab === 'staff' ? (
             <StaffPage />
           ) : (
@@ -248,7 +274,7 @@ export default function App() {
               isSidebarCollapsed={isSidebarCollapsed}
               onToggleSidebar={() => setIsSidebarCollapsed((prev) => !prev)}
               onTransition={handleTransition}
-              onCancel={handleCancelOrder}
+              onCancel={handleCancelOrderClick}
               onViewDetails={(order) => setSelectedOrder(order)}
               onPrintTicket={handlePrintTicket}
             />
@@ -261,7 +287,15 @@ export default function App() {
         onClose={() => setSelectedOrder(null)}
         onPrintTicket={handlePrintTicket}
         onTransition={handleTransition}
-        onCancel={handleCancelOrder}
+        onCancel={handleCancelOrderClick}
+        onConfirmPayment={handleConfirmPayment}
+      />
+
+      <CancelOrderModal
+        order={cancellingOrder}
+        isOpen={Boolean(cancellingOrder)}
+        onClose={() => setCancellingOrder(null)}
+        onConfirmCancel={handleConfirmCancel}
       />
 
       <Notice notice={actionError ? { message: actionError, type: 'error' } : null} />

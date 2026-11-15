@@ -61,6 +61,7 @@ export async function fetchActiveOrders(signal?: AbortSignal): Promise<KdsOrder[
 export async function transitionOrderStatus(
   orderRef: string,
   newStatus: KdsOrderStatus,
+  cancelReason?: string,
 ): Promise<KdsOrder> {
   const cleanRef = orderRef.replace(/^#/, '')
 
@@ -70,10 +71,11 @@ export async function transitionOrderStatus(
     if (index === -1) {
       throw new Error(`Commande #${cleanRef} introuvable dans le mock`)
     }
-    const updated = {
+    const updated: KdsOrder = {
       ...inMemoryMockOrders[index],
       status: newStatus,
       isNew: false,
+      ...(cancelReason ? { cancelReason } : {}),
     }
     inMemoryMockOrders[index] = updated
     return updated
@@ -91,19 +93,70 @@ export async function transitionOrderStatus(
         // Ignorer si la commande a déjà été confirmée
       }
     }
+    const payload: { status: string; cancel_reason?: string } = { status: apiStatus }
+    if (newStatus === 'cancelled' && cancelReason) {
+      payload.cancel_reason = cancelReason
+    }
     const response = await apiClient<OrderResponse>(`/orders/${encodeURIComponent(cleanRef)}/status/`, {
       method: 'PATCH',
-      body: JSON.stringify({ status: apiStatus }),
+      body: JSON.stringify(payload),
     })
     const mapped = mapOrderFromApi(response)
     mapped.status = newStatus // Conserve le statut précis KDS (ex. 'ready')
+    if (cancelReason) mapped.cancelReason = cancelReason
     return mapped
   } catch (error) {
-    if (import.meta.env.DEV && usingDemoData) {
+    if (import.meta.env.DEV && (usingDemoData || isBackendUnreachable(error))) {
       // Fallback local mock
       const index = inMemoryMockOrders.findIndex((o) => o.orderRef.replace(/^#/, '') === cleanRef)
       if (index !== -1) {
-        inMemoryMockOrders[index] = { ...inMemoryMockOrders[index], status: newStatus }
+        inMemoryMockOrders[index] = {
+          ...inMemoryMockOrders[index],
+          status: newStatus,
+          ...(cancelReason ? { cancelReason } : {}),
+        }
+        return inMemoryMockOrders[index]
+      }
+    }
+    throw error
+  }
+}
+
+/**
+ * Confirme le paiement d'une commande (Wave, Orange Money ou Espèces)
+ * Contrat V1 : POST /api/admin/orders/<ref>/confirm-payment/
+ */
+export async function confirmOrderPayment(orderRef: string): Promise<KdsOrder> {
+  const cleanRef = orderRef.replace(/^#/, '')
+
+  if (USE_MOCK) {
+    await new Promise((resolve) => setTimeout(resolve, 150))
+    const index = inMemoryMockOrders.findIndex((o) => o.orderRef.replace(/^#/, '') === cleanRef)
+    if (index === -1) {
+      throw new Error(`Commande #${cleanRef} introuvable dans le mock`)
+    }
+    const updated: KdsOrder = {
+      ...inMemoryMockOrders[index],
+      paymentStatus: 'paid',
+    }
+    inMemoryMockOrders[index] = updated
+    return updated
+  }
+
+  try {
+    const response = await apiClient<OrderResponse>(`/admin/orders/${encodeURIComponent(cleanRef)}/confirm-payment/`, {
+      method: 'POST',
+    })
+    return mapOrderFromApi(response)
+  } catch (error) {
+    // Si l'endpoint backend V1 n'est pas encore déployé ou en cas de repli dev
+    if (import.meta.env.DEV && (usingDemoData || isBackendUnreachable(error))) {
+      const index = inMemoryMockOrders.findIndex((o) => o.orderRef.replace(/^#/, '') === cleanRef)
+      if (index !== -1) {
+        inMemoryMockOrders[index] = {
+          ...inMemoryMockOrders[index],
+          paymentStatus: 'paid',
+        }
         return inMemoryMockOrders[index]
       }
     }
