@@ -1,8 +1,8 @@
 import type { PaymentMethod } from '../types'
 
-/** Libellés des moyens de paiement, identiques à ceux de l'admin (admin_app/src/lib/labels.ts). */
+/** Libellés des moyens de paiement côté client. */
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
-  cash: 'Espèces à la livraison',
+  cash: 'Paiement à la livraison ou au retrait',
   wave: 'Wave',
   orange_money: 'Orange Money',
 }

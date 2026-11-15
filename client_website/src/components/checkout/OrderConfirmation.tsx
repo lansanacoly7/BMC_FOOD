@@ -1,16 +1,16 @@
-import { Check, Phone } from 'lucide-react'
+import { AlertTriangle, Check, Phone } from 'lucide-react'
 import { motion } from 'motion/react'
+import { findDeliveryArea } from '../../lib/delivery'
 import { formatFcfa } from '../../lib/format'
-import type { Order } from '../../types'
+import type { Order, OrderType } from '../../types'
 
 import type { Variants } from 'motion/react'
 
 interface OrderConfirmationProps {
   order: Order
   deliveryAreaName?: string
-  deliveryFee?: number | null
-  /** Livraison chez le client (par défaut) ou retrait au restaurant. */
-  fulfillment?: 'delivery' | 'pickup'
+  /** Livraison chez le client (par défaut) ou retrait au restaurant si le serveur ne précise pas order_type. */
+  fulfillment?: OrderType
   onNewOrder: () => void
 }
 
@@ -45,21 +45,48 @@ const itemVariants: Variants = {
 export function OrderConfirmation({
   order,
   deliveryAreaName,
-  deliveryFee,
   fulfillment = 'delivery',
   onNewOrder,
 }: OrderConfirmationProps) {
-  const isPickup = fulfillment === 'pickup'
-  // Détermine le libellé du total payé selon le moyen choisi
+  const orderType: OrderType = order.order_type ?? fulfillment
+  const isPickup = orderType === 'pickup'
+  const isPaid = order.payment_status === 'paid'
+
+  const serverAreaName = order.delivery_area ? findDeliveryArea(order.delivery_area)?.name : undefined
+  const resolvedAreaName = serverAreaName || deliveryAreaName || order.address || 'Dakar'
+
+  // Aucun « Payé » affiché avant que le serveur ne renvoie payment_status === 'paid'
   const paymentTitle =
     order.payment_method === 'wave'
-      ? 'TOTAL PAYÉ · WAVE'
+      ? isPaid
+        ? 'TOTAL PAYÉ · WAVE'
+        : 'À CONFIRMER · WAVE'
       : order.payment_method === 'orange_money'
-        ? 'TOTAL PAYÉ · ORANGE MONEY'
-        : 'TOTAL À PAYER · ESPÈCES'
+        ? isPaid
+          ? 'TOTAL PAYÉ · ORANGE MONEY'
+          : 'À CONFIRMER · ORANGE MONEY'
+        : isPaid
+          ? 'TOTAL PAYÉ · ESPÈCES'
+          : 'TOTAL À RÉGLER · ESPÈCES'
+
+  const paymentHonestyMessage = isPaid
+    ? 'Paiement confirmé par le restaurant.'
+    : order.payment_method === 'cash'
+      ? 'Paiement à la livraison ou au retrait.'
+      : 'Le restaurant confirme votre paiement par téléphone.'
 
   // Formate un montant en retirant « CFA » pour le détail (ex. « 3 500 F »)
   const formatDetailAmount = (val: number) => `${new Intl.NumberFormat('fr-FR').format(val)} F`
+
+  const deliveryFeeLabel = isPickup
+    ? typeof order.delivery_fee === 'number' && order.delivery_fee > 0
+      ? formatDetailAmount(order.delivery_fee)
+      : 'Sans frais'
+    : order.delivery_fee === null
+      ? 'À confirmer par téléphone'
+      : typeof order.delivery_fee === 'number'
+        ? formatDetailAmount(order.delivery_fee)
+        : 'À confirmer'
 
   return (
     <main className="relative min-h-dvh bg-zinc-950 text-white px-4 py-8 sm:py-12 flex flex-col justify-between overflow-hidden selection:bg-bmc-gold selection:text-black">
@@ -141,7 +168,7 @@ export function OrderConfirmation({
           </div>
         </motion.div>
 
-        {/* 5. REÇU CLAIR ET DÉTAIL PAYÉ (Page 12) AVEC APPARITION EN CASCADE */}
+        {/* 5. REÇU CLAIR ET MONTANTS RENVOYÉS PAR LE SERVEUR */}
         <motion.div
           variants={itemVariants}
           className="mt-8 rounded-2xl bg-zinc-900/85 border border-white/10 p-5 backdrop-blur-md shadow-xl relative"
@@ -165,7 +192,16 @@ export function OrderConfirmation({
               </motion.div>
             ))}
 
-            {/* Ligne livraison conforme à la charte (ex. Livraison · Liberté 5 : 1 500 F) */}
+            {typeof order.subtotal === 'number' && (
+              <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10 text-sm text-zinc-300">
+                <span className="font-medium text-zinc-400">Sous-total</span>
+                <span className="font-display font-bold tabular-nums text-white shrink-0">
+                  {formatDetailAmount(order.subtotal)}
+                </span>
+              </div>
+            )}
+
+            {/* Ligne livraison / retrait (strictement issue du serveur) */}
             <motion.div
               initial={{ opacity: 0, x: -6 }}
               animate={{ opacity: 1, x: 0 }}
@@ -173,24 +209,45 @@ export function OrderConfirmation({
               className="flex items-center justify-between gap-3 text-sm text-zinc-300 pt-1 border-t border-white/5"
             >
               <span className="font-medium truncate text-left text-zinc-400">
-                {isPickup ? `À emporter · ${order.address.replace(/^Retrait sur place – /, '')}` : `Livraison · ${deliveryAreaName || order.address || 'Dakar'}`}
+                {isPickup
+                  ? `À emporter${order.address ? ` · ${order.address.replace(/^Retrait sur place – /, '')}` : ' · Restaurant BMC'}`
+                  : `Livraison · ${resolvedAreaName}`}
               </span>
-              <span className="font-display font-bold tabular-nums text-bmc-gold shrink-0">
-                {isPickup ? 'Sans frais' : deliveryFee ? formatDetailAmount(deliveryFee) : 'Inclus'}
+              <span className="font-display font-bold tabular-nums text-bmc-gold shrink-0 text-right">
+                {deliveryFeeLabel}
               </span>
             </motion.div>
           </div>
 
+          {order.has_allergy && (
+            <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-400/35 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+              <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-300" aria-hidden="true" />
+              <span>Allergie signalée à la cuisine.</span>
+            </div>
+          )}
+
           {/* Séparateur fin */}
           <div className="my-5 border-t border-white/10" />
 
-          {/* Total Payé */}
+          {/* Total renvoyé par le serveur + statut de paiement honnête */}
           <div className="text-center">
             <p className="font-sans text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
               {paymentTitle}
             </p>
             <p className="font-display text-3xl font-bold text-white mt-1 tabular-nums tracking-tight">
               {formatFcfa(order.total_amount)}
+            </p>
+            {!isPickup && order.delivery_fee === null && (
+              <p className="mt-1 text-xs text-zinc-400">Hors frais de livraison (à confirmer par téléphone)</p>
+            )}
+            <p
+              className={`mt-3 rounded-xl border px-3 py-2 text-xs font-medium ${
+                isPaid
+                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                  : 'border-white/10 bg-zinc-950/70 text-zinc-300'
+              }`}
+            >
+              {paymentHonestyMessage}
             </p>
           </div>
         </motion.div>

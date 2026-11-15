@@ -10,27 +10,22 @@ const SHORT_LABELS: Record<PaymentMethod, string> = {
   orange_money: 'Orange Money',
 }
 
-/** Message affiché sous les choix : ce que le client doit faire ensuite, selon livraison ou retrait. */
-function nextStep(method: PaymentMethod, isPickup: boolean): string {
+/** Message honnête affiché sous les choix selon le contrat V1. */
+function nextStep(method: PaymentMethod): string {
   if (method === 'cash') {
-    return isPickup
-      ? 'Vous réglez en espèces au restaurant, au retrait de votre commande.'
-      : 'Vous payez le livreur à la réception : préparez l’appoint.'
+    return 'Paiement à la livraison ou au retrait.'
   }
-  if (method === 'wave') return 'Après validation, l’écran de paiement Wave s’ouvre avec le montant.'
-  return 'Après validation, l’écran Orange Money s’ouvre avec la démarche #144#391#.'
+  return 'Le restaurant confirme votre paiement par téléphone.'
 }
 
 interface PaymentSelectorProps {
   value: PaymentMethod
   onChange: (method: PaymentMethod) => void
   disabled?: boolean
-  /** Commande à emporter : les textes parlent du restaurant plutôt que du livreur. */
-  isPickup?: boolean
 }
 
 /** Choix du moyen de paiement : trois tuiles côte à côte (Espèces, Wave, Orange Money), explication dessous. */
-export function PaymentSelector({ value, onChange, disabled = false, isPickup = false }: PaymentSelectorProps) {
+export function PaymentSelector({ value, onChange, disabled = false }: PaymentSelectorProps) {
   const groupName = useId()
   const hintId = useId()
 
@@ -73,7 +68,7 @@ export function PaymentSelector({ value, onChange, disabled = false, isPickup = 
 
       {/* Conteneur stable : une zone aria-live doit exister avant son changement pour être annoncée. */}
       <p id={hintId} aria-live="polite" className="mt-3 text-sm leading-relaxed text-zinc-300">
-        {nextStep(value, isPickup)}
+        {nextStep(value)}
       </p>
     </fieldset>
   )

@@ -4,32 +4,42 @@ import { loadProfile, saveProfile, USER_KEY } from '../../services/clientData'
 import { useCart } from '../../hooks/useCart'
 import { useOpeningStatus } from '../../hooks/useOpeningStatus'
 import { useOrderSubmission } from '../../hooks/useOrderSubmission'
-import { isOpenAt, OPENING_HOURS_LABEL } from '../../lib/openingHours'
+import { OPENING_HOURS_LABEL } from '../../lib/openingHours'
 import { findDeliveryArea } from '../../lib/delivery'
 import { formatFcfa } from '../../lib/format'
 import { getProductImageUrl } from '../../lib/productImages'
 import type { OrderCustomerDetails, OrderField } from '../../services/orders'
-import type { PaymentMethod } from '../../types'
+import type { OrderType, PaymentMethod } from '../../types'
 import { DeliveryZoneSelect } from './DeliveryZoneSelect'
-import { OrangeMoneyModal } from './OrangeMoneyModal'
 import { OrderConfirmation } from './OrderConfirmation'
 import { OrderSubmitButton } from './OrderSubmitButton'
 import { OrderTotals } from './OrderTotals'
 import { PaymentSelector } from './PaymentSelector'
-import { WavePaymentModal } from './WavePaymentModal'
 
-const EMPTY_FORM: OrderCustomerDetails = { customer_name: '', phone: '', address: '', notes: '', payment_method: 'cash' }
+interface CheckoutFormState {
+  customer_name: string
+  phone: string
+  address: string
+  notes: string
+  has_allergy: boolean
+  payment_method: PaymentMethod
+}
+
+const EMPTY_FORM: CheckoutFormState = {
+  customer_name: '',
+  phone: '',
+  address: '',
+  notes: '',
+  has_allergy: false,
+  payment_method: 'cash',
+}
 
 /** Mode de réception : livraison chez le client, ou à emporter (le client vient chercher sa commande au restaurant). */
-type FulfillmentMode = 'delivery' | 'pickup'
 const MODE_STORAGE_KEY = 'bmc_order_mode'
 const RESTAURANT_ADDRESS = 'PGXV+6R7, Dakar'
 const RESTAURANT_MAPS_URL = 'https://maps.google.com/?q=PGXV%2B6R7,+Dakar'
-/** Le serveur exige une adresse : pour un retrait, on envoie celle du restaurant, et la cuisine voit la mention dans les notes. */
-const PICKUP_ADDRESS = `Retrait sur place – ${RESTAURANT_ADDRESS}`
-const PICKUP_NOTE = 'À EMPORTER : le client vient récupérer sa commande au restaurant.'
 
-const MODES: { value: FulfillmentMode; label: string; hint: string; Icon: typeof Truck }[] = [
+const MODES: { value: OrderType; label: string; hint: string; Icon: typeof Truck }[] = [
   { value: 'delivery', label: 'Livraison', hint: 'Chez vous, à Dakar', Icon: Truck },
   { value: 'pickup', label: 'À emporter', hint: 'Je viens le chercher', Icon: Store },
 ]
@@ -56,14 +66,14 @@ export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: Provisio
   const formId = useId()
   const { items, subtotal } = useCart()
   const { status, isSubmitting, order, error, submit, clearError, reset } = useOrderSubmission()
-  // Hors horaires (heure de Dakar) : le formulaire reste rempli, mais l'envoi attend la réouverture.
+  // Fermé ou en pause (depuis /api/health/) : le formulaire reste rempli, mais l'envoi est bloqué.
   const opening = useOpeningStatus()
-  const isClosed = !opening.isOpen
-  // Préremplit avec le compte et l'adresse enregistrés dans « Mon compte », s'ils existent
-  // Priorité au compte connecté, sinon aux coordonnées de la dernière commande ; l'adresse mémorisée est reprise telle quelle.
-  const [form, setForm] = useState<OrderCustomerDetails>(() => {
+  const isOrderBlocked = !opening.acceptingOrders
+  // Préremplit avec le compte connecté ou mémorisé et l'adresse enregistrée dans « Mon compte »
+  const [form, setForm] = useState<CheckoutFormState>(() => {
     try {
-      const user = JSON.parse(localStorage.getItem(USER_KEY) ?? 'null') as { name?: string; phone?: string } | null
+      const user =
+        clientUser ?? (JSON.parse(localStorage.getItem(USER_KEY) ?? 'null') as { name?: string; phone?: string } | null)
       const profile = loadProfile()
       return {
         ...EMPTY_FORM,
@@ -76,17 +86,7 @@ export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: Provisio
     }
   })
 
-  // Si le client se connecte pendant la commande, on complète les champs encore vides
-  useEffect(() => {
-    if (!clientUser) return
-    setForm((current) => ({
-      ...current,
-      customer_name: current.customer_name || clientUser.name,
-      phone: current.phone || clientUser.phone,
-    }))
-  }, [clientUser])
-
-  const [mode, setMode] = useState<FulfillmentMode>(() => {
+  const [mode, setMode] = useState<OrderType>(() => {
     try {
       return localStorage.getItem(MODE_STORAGE_KEY) === 'pickup' ? 'pickup' : 'delivery'
     } catch {
@@ -98,8 +98,7 @@ export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: Provisio
     const saved = loadProfile().areaId
     return saved && findDeliveryArea(saved) ? saved : ''
   })
-  const [isWaveModalOpen, setIsWaveModalOpen] = useState(true)
-  const [isOmModalOpen, setIsOmModalOpen] = useState(true)
+  const [areaError, setAreaError] = useState<string | null>(null)
   const [isLocating, setIsLocating] = useState(false)
   const [locationSuccess, setLocationSuccess] = useState(false)
   const [locationError, setLocationError] = useState<string | null>(null)
@@ -109,8 +108,12 @@ export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: Provisio
   // Pas de frais de livraison quand le client vient chercher sa commande
   const deliveryFee = isPickup ? undefined : selectedArea?.fee
 
-  const changeMode = (next: FulfillmentMode) => {
+  const changeMode = (next: OrderType) => {
     setMode(next)
+    if (next === 'pickup') {
+      setAreaError(null)
+      if (error?.fieldErrors.delivery_area || error?.fieldErrors.address) clearError()
+    }
     try {
       localStorage.setItem(MODE_STORAGE_KEY, next)
     } catch {
@@ -118,13 +121,15 @@ export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: Provisio
     }
   }
 
-  const update = (field: OrderField, value: string) => {
+  const update = (field: 'customer_name' | 'phone' | 'address' | 'notes' | 'payment_method', value: string) => {
     setForm((current) => ({ ...current, [field]: value }))
     if (error?.fieldErrors[field]) clearError()
   }
 
   const handleAreaChange = (areaId: string) => {
     setSelectedAreaId(areaId)
+    setAreaError(null)
+    if (error?.fieldErrors.delivery_area) clearError()
     const area = findDeliveryArea(areaId)
     if (area && (!form.address || form.address.trim() === '')) {
       update('address', area.name)
@@ -184,18 +189,27 @@ export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: Provisio
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    // Le statut se rafraîchit toutes les 30 s : on revérifie à l'instant du clic (client resté sur la page après 02h).
-    if (!isOpenAt()) {
-      opening.refresh()
+    if (!opening.acceptingOrders) {
+      void opening.refresh()
       return
     }
-    setIsWaveModalOpen(true)
-    setIsOmModalOpen(true)
-    // Retrait : adresse du restaurant et mention « à emporter » pour la cuisine
-    const payload: OrderCustomerDetails = isPickup
-      ? { ...form, address: PICKUP_ADDRESS, notes: [PICKUP_NOTE, form.notes?.trim()].filter(Boolean).join('\n') }
-      : form
-    void submit(payload)
+    if (!isPickup && !selectedAreaId.trim()) {
+      setAreaError('Choisissez votre quartier de livraison.')
+      return
+    }
+    const payload: OrderCustomerDetails = {
+      customer_name: form.customer_name,
+      phone: form.phone,
+      order_type: mode,
+      delivery_area: isPickup ? undefined : selectedAreaId,
+      address: isPickup ? undefined : form.address,
+      notes: form.notes,
+      has_allergy: form.has_allergy,
+      payment_method: form.payment_method,
+    }
+    void submit(payload).then((created) => {
+      if (!created) void opening.refresh()
+    })
   }
 
   // Une fois la commande acceptée, on mémorise coordonnées et adresse pour les prochaines commandes :
@@ -219,44 +233,18 @@ export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: Provisio
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, order])
 
-  // Écran de confirmation de commande
+  // Écran de confirmation de commande : affiche uniquement les données renvoyées par le serveur
   if (status === 'success' && order) {
-    const isWave = order.payment_method === 'wave'
-    const isOm = order.payment_method === 'orange_money'
-
     return (
-      <>
-        {isWave && (
-          <WavePaymentModal
-            isOpen={isWaveModalOpen}
-            amount={order.total_amount}
-            orderRef={order.order_ref}
-            onClose={() => setIsWaveModalOpen(false)}
-            onConfirm={() => setIsWaveModalOpen(false)}
-          />
-        )}
-
-        {isOm && (
-          <OrangeMoneyModal
-            isOpen={isOmModalOpen}
-            amount={order.total_amount}
-            orderRef={order.order_ref}
-            onClose={() => setIsOmModalOpen(false)}
-            onConfirm={() => setIsOmModalOpen(false)}
-          />
-        )}
-
-        <OrderConfirmation
-          order={order}
-          deliveryAreaName={selectedArea?.name}
-          deliveryFee={deliveryFee}
-          fulfillment={mode}
-          onNewOrder={() => {
-            reset()
-            onNewOrder()
-          }}
-        />
-      </>
+      <OrderConfirmation
+        order={order}
+        deliveryAreaName={selectedArea?.name}
+        fulfillment={mode}
+        onNewOrder={() => {
+          reset()
+          onNewOrder()
+        }}
+      />
     )
   }
 
@@ -304,13 +292,21 @@ export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: Provisio
           </div>
         </header>
 
-        {isClosed && (
+        {isOrderBlocked && (
           <div role="alert" className="mb-5 flex gap-3 rounded-2xl border border-bmc-gold/35 bg-bmc-gold/10 px-4 py-3.5 text-sm text-zinc-200">
             <Clock className="mt-0.5 size-5 shrink-0 text-bmc-gold" aria-hidden="true" />
             <div className="flex flex-col gap-1">
-              <p className="font-semibold text-white">BMC est fermé pour le moment, la commande ne peut pas être envoyée.</p>
+              <p className="font-semibold text-white">
+                {opening.isPaused
+                  ? 'Commandes en pause pour le moment.'
+                  : 'BMC est fermé pour le moment, la commande ne peut pas être envoyée.'}
+              </p>
               <p>
-                Réouverture {opening.reopensLabel} ({OPENING_HOURS_LABEL}). Votre panier et vos coordonnées sont gardés.
+                {opening.closedMessage ??
+                  (opening.isPaused
+                    ? 'La cuisine suspend temporairement la prise de commandes. Merci de réessayer dans quelques minutes.'
+                    : `Réouverture ${opening.reopensLabel} (${OPENING_HOURS_LABEL}).`)}{' '}
+                Votre panier et vos coordonnées sont gardés.
               </p>
             </div>
           </div>
@@ -412,7 +408,12 @@ export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: Provisio
 
                 {!isPickup && (
                   <>
-                    <DeliveryZoneSelect value={selectedAreaId} onChange={handleAreaChange} disabled={isSubmitting} />
+                    <DeliveryZoneSelect
+                      value={selectedAreaId}
+                      onChange={handleAreaChange}
+                      disabled={isSubmitting}
+                      error={areaError ?? fieldError('delivery_area')}
+                    />
 
                     <div>
                       <label htmlFor={`${formId}-address`} className={labelClass}>
@@ -499,6 +500,68 @@ export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: Provisio
                   </div>
                 </div>
               )}
+
+              <div className="mt-5 space-y-4 border-t border-white/10 pt-4">
+                <label
+                  htmlFor={`${formId}-allergy`}
+                  className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3.5 py-3 transition-colors ${
+                    form.has_allergy
+                      ? 'border-amber-400/60 bg-amber-500/10'
+                      : 'border-white/10 bg-zinc-950 hover:border-white/25'
+                  } ${isSubmitting ? 'cursor-not-allowed opacity-60' : ''}`}
+                >
+                  <input
+                    id={`${formId}-allergy`}
+                    type="checkbox"
+                    checked={form.has_allergy}
+                    onChange={(e) => {
+                      setForm((current) => ({ ...current, has_allergy: e.target.checked }))
+                      if (error?.fieldErrors.has_allergy) clearError()
+                    }}
+                    disabled={isSubmitting}
+                    className="mt-0.5 size-5 shrink-0 cursor-pointer rounded border-white/20 bg-zinc-900 accent-bmc-gold"
+                  />
+                  <span className="min-w-0 flex-1 text-sm leading-snug">
+                    <span className="block font-semibold text-white">J&apos;ai une allergie</span>
+                    <span className="mt-0.5 block text-xs text-zinc-300">
+                      Précisez l&apos;allergène concerné dans la note ci-dessous (ex. arachide, œuf, sésame, lait).
+                    </span>
+                  </span>
+                </label>
+                {fieldError('has_allergy') && (
+                  <span className="block text-sm text-red-400">{fieldError('has_allergy')}</span>
+                )}
+
+                <div>
+                  <label htmlFor={`${formId}-notes`} className={labelClass}>
+                    Note pour la cuisine{' '}
+                    <span className={form.has_allergy ? 'font-semibold text-amber-300' : 'text-zinc-400'}>
+                      {form.has_allergy ? '· Précisez votre allergie' : '(facultatif)'}
+                    </span>
+                  </label>
+                  <textarea
+                    id={`${formId}-notes`}
+                    rows={2}
+                    maxLength={500}
+                    placeholder={
+                      form.has_allergy
+                        ? 'Ex. : Allergie à l’arachide — pas de sauce cacahuète ni traces.'
+                        : 'Ex. : Sans oignon, peu pimenté, code d’entrée ou repère…'
+                    }
+                    value={form.notes}
+                    onChange={(e) => update('notes', e.target.value)}
+                    disabled={isSubmitting}
+                    className={`w-full resize-y rounded-lg border bg-zinc-950 px-3.5 py-2.5 text-base text-white placeholder:text-zinc-500 outline-none transition-colors sm:text-sm ${
+                      fieldError('notes')
+                        ? 'border-red-500'
+                        : form.has_allergy && !form.notes.trim()
+                          ? 'border-amber-400/60 focus:border-bmc-gold'
+                          : 'border-white/10 focus:border-bmc-gold'
+                    }`}
+                  />
+                  {fieldError('notes') && <span className="mt-1 block text-sm text-red-400">{fieldError('notes')}</span>}
+                </div>
+              </div>
             </section>
           </div>
 
@@ -509,7 +572,6 @@ export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: Provisio
                 value={form.payment_method}
                 onChange={(method: PaymentMethod) => update('payment_method', method)}
                 disabled={isSubmitting}
-                isPickup={isPickup}
               />
             </div>
 
@@ -555,7 +617,10 @@ export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: Provisio
                 <OrderSubmitButton
                   isSubmitting={isSubmitting}
                   amount={subtotal + (deliveryFee ?? 0)}
-                  disabled={items.length === 0 || isClosed}
+                  disabled={items.length === 0 || isOrderBlocked}
+                  disabledLabel={
+                    isOrderBlocked ? (opening.isPaused ? 'Commandes en pause' : 'Restaurant fermé') : undefined
+                  }
                 />
               </div>
             </section>
