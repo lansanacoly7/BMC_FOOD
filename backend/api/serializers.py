@@ -355,3 +355,56 @@ class OrderTrackResponseSerializer(serializers.Serializer):
     items_count = serializers.IntegerField(help_text="Nombre total d'articles commandés")
     items = OrderTrackItemSerializer(many=True, help_text="Liste des articles de la commande")
 
+
+class CustomerUserSerializer(serializers.Serializer):
+    name = serializers.CharField(help_text="Nom complet du client")
+    phone = serializers.CharField(help_text="Numéro de téléphone sénégalais (9 chiffres)")
+    address = serializers.CharField(required=False, allow_blank=True, default='', help_text="Adresse de livraison habituelle")
+
+
+class CustomerRegisterRequestSerializer(serializers.Serializer):
+    name = serializers.CharField(help_text="Prénom et nom du client")
+    phone = serializers.CharField(help_text="Numéro de téléphone sénégalais (ex. 77 856 13 13)")
+    password = serializers.CharField(help_text="Mot de passe (min 4 caractères)")
+    address = serializers.CharField(required=False, default='', help_text="Adresse de livraison facultative")
+
+
+class CustomerRegisterResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField(default=True)
+    message = serializers.CharField()
+    token = serializers.CharField()
+    user = CustomerUserSerializer()
+
+
+class CustomerLoginRequestSerializer(serializers.Serializer):
+    identifier = serializers.CharField(required=False, help_text="Numéro de téléphone ou identifiant")
+    phone = serializers.CharField(required=False, help_text="Numéro de téléphone")
+    username = serializers.CharField(required=False, help_text="Identifiant")
+    password = serializers.CharField(help_text="Mot de passe")
+
+
+class CustomerLoginResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField(default=True)
+    message = serializers.CharField()
+    token = serializers.CharField()
+    user = CustomerUserSerializer()
+
+
+class CustomerProfileResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField(default=True)
+    user = CustomerUserSerializer()
+    orders_count = serializers.IntegerField()
+    orders = OrderSerializer(many=True)
+
+
+class CustomerProfileUpdateRequestSerializer(serializers.Serializer):
+    name = serializers.CharField(required=False, help_text="Nouveau nom du client")
+    address = serializers.CharField(required=False, help_text="Nouvelle adresse de livraison")
+
+
+class CustomerProfileUpdateResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField(default=True)
+    message = serializers.CharField()
+    user = CustomerUserSerializer()
+
+

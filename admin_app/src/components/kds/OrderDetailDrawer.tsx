@@ -73,8 +73,8 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
     order.paymentMethod === 'wave'
       ? 'Wave'
       : order.paymentMethod === 'orange_money'
-      ? 'Orange Money'
-      : 'Espèces'
+        ? 'Orange Money'
+        : 'Espèces'
 
   const isPaymentPending = order.paymentStatus !== 'paid'
 
@@ -281,8 +281,8 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
                     order.status === 'pending'
                       ? 'preparing'
                       : order.status === 'preparing'
-                      ? 'ready'
-                      : 'delivered'
+                        ? 'ready'
+                        : 'delivered'
                   onTransition?.(order.orderRef, next)
                   onClose()
                 }}
@@ -291,10 +291,10 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
                 {order.status === 'pending'
                   ? 'Lancer la cuisson'
                   : order.status === 'preparing'
-                  ? 'Marquer prêt'
-                  : order.orderType === 'delivery'
-                  ? 'Remis au livreur'
-                  : 'Remis au client'}
+                    ? 'Marquer prêt'
+                    : order.orderType === 'delivery'
+                      ? 'Remis au livreur'
+                      : 'Remis au client'}
               </button>
 
               <button

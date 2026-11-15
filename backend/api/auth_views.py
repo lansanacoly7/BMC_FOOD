@@ -26,7 +26,17 @@ from rest_framework.views import APIView
 from .api_schemas import AuthTokenRequestSerializer, AuthTokenResponseSerializer, ErrorEnvelopeSerializer
 from .authentication import get_token_ttl_seconds
 from .models import Customer, Order
-from .serializers import OrderSerializer
+from .serializers import (
+    CustomerLoginRequestSerializer,
+    CustomerLoginResponseSerializer,
+    CustomerProfileResponseSerializer,
+    CustomerProfileUpdateRequestSerializer,
+    CustomerProfileUpdateResponseSerializer,
+    CustomerRegisterRequestSerializer,
+    CustomerRegisterResponseSerializer,
+    ErrorResponseSerializer,
+    OrderSerializer,
+)
 
 PHONE_REGEX = re.compile(r'^(?:\+221|00221)?([73]\d{8})$')
 
@@ -81,6 +91,16 @@ class CustomerRegisterView(APIView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = 'auth'
 
+    @extend_schema(
+        tags=["Espace Client"],
+        summary="Inscription d'un nouveau client",
+        request=CustomerRegisterRequestSerializer,
+        responses={
+            201: CustomerRegisterResponseSerializer,
+            400: ErrorResponseSerializer,
+            429: ErrorEnvelopeSerializer,
+        },
+    )
     def post(self, request):
         data = request.data
         if not isinstance(data, dict):
@@ -136,6 +156,16 @@ class CustomerLoginView(APIView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = 'auth'
 
+    @extend_schema(
+        tags=["Espace Client"],
+        summary="Connexion client (téléphone + mot de passe)",
+        request=CustomerLoginRequestSerializer,
+        responses={
+            200: CustomerLoginResponseSerializer,
+            400: ErrorResponseSerializer,
+            429: ErrorEnvelopeSerializer,
+        },
+    )
     def post(self, request):
         data = request.data
         if not isinstance(data, dict):
@@ -182,6 +212,14 @@ class CustomerProfileView(APIView):
     """Profil du client connecté et historique de ses commandes."""
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        tags=["Espace Client"],
+        summary="Consulter le profil et l'historique des commandes du client",
+        responses={
+            200: CustomerProfileResponseSerializer,
+            401: ErrorEnvelopeSerializer,
+        },
+    )
     def get(self, request):
         user = request.user
         customer = Customer.objects.filter(user=user).first()
@@ -202,6 +240,16 @@ class CustomerProfileView(APIView):
             'orders': OrderSerializer(orders, many=True).data
         })
 
+    @extend_schema(
+        tags=["Espace Client"],
+        summary="Mettre à jour le profil client (nom, adresse)",
+        request=CustomerProfileUpdateRequestSerializer,
+        responses={
+            200: CustomerProfileUpdateResponseSerializer,
+            400: ErrorResponseSerializer,
+            401: ErrorEnvelopeSerializer,
+        },
+    )
     def patch(self, request):
         user = request.user
         customer, _ = Customer.objects.get_or_create(user=user, defaults={'phone': user.username, 'name': user.first_name or user.username})

@@ -18,6 +18,8 @@ from api.models import Customer, Order
 
 class CustomerAuthTests(TestCase):
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.client = APIClient()
 
     def test_customer_register_nominal_201(self):
