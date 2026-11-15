@@ -25,7 +25,7 @@ Règle de travail : une branche par personne à partir de `develop` à jour, de 
 
 **Réponse (en plus de l'existant) :** `order_type`, `delivery_area`, `delivery_fee` (entier, ou `null` si le quartier est « à confirmer par téléphone »), `subtotal`, `total_amount` (= `subtotal` + `delivery_fee`, ou `subtotal` si `delivery_fee` est `null`), `has_allergy`, `cancel_reason`.
 
-**Suivi :** `GET /api/orders/track/?ref=BMC-123456&phone=771234567` (le téléphone doit correspondre, sinon 404 identique à « introuvable »).
+**Suivi :** on garde l'endpoint existant `GET /api/orders/track/<ref>/` (tâche I13 : aucune donnée personnelle, 404 uniforme). On y ajoute seulement `order_type`, `delivery_fee`, `subtotal` et `cancel_reason`, sans jamais exposer nom, téléphone ni adresse.
 
 **Annulation client :** `POST /api/orders/<ref>/cancel/` avec `{ "phone": "..." }`. Possible seulement si `status = pending`, sinon 409 avec un message clair.
 
@@ -48,10 +48,11 @@ Règle de travail : une branche par personne à partir de `develop` à jour, de 
 4. Tests pour chaque règle.
 
 ### Ibrahima Khalilou Diallo
+Rappel : ses tâches I1 à I22 sont toutes validées (voir `docs/docs_backend/journal_ibrahima.md`). Pathé a réalisé I10 à I22 pendant son absence. Il n'a donc aucune ancienne tâche en attente ; la livraison par quartier côté serveur était déjà prévue pour lui et Pathé dans `docs/frais_livraison_bmc.md` (section 3).
 1. **Mode de commande** : champ `order_type` sur `Order` (migration), adresse obligatoire seulement en livraison, `has_allergy`.
 2. **Frais de livraison calculés par le serveur** : table des quartiers et frais (reprendre la grille de `client_website/src/lib/delivery.ts`, avec un `seed` idempotent), ajout au total, enregistrement de `delivery_fee` et `delivery_area`. Quartier inconnu : 400. Quartier « éloigné » : `delivery_fee = null`.
 3. **Idempotence** : en-tête `Idempotency-Key`, stockage de la clé (unique), même réponse pour la même clé.
-4. **Suivi protégé** : exiger le téléphone avec la référence, même réponse 404 dans les deux cas d'échec.
+4. **Suivi** : compléter l'endpoint I13 avec les nouveaux champs non personnels (voir le contrat). Ne rien exposer de personnel.
 5. **Annulation** : endpoint client (en attente seulement) et annulation admin avec `cancel_reason`.
 6. **Confirmation de paiement admin** : endpoint `confirm-payment`.
 7. Tests, `makemigrations --check` propre, `docs/` mis à jour (contrat).
@@ -68,7 +69,7 @@ Règle de travail : une branche par personne à partir de `develop` à jour, de 
 
 ### Maïmouna Sall
 1. **Avant tout** : mettre ta branche à jour sur `develop` (bannières et vidéos anciennes : ne rien refaire qui existe déjà ; supprimer ce qui est en doublon) et corriger les 3 erreurs de lint du site client.
-2. **Page de suivi de commande** : formulaire référence + téléphone, appel du nouvel endpoint de suivi, messages d'erreur clairs, états (en attente, en préparation, prêt, livré, annulé).
+2. **Page de suivi de commande** : saisie de la référence, appel de `GET /api/orders/track/<ref>/`, messages d'erreur clairs, états (en attente, en préparation, prêt, livré, annulé). Vérifier d'abord ce qui existe déjà dans le site.
 3. **Annulation côté client** : bouton « Annuler ma commande » visible seulement en « en attente », avec confirmation, et message « Appelez le restaurant » sinon.
 4. Vérification responsive (mobile 360 px) de l'accueil et du suivi.
 
