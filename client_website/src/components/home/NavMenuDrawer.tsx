@@ -7,7 +7,7 @@ interface NavMenuDrawerProps {
   isOpen: boolean
   onClose: () => void
   onSelectCategory: (categoryId: string) => void
-  onNavigate?: (page: 'home' | 'menu' | 'contact') => void
+  onNavigate?: (page: 'home' | 'menu' | 'track' | 'contact') => void
   onOpenAuth?: () => void
   clientUser?: { name: string; phone: string } | null
 }
@@ -62,11 +62,12 @@ export function NavMenuDrawer({ isOpen, onClose, onSelectCategory, onNavigate, o
                 </button>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {(
                   [
                     ['home', 'Accueil'],
                     ['menu', 'La carte'],
+                    ['track', 'Suivi de commande'],
                     ['contact', 'Contact'],
                   ] as const
                 ).map(([page, label]) => (

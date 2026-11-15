@@ -46,13 +46,14 @@ interface ProvisionalCheckoutProps {
   clientUser?: { name: string; phone: string } | null
   onBack: () => void
   onNewOrder: () => void
+  onTrackOrder?: (ref: string) => void
 }
 
 /**
  * Écran « Finaliser la commande » : deux colonnes sur grand écran (coordonnées à gauche, paiement et
  * récapitulatif à droite) pour tenir sans défiler ; une seule colonne compacte sur téléphone.
  */
-export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: ProvisionalCheckoutProps) {
+export function ProvisionalCheckout({ clientUser, onBack, onNewOrder, onTrackOrder }: ProvisionalCheckoutProps) {
   const formId = useId()
   const { items, subtotal } = useCart()
   const { status, isSubmitting, order, error, submit, clearError, reset } = useOrderSubmission()
@@ -257,6 +258,10 @@ export function ProvisionalCheckout({ clientUser, onBack, onNewOrder }: Provisio
           onNewOrder={() => {
             reset()
             onNewOrder()
+          }}
+          onTrackOrder={(ref) => {
+            reset()
+            onTrackOrder?.(ref)
           }}
         />
       </>
