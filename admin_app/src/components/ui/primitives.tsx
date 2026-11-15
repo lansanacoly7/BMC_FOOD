@@ -67,7 +67,9 @@ export const Card: React.FC<{ children: React.ReactNode; className?: string }> =
   children,
   className = '',
 }) => (
-  <section className={`rounded-xl border border-line bg-surface ${className}`}>{children}</section>
+  // `relative` : les éléments en position absolue (ex. libellés sr-only des tableaux)
+  // restent dans la carte au lieu d'élargir la page.
+  <section className={`relative rounded-xl border border-line bg-surface ${className}`}>{children}</section>
 )
 
 /** Barre d'outils posée en tête d'une carte : filtres à gauche, recherche et actions à droite. */
@@ -172,6 +174,9 @@ interface SegmentedProps<T extends string> {
   label: string
   /** Sous cette largeur, seules l'icône et le compteur restent affichés. */
   labelClassName?: string
+  variant?: 'default' | 'gold'
+  size?: 'sm' | 'md' | 'lg'
+  className?: string
 }
 
 export function Segmented<T extends string>({
@@ -180,16 +185,50 @@ export function Segmented<T extends string>({
   onChange,
   label,
   labelClassName = '',
+  variant = 'default',
+  size = 'sm',
+  className = '',
 }: SegmentedProps<T>) {
+  const isGold = variant === 'gold'
+
+  const containerClasses = isGold
+    ? 'inline-flex max-w-full shrink-0 items-center gap-1 overflow-x-auto rounded-xl bg-[#12141A] p-1.5 border border-white/10 shadow-lg shadow-black/30'
+    : 'scrollbar-none inline-flex max-w-full shrink-0 items-center gap-0.5 overflow-x-auto rounded-lg bg-raised p-1'
+
+  const btnHeight = size === 'md' ? 'h-9 px-3.5' : size === 'lg' ? 'h-10 px-4' : 'h-8 px-2.5'
+
   return (
     <div
       role="group"
       aria-label={label}
-      className="scrollbar-none inline-flex max-w-full shrink-0 items-center gap-0.5 overflow-x-auto rounded-lg bg-raised p-1"
+      className={`${containerClasses} ${className}`}
     >
       {options.map((option) => {
         const isActive = option.id === value
         const Icon = option.icon
+
+        let btnClasses = `flex ${btnHeight} cursor-pointer items-center gap-2 whitespace-nowrap rounded-lg text-[13px] font-semibold transition-all duration-150 `
+
+        if (isGold) {
+          if (isActive) {
+            btnClasses += 'bg-[#FCB800] text-[#08090D] shadow-md shadow-[#FCB800]/25'
+          } else {
+            btnClasses += 'text-neutral-400 hover:text-white hover:bg-white/5'
+          }
+        } else {
+          if (isActive) {
+            btnClasses += 'bg-surface text-ink shadow-sm'
+          } else {
+            btnClasses += 'text-ink-soft hover:text-ink'
+          }
+        }
+
+        const countBadgeClasses = isGold
+          ? isActive
+            ? 'rounded-full bg-[#08090D]/20 px-2 py-0.5 text-xs font-bold tabular-nums text-[#08090D]'
+            : 'rounded-full bg-white/10 px-2 py-0.5 text-xs font-medium tabular-nums text-neutral-300'
+          : 'text-xs tabular-nums text-ink-faint'
+
         return (
           <button
             key={option.id}
@@ -197,14 +236,12 @@ export function Segmented<T extends string>({
             aria-pressed={isActive}
             title={option.label}
             onClick={() => onChange(option.id)}
-            className={`flex h-8 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 text-[13px] font-medium transition-colors ${
-              isActive ? 'bg-surface text-ink shadow-sm' : 'text-ink-soft hover:text-ink'
-            }`}
+            className={btnClasses}
           >
-            {Icon && <Icon className="size-3.5" />}
+            {Icon && <Icon className={`size-4 shrink-0 ${isActive && isGold ? 'text-[#08090D]' : ''}`} />}
             <span className={Icon ? labelClassName : ''}>{option.label}</span>
             {option.count !== undefined && (
-              <span className="text-xs tabular-nums text-ink-faint">{option.count}</span>
+              <span className={countBadgeClasses}>{option.count}</span>
             )}
           </button>
         )

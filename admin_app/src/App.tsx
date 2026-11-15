@@ -196,9 +196,7 @@ export default function App() {
 
   return (
     <div
-      className={`flex h-[100dvh] flex-row overflow-hidden bg-canvas font-sans text-ink antialiased ${
-        headerTab === 'kds' ? 'theme-dark select-none' : 'theme-light'
-      }`}
+      className="theme-dark flex h-[100dvh] flex-row overflow-hidden bg-canvas font-sans text-ink antialiased"
     >
       <AdminSidebar
         currentTab={headerTab}

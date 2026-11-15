@@ -11,8 +11,8 @@ interface KdsOrderListProps {
   nowMs: number
   thresholds?: ChronoThresholds
   emptyMessage: string
-  doneItems: Record<string, number[]>
-  onToggleItem: (orderId: string, itemIndex: number) => void
+  doneItems?: Record<string, number[]>
+  onToggleItem?: (orderId: string, itemIndex: number) => void
   onTransition: (orderRef: string, nextStatus: KdsOrderStatus) => void
   onCancel: (orderRef: string) => void
   onViewDetails: (order: KdsOrder) => void
@@ -25,7 +25,7 @@ export const KdsOrderList: React.FC<KdsOrderListProps> = ({
   nowMs,
   thresholds = DEFAULT_KDS_THRESHOLDS,
   emptyMessage,
-  doneItems,
+  doneItems = {},
   onToggleItem,
   onTransition,
   onCancel,
@@ -83,7 +83,7 @@ export const KdsOrderList: React.FC<KdsOrderListProps> = ({
             nowMs={nowMs}
             thresholds={thresholds}
             doneItems={doneItems[id] ?? []}
-            onToggleItem={(itemIndex) => onToggleItem(id, itemIndex)}
+            onToggleItem={(itemIndex) => onToggleItem?.(id, itemIndex)}
             onCollapse={isCompact ? () => setExpandedId(null) : undefined}
             onTransition={onTransition}
             onCancel={onCancel}
