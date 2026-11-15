@@ -221,7 +221,7 @@ class AccessTests(BaseCase):
         from django.core.cache import cache
         cache.clear()
         codes = [APIClient().post("/api/auth/token/", {"username": "x", "password": "y"}, format="json").status_code
-                 for _ in range(15)]
+                 for _ in range(65)]
         self.assertIn(429, codes)
         cache.clear()
 
@@ -279,9 +279,19 @@ class StatusTransitionTests(BaseCase):
         self.patch(ref, {"status": "confirmed", "payment_status": "pending"})
         self.assertEqual(self.patch(ref, {"payment_status": "paid"}).status_code, 200)
         self.assertEqual(self.patch(ref, {"payment_status": "unpaid"}).status_code, 400)
-        self.assertEqual(self.patch(ref, {"status": "cancelled"}).status_code, 200)
+        # Sans cancel_reason, l'annulation admin est refusée (400)
+        r_no_reason = self.patch(ref, {"status": "cancelled"})
+        self.assertEqual(r_no_reason.status_code, 400)
+        self.assertIn("cancel_reason", r_no_reason.json()["errors"])
+        # Avec cancel_reason, l'annulation admin réussit (200)
+        self.assertEqual(
+            self.patch(ref, {"status": "cancelled", "cancel_reason": "Rupture de stock"}).status_code,
+            200,
+        )
         # Règle X4 / I14 : Commande annulée alors qu'elle était payée -> bascule automatique à refund_pending
-        self.assertEqual(Order.objects.get(order_ref=ref).payment_status, "refund_pending")
+        order_db = Order.objects.get(order_ref=ref)
+        self.assertEqual(order_db.payment_status, "refund_pending")
+        self.assertEqual(order_db.cancel_reason, "Rupture de stock")
         self.assertEqual(self.patch(ref, {"status": "confirmed"}).status_code, 400)
 
     def test_especes_payees_apres_livraison(self):
@@ -337,3 +347,232 @@ class StatusTransitionTests(BaseCase):
         self.assertEqual(len(data["orders"]), 2)
         self.assertTrue(data["count"] >= 5)
         self.assertTrue(data["total_pages"] >= 3)
+
+
+class OrderV1RulesTests(BaseCase):
+    """Tests des règles métier V1 (docs/taches_v1.md — section 2, Ibrahima Khalilou Diallo)."""
+
+    def test_v1_delivery_order_calculates_fee_and_total(self):
+        """Mode livraison avec quartier connu : frais ajoutés au sous-total et has_allergy enregistré."""
+        r = self.post(
+            [{"id": "tp-1", "quantity": 2}],
+            order_type="delivery",
+            delivery_area="grand-yoff",
+            address="Rue 10, en face de la pharmacie",
+            has_allergy=True,
+            notes="Allergie arachide",
+        )
+        self.assertEqual(r.status_code, 201, r.content)
+        o = r.json()["order"]
+        self.assertEqual(o["order_type"], "delivery")
+        self.assertEqual(o["delivery_area"], "grand-yoff")
+        self.assertEqual(o["delivery_fee"], 1000)
+        self.assertEqual(o["subtotal"], 7000)
+        self.assertEqual(o["total_amount"], 8000)
+        self.assertIs(o["has_allergy"], True)
+        self.assertEqual(o["cancel_reason"], "")
+
+    def test_v1_delivery_zones_fees_and_distant_null_fee(self):
+        """Vérifie la grille par quartier (zones 1 à 9) et le cas 'autre-destination-plus-eloignee' (fee=None)."""
+        cas = [
+            ("cite-mixta", 1000, 4500),
+            ("liberte-6", 1500, 5000),
+            ("parcelles-assainies", 1500, 5000),
+            ("camberene", 2000, 5500),
+            ("sacre-c-ur", 2000, 5500),
+            ("sacre-coeur", 2000, 5500),
+            ("almadies", 2500, 6000),
+            ("gueule-tapee", 2500, 6000),
+            ("pikine", 3000, 6500),
+            ("keur-massar", 3000, 6500),
+            ("rufisque", 3500, 7000),
+            ("bargny", 3500, 7000),
+            ("sebikotane", 4000, 7500),
+            ("autre-destination-plus-eloignee", None, 3500),
+        ]
+        for slug, expected_fee, expected_total in cas:
+            with self.subTest(slug=slug):
+                from django.core.cache import cache
+                cache.clear()
+                r = self.post(
+                    [{"id": "tp-1", "quantity": 1}],
+                    order_type="delivery",
+                    delivery_area=slug,
+                    address="Quartier test, Dakar",
+                )
+                self.assertEqual(r.status_code, 201, r.content)
+                o = r.json()["order"]
+                self.assertEqual(o["subtotal"], 3500)
+                self.assertEqual(o["delivery_fee"], expected_fee)
+                self.assertEqual(o["total_amount"], expected_total)
+
+    def test_v1_delivery_ignores_client_supplied_delivery_fee(self):
+        """Le serveur ignore tout frais de livraison ou sous-total envoyé par le client."""
+        r = self.post(
+            [{"id": "tp-1", "quantity": 1}],
+            order_type="delivery",
+            delivery_area="almadies",
+            address="Almadies Zone 12",
+            delivery_fee=0,
+            subtotal=100,
+            total_amount=100,
+        )
+        self.assertEqual(r.status_code, 201, r.content)
+        o = r.json()["order"]
+        self.assertEqual(o["subtotal"], 3500)
+        self.assertEqual(o["delivery_fee"], 2500)
+        self.assertEqual(o["total_amount"], 6000)
+
+    def test_v1_delivery_unknown_or_missing_area_and_address_fail_400(self):
+        """En livraison : quartier inconnu, quartier manquant ou adresse manquante -> 400."""
+        # Quartier inconnu
+        r_unknown = self.post(
+            [{"id": "tp-1", "quantity": 1}],
+            order_type="delivery",
+            delivery_area="quartier-imaginaire",
+            address="Rue 10",
+        )
+        self.assertEqual(r_unknown.status_code, 400)
+        self.assertIn("delivery_area", r_unknown.json()["errors"])
+
+        # Quartier manquant lorsque order_type='delivery'
+        r_missing_area = self.post(
+            [{"id": "tp-1", "quantity": 1}],
+            order_type="delivery",
+            address="Rue 10",
+        )
+        self.assertEqual(r_missing_area.status_code, 400)
+        self.assertIn("delivery_area", r_missing_area.json()["errors"])
+
+        # Adresse manquante en mode livraison
+        r_missing_addr = self.post(
+            [{"id": "tp-1", "quantity": 1}],
+            order_type="delivery",
+            delivery_area="grand-yoff",
+            address="",
+        )
+        self.assertEqual(r_missing_addr.status_code, 400)
+        self.assertIn("address", r_missing_addr.json()["errors"])
+
+    def test_v1_pickup_order_does_not_require_address_or_delivery_area(self):
+        """En mode à emporter ('pickup'), l'adresse et le quartier sont facultatifs et delivery_fee vaut 0."""
+        payload = {
+            "customer_name": "Moussa Diop",
+            "phone": "77 123 45 67",
+            "order_type": "pickup",
+            "payment_method": "cash",
+            "items": [{"id": "bg-1", "quantity": 2}],
+        }
+        r = self.anon.post("/api/orders/", payload, format="json")
+        self.assertEqual(r.status_code, 201, r.content)
+        o = r.json()["order"]
+        self.assertEqual(o["order_type"], "pickup")
+        self.assertEqual(o["address"], "")
+        self.assertEqual(o["delivery_area"], "")
+        self.assertEqual(o["delivery_fee"], 0)
+        self.assertEqual(o["subtotal"], 4000)
+        self.assertEqual(o["total_amount"], 4000)
+        self.assertIs(o["has_allergy"], False)
+
+    def test_v1_idempotency_key_prevents_duplicate_orders(self):
+        """Un même en-tête Idempotency-Key ne crée qu'une seule commande (2e appel -> 200 OK avec la même commande)."""
+        key = "550e8400-e29b-41d4-a716-446655440000"
+        body = self.payload(
+            [{"id": "tp-1", "quantity": 1}],
+            order_type="delivery",
+            delivery_area="grand-yoff",
+        )
+        before = Order.objects.count()
+
+        r1 = self.anon.post("/api/orders/", body, format="json", HTTP_IDEMPOTENCY_KEY=key)
+        self.assertEqual(r1.status_code, 201, r1.content)
+        ref1 = r1.json()["order"]["order_ref"]
+        self.assertEqual(Order.objects.count(), before + 1)
+
+        r2 = self.anon.post("/api/orders/", body, format="json", HTTP_IDEMPOTENCY_KEY=key)
+        self.assertEqual(r2.status_code, 200, r2.content)
+        ref2 = r2.json()["order"]["order_ref"]
+        self.assertEqual(ref1, ref2)
+        self.assertEqual(Order.objects.count(), before + 1)
+
+        # Une autre clé crée bien une nouvelle commande
+        r3 = self.anon.post("/api/orders/", body, format="json", HTTP_IDEMPOTENCY_KEY="autre-cle-uuid")
+        self.assertEqual(r3.status_code, 201, r3.content)
+        self.assertNotEqual(r3.json()["order"]["order_ref"], ref1)
+        self.assertEqual(Order.objects.count(), before + 2)
+
+    def test_v1_tracking_includes_non_personal_fields_only(self):
+        """GET /api/orders/track/<ref>/ inclut order_type, subtotal, delivery_fee et cancel_reason sans données personnelles."""
+        r = self.post(
+            [{"id": "tp-1", "quantity": 1}],
+            order_type="delivery",
+            delivery_area="grand-yoff",
+            address="Cité Millionnaire",
+        )
+        ref = r.json()["order"]["order_ref"]
+
+        track = self.anon.get(f"/api/orders/track/{ref}/")
+        self.assertEqual(track.status_code, 200)
+        data = track.json()
+        self.assertEqual(data["order_ref"], ref)
+        self.assertEqual(data["order_type"], "delivery")
+        self.assertEqual(data["subtotal"], 3500)
+        self.assertEqual(data["delivery_fee"], 1000)
+        self.assertEqual(data["total_amount"], 4500)
+        self.assertEqual(data["cancel_reason"], "")
+        for forbidden in ("customer_name", "phone", "address", "notes"):
+            self.assertNotIn(forbidden, data)
+
+    def test_v1_client_cancel_only_when_pending_and_matching_phone(self):
+        """POST /api/orders/<ref>/cancel/ : succès en pending avec bon téléphone, 400 si mauvais téléphone, 409 si plus en attente."""
+        r = self.post(
+            [{"id": "bg-1", "quantity": 1}],
+            phone="77 106 75 75",
+            order_type="pickup",
+        )
+        ref = r.json()["order"]["order_ref"]
+
+        # Mauvais numéro -> 400
+        r_bad_phone = self.anon.post(f"/api/orders/{ref}/cancel/", {"phone": "77 000 00 00"}, format="json")
+        self.assertEqual(r_bad_phone.status_code, 400)
+        self.assertIn("phone", r_bad_phone.json()["errors"])
+
+        # Bon numéro (même formaté avec +221) -> 200 OK
+        r_ok = self.anon.post(f"/api/orders/{ref}/cancel/", {"phone": "+221771067575"}, format="json")
+        self.assertEqual(r_ok.status_code, 200, r_ok.content)
+        self.assertEqual(r_ok.json()["order"]["status"], "cancelled")
+        self.assertTrue(r_ok.json()["order"]["cancel_reason"])
+
+        # Déjà annulée -> 409 Conflict
+        r_again = self.anon.post(f"/api/orders/{ref}/cancel/", {"phone": "771067575"}, format="json")
+        self.assertEqual(r_again.status_code, 409)
+
+        # Commande déjà confirmée par la cuisine -> 409 Conflict
+        ref2 = self.make_order(phone="77 106 75 75")
+        self.admin.patch(f"/api/orders/{ref2}/status/", {"status": "confirmed"}, format="json")
+        r_confirmed = self.anon.post(f"/api/orders/{ref2}/cancel/", {"phone": "77 106 75 75"}, format="json")
+        self.assertEqual(r_confirmed.status_code, 409)
+        self.assertEqual(Order.objects.get(order_ref=ref2).status, "confirmed")
+
+    def test_v1_admin_confirm_payment_endpoint(self):
+        """POST /api/admin/orders/<ref>/confirm-payment/ passe payment_status de pending/unpaid à paid."""
+        ref_wave = self.make_order(payment_method="wave")
+        self.assertEqual(Order.objects.get(order_ref=ref_wave).payment_status, "pending")
+
+        # Anonyme refusé (401)
+        self.assertEqual(self.anon.post(f"/api/admin/orders/{ref_wave}/confirm-payment/").status_code, 401)
+
+        # Admin confirme le paiement Wave (pending -> paid)
+        r_paid = self.admin.post(f"/api/admin/orders/{ref_wave}/confirm-payment/")
+        self.assertEqual(r_paid.status_code, 200, r_paid.content)
+        self.assertEqual(r_paid.json()["order"]["payment_status"], "paid")
+
+        # Déjà payée -> 400
+        self.assertEqual(self.admin.post(f"/api/admin/orders/{ref_wave}/confirm-payment/").status_code, 400)
+
+        # Espèces (unpaid -> paid)
+        ref_cash = self.make_order(payment_method="cash")
+        self.assertEqual(Order.objects.get(order_ref=ref_cash).payment_status, "unpaid")
+        r_cash = self.admin.post(f"/api/admin/orders/{ref_cash}/confirm-payment/")
+        self.assertEqual(r_cash.status_code, 200, r_cash.content)
+        self.assertEqual(r_cash.json()["order"]["payment_status"], "paid")
