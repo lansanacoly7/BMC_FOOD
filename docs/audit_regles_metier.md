@@ -82,7 +82,7 @@ Un taco ou un burger n'est jamais commandé « tel quel ». Le modèle `OrderIte
 ## 8. Clients, comptes et fidélité (P1/P2)
 - **Identification par numéro de téléphone** : format sénégalais (+221, 77/78/76/70/75) non vérifié **(à vérifier)** ; pas de confirmation par SMS ou WhatsApp. N'importe qui peut commander avec le numéro d'un autre.
 - **Commande sans compte (invité)** : possible ou obligatoire ? Doublons de client si le numéro est écrit différemment (77… / +22177…).
-- **Suivi de commande par référence** : si la référence est devinable, n'importe qui voit les commandes des autres (nom, adresse, téléphone). Données personnelles à protéger.
+- **Suivi de commande par référence** : le suivi public (tâche I13) n'expose aucune donnée personnelle, avec un 404 uniforme. Le risque est donc faible : seuls le statut et les articles sont devinables (référence à 6 chiffres). *(Correction : cette ligne annonçait d'abord un risque P0, à tort.)*
 - **Notifications** : aucun SMS ni WhatsApp ni push « votre commande est prête ». C'est le canal n°1 au Sénégal.
 - **Programme de fidélité, parrainage, codes promo** : un fichier de promotions existe (`BMC_PROMOTIONS_FILE`), mais pas de code promo appliqué côté serveur, pas de règles de cumul, de plafond ni d'usage unique.
 - **Historique et recommande** (« refaire ma dernière commande ») : à vérifier côté client.
