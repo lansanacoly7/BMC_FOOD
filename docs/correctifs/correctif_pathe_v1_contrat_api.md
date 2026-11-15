@@ -1,35 +1,26 @@
-# Correctif pour Pathé : écarts entre le backend V1 et le contrat d'API
+# Correctif pour Pathé : reprendre ta branche sur le nouveau `develop`
 
-Branche testée : `feature/backend/pathe-fall` (dernier commit `90d395a`, 15 nov.). Elle est à jour sur `develop`, `manage.py check` et `makemigrations --check` sont propres, et les 13 modules de tests passent (dont `test_opening_hours`, `test_pathe_v1`, `test_delivery_and_proxy_throttling`). Le travail de fond est bon. Il reste des écarts avec `docs/taches_v1.md` qui casseraient l'intégration avec les sites.
+Mise à jour du 15 nov. : `develop` contient maintenant le backend V1 d'Ibrahima (modèle `DeliveryArea` avec les 51 quartiers, `order_type`, `has_allergy`, `Idempotency-Key`, annulation client et admin, `confirm-payment`, suivi enrichi), la branche de déploiement, la page de suivi de Maïmouna et l'admin/KDS d'Alioune. Tout passe : 11 modules de tests backend, builds des deux sites. `test` est aligné.
 
-## Bloquants (à corriger avant la fusion)
+Ta branche `feature/backend/pathe-fall` (`90d395a`) passe tous ses tests, mais elle fait **double emploi** avec Ibrahima et **entre en conflit** avec `develop`. Ibrahima est la référence pour tout ce qui concerne les commandes et les frais.
 
-**1. Nom du champ de mode de commande : `fulfillment_method` au lieu de `order_type`.**
-Le contrat demande `order_type` (`delivery` | `pickup`). Le site d'El Hadji envoie déjà `order_type`. Avec ton serializer, ce champ est ignoré, la valeur par défaut `delivery` s'applique, et une commande « à emporter » est facturée comme une livraison (frais + adresse obligatoire).
-- Accepte `order_type` dans `OrderCreateSerializer` et renvoie `order_type` dans `OrderSerializer`. Tu peux garder `fulfillment_method` comme alias en lecture si tu veux, mais `order_type` fait foi.
-- Test : une commande `pickup` sans adresse ni quartier → 201, `delivery_fee = 0`, `total_amount = subtotal`.
+## À faire
+1. `git fetch` puis `git merge origin/develop` dans ta branche. Résous les conflits en **gardant la version de `develop`** pour tout ce qui suit :
+   - `fulfillment_method` : supprime-le. Le champ est `order_type`.
+   - `DELIVERY_AREAS_FEES` et `get_delivery_fee` : supprime-les. Les frais viennent du modèle `DeliveryArea` (grille de 51 quartiers, quartier inconnu refusé, destination éloignée à confirmer).
+   - Ta migration `0006_order_delivery_area_order_delivery_fee_and_more.py` : supprime-la (celle d'Ibrahima porte déjà le numéro `0006`).
+2. **Garde uniquement ce qui est à toi et absent de `develop` :**
+   - le modèle `RestaurantSettings` et l'endpoint `PATCH /api/admin/settings/` (`manual_closed`, `closed_message`) ; ta migration doit devenir `0007_...`, dépendant de la `0006` d'Ibrahima (`makemigrations` le fera pour toi) ;
+   - `accepting_orders` et `closed_message` dans `/api/health/` ;
+   - la dernière commande à 01h30, les horaires (`is_order_window_open`) ;
+   - les garde-fous : téléphone sénégalais normalisé, montant maximal, quantité totale maximale, note limitée ;
+   - la prise en compte du proxy dans la limitation de débit (`throttling.py`) et ses tests.
+3. Adapte tes tests à `order_type` et aux quartiers d'Ibrahima (`test_pathe_v1`, `test_delivery_and_proxy_throttling`). Les tests de frais de livraison sont désormais ceux d'Ibrahima : supprime les tiens s'ils font doublon.
+4. Limite d'authentification : `develop` est déjà à 10 par minute (changement d'Alioune). Documente dans `docs/` pourquoi cette valeur et ajoute le test du 429 à la 11e requête.
+5. **Vérifie avant de pousser :** `python manage.py check`, `python manage.py makemigrations --check --dry-run` (rien à générer) et **tous** les modules de tests (`python manage.py test api`).
 
-**2. La grille des frais de livraison est incomplète et gratuite par défaut (`order_rules.py`, `DELIVERY_AREAS_FEES`).**
-- Elle ne contient que 10 identifiants. Les quartiers des zones 2 à 8 (Nord Foire, Foire…) manquent, donc `get_delivery_fee` renvoie **0** : livraison gratuite pour la plupart des quartiers.
-- `rufisque` et `sangalkam` sont à 3 500 F alors que le commentaire annonce la zone 2 à 1 500 F. Compare avec `client_website/src/lib/delivery.ts` et `docs/frais_livraison_bmc.md`.
-- `autre-destination-plus-eloignee` vaut 0 : le contrat dit `delivery_fee = null` (prix confirmé par téléphone), pas gratuit.
-- Un quartier inconnu en livraison doit renvoyer **400** (« quartier de livraison inconnu »), pas 0.
-- Corrige : reprendre la grille complète depuis `delivery.ts` (mêmes identifiants), ajouter un test qui vérifie chaque quartier de `delivery.ts` ; ajouter un test « quartier inconnu → 400 » et « destination éloignée → `delivery_fee` nul ».
-
-**3. Endpoints du contrat absents.** Le site client (Maïmouna) et l'admin (Alioune) les appellent déjà :
-- `POST /api/orders/<ref>/cancel/` (annulation client, `pending` seulement, corps `{ "phone": "..." }`, sinon 409) ;
-- annulation admin avec `cancel_reason` obligatoire (champ à ajouter au modèle, et à renvoyer dans la commande et le suivi) ;
-- `POST /api/admin/orders/<ref>/confirm-payment/` (`pending` ou `unpaid` → `paid`).
-Ce sont les tâches 5 et 6 d'Ibrahima dans `docs/taches_v1.md` : Ibrahima n'a rien poussé. Mets-vous d'accord tous les deux pour que ce soit fait une seule fois.
-
-**4. Pas de protection contre la commande en double.** Le site envoie l'en-tête `Idempotency-Key`. Le backend l'ignore, donc un double clic crée deux commandes. À faire : stocker la clé (unique) sur la commande ; si la clé existe déjà, renvoyer la même commande avec le code 200. Test : deux POST identiques avec la même clé → une seule commande.
-
-**5. `has_allergy` absent.** Ajoute le champ booléen (défaut faux) à la création, au modèle et à la réponse. Le KDS le met en évidence.
-
-## À faire ensuite
-6. **Réponse de la commande et du suivi :** ajoute `order_type`, `subtotal`, `delivery_fee`, `has_allergy`, `cancel_reason`. Le suivi `/api/orders/track/<ref>/` ne doit jamais exposer nom, téléphone ni adresse.
-7. **Limite d'authentification à 10 par minute :** tu as ajouté la prise en compte du proxy (`throttling.py`, bien). Documente dans `docs/` la valeur 10/min et pourquoi (inscription et connexion), et ajoute le test du 429 à la 11e requête demandé dans `correctif_pathe_horaires_et_throttle.md`.
-8. **Conflits à prévoir :** `bmc_backend/settings.py`, `serializers.py`, `auth_views.py` et `test_customer_auth.py` ont aussi été modifiés par Alioune (commit `33395f7`) et `settings.py` par la branche de déploiement d'Antigravity. Ta branche passe avant eux : après ta fusion, c'est à eux de reprendre leurs modifications de backend, pas à toi.
+## Résultat attendu
+Une branche qui ne contient plus que tes ajouts (réglages du restaurant, horaires, garde-fous, proxy) et qui se fusionne sans conflit dans `develop`.
 
 ## Quand c'est corrigé
-Préviens-moi : je refais la fusion sur une copie de `develop`, je relance les 13 modules de tests et je vérifie les 5 bloquants.
+Préviens-moi : je fusionne sur une copie de `develop`, je relance tous les tests et je pousse.
