@@ -13,7 +13,7 @@ export type PaymentMethod = 'cash' | 'wave' | 'orange_money'
 export type PaymentStatus = 'unpaid' | 'pending' | 'paid'
 
 /** Cycle de vie d'une commande (Order.STATUS_CHOICES). */
-export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'delivering' | 'delivered' | 'cancelled'
+export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivering' | 'delivered' | 'cancelled'
 
 /** Catégorie du menu (CategorySerializer). `icon` est un nom d'icône lucide-react, ex. « Flame ». */
 export interface Category {
@@ -68,6 +68,12 @@ export interface Order {
   phone: string
   address: string
   notes: string
+  order_type?: 'delivery' | 'pickup' | 'dine_in'
+  delivery_area?: string | null
+  delivery_fee?: number | null
+  subtotal?: number
+  has_allergy?: boolean
+  cancel_reason?: string | null
   payment_method: PaymentMethod
   payment_status: PaymentStatus
   total_amount: number
@@ -99,6 +105,9 @@ export interface OrderCreatePayload {
   phone: string
   address: string
   notes?: string
+  order_type?: 'delivery' | 'pickup'
+  delivery_area?: string
+  has_allergy?: boolean
   payment_method: PaymentMethod
   items: OrderCreateItem[]
 }

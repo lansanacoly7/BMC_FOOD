@@ -1,12 +1,30 @@
 import React from 'react'
-import { ArrowRight, Bike, MessageSquare, ShoppingBag, Utensils } from 'lucide-react'
+import { AlertOctagon, ArrowRight, Bike, MessageSquare, ShoppingBag, Utensils } from 'lucide-react'
 import type { KdsOrder, KdsOrderStatus, OrderType } from '../../types/kds'
 import { getTicketAction } from './ticketAction'
 
-const TYPE_ICONS: Record<OrderType, { label: string; icon: React.FC<{ className?: string }> }> = {
-  delivery: { label: 'Livraison', icon: Bike },
-  takeaway: { label: 'À emporter', icon: ShoppingBag },
-  dine_in: { label: 'Sur place', icon: Utensils },
+const TYPE_CONFIG: Record<
+  OrderType,
+  { label: string; badgeLabel: string; badgeClass: string; icon: React.FC<{ className?: string }> }
+> = {
+  delivery: {
+    label: 'Livraison',
+    badgeLabel: 'LIVR.',
+    badgeClass: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+    icon: Bike,
+  },
+  takeaway: {
+    label: 'À emporter',
+    badgeLabel: 'EMPORT.',
+    badgeClass: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
+    icon: ShoppingBag,
+  },
+  dine_in: {
+    label: 'Sur place',
+    badgeLabel: 'PLACE',
+    badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+    icon: Utensils,
+  },
 }
 
 interface CompactTicketProps {
@@ -26,14 +44,22 @@ export const CompactTicket: React.FC<CompactTicketProps> = ({
   onTransition,
 }) => {
   const action = getTicketAction(order)
-  const type = TYPE_ICONS[order.orderType] || TYPE_ICONS.delivery
-  const TypeIcon = type.icon
+  const typeConfig = TYPE_CONFIG[order.orderType] || TYPE_CONFIG.delivery
+  const TypeIcon = typeConfig.icon
   const summary = order.items.map((item) => `${item.quantity}× ${item.name}`).join(' · ')
   // Une consigne (allergie, sans oignons) doit rester visible même réduite.
   const hasNote = Boolean(order.notes) || order.items.some((item) => item.notes)
 
   return (
-    <article className="flex min-h-[60px] select-none items-center gap-1 rounded-lg border border-line bg-surface p-1.5 text-left">
+    <article
+      className={`flex min-h-[60px] select-none items-center gap-1 rounded-lg border bg-surface p-1.5 text-left ${
+        order.hasAllergy
+          ? 'border-red-500/80 ring-1 ring-red-500/30'
+          : isOverdue
+          ? 'border-bad'
+          : 'border-line'
+      }`}
+    >
       <button
         type="button"
         onClick={onExpand}
@@ -45,10 +71,23 @@ export const CompactTicket: React.FC<CompactTicketProps> = ({
           <span className="font-display text-base font-bold tabular-nums text-ink">
             #{order.orderRef.replace(/^#?BMC-?/, '')}
           </span>
-          <span title={type.label} className="text-ink-soft">
-            <TypeIcon className="size-3.5" />
+          <span
+            className={`inline-flex items-center gap-0.5 rounded border px-1 py-0.2 text-[10px] font-bold ${typeConfig.badgeClass}`}
+            title={typeConfig.label}
+          >
+            <TypeIcon className="size-2.5" />
+            <span>{typeConfig.badgeLabel}</span>
           </span>
-          {hasNote && (
+          {order.hasAllergy && (
+            <span
+              title="Allergie signalée"
+              className="inline-flex items-center gap-0.5 rounded bg-red-600 px-1 py-0.2 text-[10px] font-bold text-white uppercase tracking-wider animate-pulse"
+            >
+              <AlertOctagon className="size-2.5" />
+              <span>Allergie</span>
+            </span>
+          )}
+          {hasNote && !order.hasAllergy && (
             <span title="Consigne à lire" className="text-bmc-gold">
               <MessageSquare className="size-3.5" />
             </span>

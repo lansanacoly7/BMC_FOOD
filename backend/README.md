@@ -171,38 +171,48 @@ curl -X PATCH http://127.0.0.1:8000/api/daily-special/1/toggle/ \
      -d '{"is_daily_special": true}'
 ```
 
-### 6. Passer une commande client (Recalcul 100% serveur des prix)
+### 6. Passer une commande client (Recalcul 100% serveur des prix, frais de livraison & idempotence V1)
 ```bash
 curl -X POST http://127.0.0.1:8000/api/orders/ \
      -H "Content-Type: application/json" \
+     -H "Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000" \
      -d '{
-       "customer_name": "Lansana Coly",
-       "phone": "77 106 75 75",
-       "address": "Ngor, Dakar",
+       "customer_name": "Awa Ndiaye",
+       "phone": "77 123 45 67",
+       "order_type": "delivery",
+       "delivery_area": "grand-yoff",
+       "address": "Rue 10, en face de la pharmacie",
+       "notes": "Allergie arachide",
+       "has_allergy": true,
        "payment_method": "wave",
        "items": [
-         {"id": "ts-1", "quantity": 2},
-         {"id": "bg-1", "quantity": 1}
+         {"id": "tp-1", "quantity": 2}
        ]
      }'
 ```
-*Réponse attendue (201 Created) avec référence à 6 chiffres (X3) :*
+*Réponse attendue (201 Created à la 1re requête, 200 OK avec la même commande si rejouée avec le même `Idempotency-Key`) :*
 ```json
 {
   "success": true,
   "message": "Commande créée avec succès !",
   "order": {
     "order_ref": "BMC-849201",
-    "customer_name": "Lansana Coly",
-    "total_amount": 9000,
+    "customer_name": "Awa Ndiaye",
+    "order_type": "delivery",
+    "delivery_area": "grand-yoff",
+    "delivery_fee": 1000,
+    "subtotal": 7000,
+    "total_amount": 8000,
+    "has_allergy": true,
     "payment_method": "wave",
     "payment_status": "pending",
-    "status": "pending"
+    "status": "pending",
+    "cancel_reason": ""
   }
 }
 ```
 
-### 7. Suivi public allégé d'une commande (Client — X2 & I13)
+### 7. Suivi public allégé d'une commande (Client — X2, I13 & V1)
 ```bash
 curl -X GET http://127.0.0.1:8000/api/orders/track/BMC-849201/
 ```
@@ -215,15 +225,26 @@ curl -X GET http://127.0.0.1:8000/api/orders/track/BMC-849201/
   "status_label": "En attente",
   "payment_status": "pending",
   "payment_status_label": "Paiement en attente",
-  "total_amount": 9000,
+  "order_type": "delivery",
+  "subtotal": 7000,
+  "delivery_fee": 1000,
+  "total_amount": 8000,
+  "cancel_reason": "",
   "created_at": "2026-10-21T20:30:00Z",
-  "items_count": 3,
+  "items_count": 2,
   "items": [
-    {"item_name": "Tacos 1 viande Simple", "quantity": 2, "unit_price": 2500, "subtotal": 5000},
-    {"item_name": "Burger Simple", "quantity": 1, "unit_price": 4000, "subtotal": 4000}
+    {"item_name": "Tacos viande pané", "quantity": 2, "unit_price": 3500, "subtotal": 7000}
   ]
 }
 ```
+
+### 7bis. Annuler une commande en attente (Client — V1)
+```bash
+curl -X POST http://127.0.0.1:8000/api/orders/BMC-849201/cancel/ \
+     -H "Content-Type: application/json" \
+     -d '{"phone": "77 123 45 67"}'
+```
+*(Renvoie 200 OK si `status="pending"` et téléphone concordant, sinon 409 Conflict si la préparation a déjà commencé).*
 
 ### 8. Consulter les alertes de commandes non encore notifiées (Admin)
 ```bash
@@ -239,12 +260,18 @@ curl -X POST http://127.0.0.1:8000/api/orders/events/unnotified/ \
      -d '{"order_refs": ["BMC-849201"]}'
 ```
 
-### 10. Faire évoluer le statut d'une commande (Admin Cuisine / Livraison)
+### 10. Faire évoluer le statut d'une commande ou annuler avec motif (Admin Cuisine / Livraison)
 ```bash
 curl -X PATCH http://127.0.0.1:8000/api/orders/BMC-849201/status/ \
      -H "Authorization: Token 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b" \
      -H "Content-Type: application/json" \
-     -d '{"status": "confirmed", "payment_status": "paid"}'
+     -d '{"status": "cancelled", "cancel_reason": "Rupture de stock"}'
+```
+
+### 11. Confirmer le paiement d'une commande (Admin — V1)
+```bash
+curl -X POST http://127.0.0.1:8000/api/admin/orders/BMC-849201/confirm-payment/ \
+     -H "Authorization: Token 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b"
 ```
 
 ---

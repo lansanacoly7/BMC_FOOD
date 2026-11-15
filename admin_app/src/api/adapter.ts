@@ -67,6 +67,24 @@ export function mapOrderFromApi(apiData: ApiOrder | OrderResponse): KdsOrder {
   const rawRef = raw.order_ref || `BMC-${raw.id}`
   const orderRef = rawRef.startsWith('#') ? rawRef : `#${rawRef}`
 
+  // Type de commande : direct si fourni par le backend V1, sinon inféré
+  let orderType: OrderType
+  if (raw.order_type === 'pickup') {
+    orderType = 'takeaway'
+  } else if (raw.order_type === 'dine_in') {
+    orderType = 'dine_in'
+  } else if (raw.order_type === 'delivery') {
+    orderType = 'delivery'
+  } else {
+    orderType = inferOrderType(raw.address, raw.notes)
+  }
+
+  // Détection allergie : drapeau booléen explicite ou mention dans la note
+  const hasAllergy = Boolean(
+    raw.has_allergy ||
+      (raw.notes && /\ballergie|\ballergique|\barachide|\bgluten|\blactose\b/i.test(raw.notes)),
+  )
+
   return {
     id: raw.id,
     orderRef,
@@ -74,7 +92,12 @@ export function mapOrderFromApi(apiData: ApiOrder | OrderResponse): KdsOrder {
     phone: raw.phone || '',
     address: raw.address || 'Livraison standard',
     notes: raw.notes || '',
-    orderType: inferOrderType(raw.address, raw.notes),
+    orderType,
+    deliveryArea: raw.delivery_area || null,
+    deliveryFee: typeof raw.delivery_fee === 'number' ? raw.delivery_fee : null,
+    subtotal: typeof raw.subtotal === 'number' ? raw.subtotal : undefined,
+    hasAllergy,
+    cancelReason: raw.cancel_reason || null,
     status,
     paymentMethod: (raw.payment_method || 'cash') as PaymentMethod,
     paymentStatus: (raw.payment_status || 'unpaid') as PaymentStatus,

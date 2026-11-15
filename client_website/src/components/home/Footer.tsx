@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { isOpenAt } from '../../lib/greeting'
 import { WhatsAppIcon } from '../brand/WhatsAppIcon'
 
-type Page = 'home' | 'menu' | 'contact' | 'profile'
+type Page = 'home' | 'menu' | 'track' | 'contact' | 'profile'
 
 interface FooterProps {
   onExploreMenu?: () => void
@@ -23,6 +23,7 @@ const MAPS_URL = 'https://maps.google.com/?q=PGXV%2B6R7,+Dakar'
 const NAV_LINKS: { page: Page; label: string }[] = [
   { page: 'home', label: 'Accueil' },
   { page: 'menu', label: 'La carte' },
+  { page: 'track', label: 'Suivre ma commande' },
   { page: 'contact', label: 'Contact' },
   { page: 'profile', label: 'Mon compte' },
 ]

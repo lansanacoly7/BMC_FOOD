@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { LogOut, Receipt, Sparkles, Tag, UtensilsCrossed, Users, type LucideIcon } from 'lucide-react'
+import { LogOut, Receipt, Sparkles, Store, Tag, UtensilsCrossed, Users, type LucideIcon } from 'lucide-react'
 import type { AdminTab } from './AppHeader'
 
 interface AdminSidebarProps {
@@ -17,6 +17,7 @@ const NAV_GROUPS: { title: string; items: { id: AdminTab; label: string; icon: L
     title: 'Service',
     items: [
       { id: 'kds', label: 'Cuisine', icon: UtensilsCrossed },
+      { id: 'restaurant', label: 'Restaurant', icon: Store },
       { id: 'transactions', label: 'Transactions', icon: Receipt },
     ],
   },

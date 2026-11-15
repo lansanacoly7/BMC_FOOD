@@ -1,0 +1,10 @@
+[Unit]
+Description=Planification quotidienne de la sauvegarde BMC FOOD (03h30 Africa/Dakar)
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target
