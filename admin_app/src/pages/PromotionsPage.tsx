@@ -27,6 +27,10 @@ import {
 } from '../components/ui/primitives'
 import { buttonClass } from '../components/ui/styles'
 
+const CLIENT_SITE_URL =
+  ((import.meta.env.VITE_CLIENT_URL as string | undefined) ?? (import.meta.env.DEV ? 'http://localhost:5173/' : '/')).trim() ||
+  '/'
+
 interface PromoItem {
   id: number
   code: string
@@ -408,7 +412,7 @@ export const PromotionsPage: React.FC = () => {
           </div>
 
           <a
-            href="http://localhost:5173/"
+            href={CLIENT_SITE_URL}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-bmc-gold hover:text-amber-300 transition-colors"
@@ -506,7 +510,7 @@ export const PromotionsPage: React.FC = () => {
           <Button variant="primary" icon={Plus} onClick={() => setIsAddModalOpen(true)}>
             Ajouter un plat
           </Button>
-          <a href="http://localhost:5173/" target="_blank" rel="noreferrer" className={buttonClass('secondary', 'md')}>
+          <a href={CLIENT_SITE_URL} target="_blank" rel="noreferrer" className={buttonClass('secondary', 'md')}>
             <Eye className="size-4" />
             Voir le site client
           </a>
