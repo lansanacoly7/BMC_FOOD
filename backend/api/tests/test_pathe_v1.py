@@ -94,6 +94,21 @@ class RestaurantSettingsAndHealthTests(TestCase):
         self.assertFalse(res.data['accepting_orders'])
         self.assertEqual(res.data['closed_message'], "Pause cuisine jusqu'à 20h")
 
+    def test_health_check_respects_bmc_enforce_opening_hours_flag(self):
+        """Quand BMC_ENFORCE_OPENING_HOURS=False, /api/health/ signale ouvert même hors horaires."""
+        RestaurantSettings.get_settings()
+        lundi_dt = datetime(2026, 11, 16, 16, 0, tzinfo=ZoneInfo('Africa/Dakar'))
+        with mock.patch('django.utils.timezone.now', return_value=lundi_dt):
+            with override_settings(BMC_ENFORCE_OPENING_HOURS=False):
+                res_open = self.client.get('/api/health/')
+                self.assertTrue(res_open.data['is_open'])
+                self.assertTrue(res_open.data['accepting_orders'])
+
+            with override_settings(BMC_ENFORCE_OPENING_HOURS=True):
+                res_closed = self.client.get('/api/health/')
+                self.assertFalse(res_closed.data['is_open'])
+                self.assertFalse(res_closed.data['accepting_orders'])
+
 
 class OrderClosureAndHoursTests(TestCase):
     def setUp(self):

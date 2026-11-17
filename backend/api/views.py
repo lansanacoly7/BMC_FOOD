@@ -1,4 +1,5 @@
 import time
+from django.conf import settings
 from django.db import IntegrityError, OperationalError, transaction
 from django.http import Http404
 from django.shortcuts import get_object_or_404
@@ -73,12 +74,19 @@ class HealthCheckView(APIView):
     @extend_schema(responses=HealthResponseSerializer)
     def get(self, request):
         accepting, closed_msg = order_rules.is_restaurant_accepting_orders()
+        # Si le contrôle horaire est désactivé (ex. tests hors horaires), le restaurant reste ouvert 24h/24
+        # tout en respectant l'interrupteur manuel (manual_closed -> pause cuisine).
+        is_open = (
+            order_rules.is_restaurant_open()
+            if getattr(settings, 'BMC_ENFORCE_OPENING_HOURS', True)
+            else True
+        )
         return Response({
             'status': 'ok',
             'service': 'BMC Food Django REST API',
             'version': '2.0.0',
             'server_time': timezone.now().isoformat(),
-            'is_open': order_rules.is_restaurant_open(),
+            'is_open': is_open,
             'accepting_orders': accepting,
             'closed_message': closed_msg,
         })
