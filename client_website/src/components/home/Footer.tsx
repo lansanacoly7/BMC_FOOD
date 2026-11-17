@@ -573,7 +573,7 @@ export function Footer({ onExploreMenu, onNavigate, onSelectSpecialty, onOpenAcc
 
       {/* ===== 3a. LA BARRE FINALE (téléphone et tablette) ===== */}
       <div className="border-t border-bmc-gold/50 lg:hidden">
-        <div className={`mx-auto flex max-w-2xl flex-col gap-1 px-4 pt-4 text-xs text-zinc-400 sm:px-6 ${reserveCartSpace ? 'pb-28' : 'pb-8'}`}>
+        <div className={`mx-auto flex max-w-2xl flex-col gap-1 px-4 pt-4 text-xs text-zinc-400 sm:px-6 ${reserveCartSpace ? 'pb-40' : 'pb-8'}`}>
           <div className="flex items-center justify-between gap-4">
             <p>© {now.getFullYear()} BMC Food</p>
             <button
@@ -597,7 +597,7 @@ export function Footer({ onExploreMenu, onNavigate, onSelectSpecialty, onOpenAcc
           {...inView}
           variants={cascade}
           className={`mx-auto flex max-w-7xl flex-col gap-5 px-4 pt-6 text-xs text-zinc-400 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:gap-6 lg:px-8 ${
-            reserveCartSpace ? 'pb-28' : 'pb-8'
+            reserveCartSpace ? 'pb-40' : 'pb-8'
           }`}
         >
           <motion.p variants={reveal}>

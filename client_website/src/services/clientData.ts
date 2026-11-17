@@ -55,12 +55,27 @@ function readJson<T>(key: string, fallback: T): T {
   }
 }
 
+/** Événement émis à chaque changement de l'historique des commandes (nouvelle commande, statut mis à jour). */
+export const ORDERS_CHANGED_EVENT = 'bmc:orders-changed'
+
 function writeJson(key: string, value: unknown) {
   try {
     localStorage.setItem(key, JSON.stringify(value))
   } catch {
     /* stockage plein ou indisponible : on n'interrompt pas le parcours du client */
   }
+  if (key === HISTORY_KEY) window.dispatchEvent(new Event(ORDERS_CHANGED_EVENT))
+}
+
+/** Met à jour le statut d'une commande de l'historique (suivi en direct). Ne fait rien si le statut n'a pas changé. */
+export function updateOrderStatus(orderRef: string, status: Order['status']) {
+  const history = loadHistory()
+  const entry = history.find((item) => item.order_ref === orderRef)
+  if (!entry || entry.status === status) return
+  writeJson(
+    HISTORY_KEY,
+    history.map((item) => (item.order_ref === orderRef ? { ...item, status } : item)),
+  )
 }
 
 export function loadProfile(): ClientProfile {
