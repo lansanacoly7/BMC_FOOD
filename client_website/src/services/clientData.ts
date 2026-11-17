@@ -68,12 +68,13 @@ function writeJson(key: string, value: unknown) {
 
 /** Met à jour le statut d'une commande de l'historique (suivi en direct). Ne fait rien si le statut n'a pas changé. */
 export function updateOrderStatus(orderRef: string, status: Order['status']) {
+  const cleanRef = orderRef.trim().toUpperCase()
   const history = loadHistory()
-  const entry = history.find((item) => item.order_ref === orderRef)
+  const entry = history.find((item) => item.order_ref.toUpperCase() === cleanRef)
   if (!entry || entry.status === status) return
   writeJson(
     HISTORY_KEY,
-    history.map((item) => (item.order_ref === orderRef ? { ...item, status } : item)),
+    history.map((item) => (item.order_ref.toUpperCase() === cleanRef ? { ...item, status } : item)),
   )
 }
 

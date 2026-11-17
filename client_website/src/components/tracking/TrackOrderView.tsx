@@ -20,7 +20,7 @@ import {
   fetchOrderTrack,
   type OrderTrackData,
 } from '../../services/tracking'
-import { loadHistory, type OrderSummary } from '../../services/clientData'
+import { loadHistory, updateOrderStatus, type OrderSummary } from '../../services/clientData'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
 import type { OrderStatus } from '../../types'
 
@@ -185,9 +185,11 @@ export function TrackOrderView({ initialRef = '', onExploreMenu }: TrackOrderVie
 
     try {
       const data = await fetchOrderTrack(clean)
+      updateOrderStatus(data.order_ref, data.status)
       startTransition(() => {
         setCurrentOrder(data)
         setRefInput(clean)
+        setRecentOrders(loadHistory().slice(0, 4))
       })
     } catch (err) {
       setCurrentOrder(null)
@@ -206,9 +208,11 @@ export function TrackOrderView({ initialRef = '', onExploreMenu }: TrackOrderVie
     fetchOrderTrack(clean)
       .then((data) => {
         if (cancelled) return
+        updateOrderStatus(data.order_ref, data.status)
         startTransition(() => {
           setCurrentOrder(data)
           setRefInput(clean)
+          setRecentOrders(loadHistory().slice(0, 4))
           setIsLoading(false)
         })
       })
@@ -255,19 +259,9 @@ export function TrackOrderView({ initialRef = '', onExploreMenu }: TrackOrderVie
             }
           : null,
       )
-      // Met à jour l'historique local pour cohérence
-      try {
-        const history = loadHistory()
-        const updated = history.map((o) =>
-          o.order_ref.toUpperCase() === currentOrder.order_ref.toUpperCase()
-            ? { ...o, status: 'cancelled' as OrderStatus }
-            : o,
-        )
-        localStorage.setItem('bmc_order_history', JSON.stringify(updated))
-        setRecentOrders(updated.slice(0, 4))
-      } catch {
-        /* ignore */
-      }
+      // Met à jour l'historique local + notifie le dock flottant immédiatement
+      updateOrderStatus(currentOrder.order_ref, 'cancelled')
+      setRecentOrders(loadHistory().slice(0, 4))
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossible d'annuler la commande.")
     } finally {
