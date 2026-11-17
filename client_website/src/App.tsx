@@ -8,7 +8,8 @@ import { DailySpecialBanner } from './components/client/DailySpecialBanner'
 import { TopHeader } from './components/home/TopHeader'
 import { HeroCinematic } from './components/home/HeroCinematic'
 import { FeaturedGrid } from './components/home/FeaturedGrid'
-import { StickyCartBar } from './components/home/StickyCartBar'
+import { FloatingDock } from './components/home/FloatingDock'
+import { useActiveOrder } from './hooks/useActiveOrder'
 import { NavMenuDrawer } from './components/home/NavMenuDrawer'
 import { Footer } from './components/home/Footer'
 import { CulinaryVideoShowcase } from './components/home/CulinaryVideoShowcase'
@@ -127,6 +128,8 @@ export default function App() {
 
   // Gestion centralisée du panier BMC Food (Pape Aliou)
   const { items, itemCount, subtotal, isCartOpen, openCart, closeCart, addToCart, updateQuantity, removeFromCart, clearCart } = useCart()
+  // Commande en cours sur cet appareil : barre flottante « Commande en cours », à la place du panier vide
+  const activeOrder = useActiveOrder()
 
   // Hooks de données officiels BMC Food (avec support fallback)
   const { specials, isLoading: isSpecialsLoading } = useDailySpecials()
@@ -334,12 +337,15 @@ export default function App() {
         </main>
       )}
 
-      {/* BARRE PANIER FLOTTANTE (« Pensé pour le pouce », Page 11, Point 6) */}
-      <StickyCartBar
+      {/* DOCK FLOTTANT (« Pensé pour le pouce », Page 11, Point 6) : panier et commande en cours */}
+      <FloatingDock
         itemCount={itemCount}
         totalAmount={subtotal}
         onOpenCart={openCart}
-        isVisible={!isCartOpen}
+        activeOrder={activeOrder}
+        onTrackOrder={handleTrackOrder}
+        isHidden={isCartOpen}
+        hideOrder={currentPage === 'track'}
       />
 
       {/* TIROIR PANIER COULISSANT DARK LUXURY */}
@@ -365,7 +371,7 @@ export default function App() {
         onNavigate={handleNavigate}
         onSelectSpecialty={openMenuOn}
         onOpenAccount={openAccount}
-        reserveCartSpace={itemCount > 0 && !isCartOpen}
+        reserveCartSpace={!isCartOpen && (itemCount > 0 || (activeOrder !== null && currentPage !== 'track'))}
       />
     </div>
   )
