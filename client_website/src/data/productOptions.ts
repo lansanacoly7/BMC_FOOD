@@ -4,10 +4,12 @@ import type { Product } from '../types'
 export interface ProductOptions {
   /** Ingrédients que le client peut retirer. */
   removable: string[]
-  /** Sauces au choix (incluses : aucun supplément). */
+  /** Sauces au choix pour accompagner le plat. */
   sauces: string[]
   /** Nombre maximal de sauces cumulables. */
   maxSauces: number
+  /** Indique si le choix d'au moins une sauce (ou « Sans sauce ») est obligatoire. */
+  saucesRequired: boolean
 }
 
 const REMOVABLE = ['Ketchup', 'Mayonnaise', 'Moutarde', 'Oignons', 'Salade', 'Tomate', 'Cornichons']
@@ -36,16 +38,26 @@ export const isDrink = (product: Product) =>
   normalize(product.category_name).includes('boisson') || product.code.toLowerCase().startsWith('bv')
 
 /**
- * Options d'un plat selon sa famille : tacos, burgers et sandwichs se personnalisent entièrement ;
- * le finger food ne propose que le choix de sauce ; boissons, sauces et accompagnements n'ont pas d'options.
+ * Options d'un plat selon sa famille (ordre de détection strict) :
+ * - tacos : sauces obligatoires (1 à 2, ou « Sans sauce ») + ingrédients retirables
+ * - burger : aucune sauce + ingrédients retirables
+ * - sandwich / chawarma : sauces facultatives (max 2) + ingrédients retirables
+ * - finger food : sauces facultatives (max 1)
+ * - boissons, sauces et accompagnements : aucune option (null)
  */
 export function getProductOptions(product: Product): ProductOptions | null {
   const label = `${normalize(product.name)} ${normalize(product.category_name)}`
-  if (/tacos|burger|sandwich|chawarma/.test(label)) {
-    return { removable: REMOVABLE, sauces: SAUCES, maxSauces: 2 }
+  if (/tacos/.test(label)) {
+    return { removable: REMOVABLE, sauces: SAUCES, maxSauces: 2, saucesRequired: true }
+  }
+  if (/burger/.test(label)) {
+    return { removable: REMOVABLE, sauces: [], maxSauces: 0, saucesRequired: false }
+  }
+  if (/sandwich|chawarma/.test(label)) {
+    return { removable: REMOVABLE, sauces: SAUCES, maxSauces: 2, saucesRequired: false }
   }
   if (/tender|wing|poulet|pastel|sambousa|finger/.test(label)) {
-    return { removable: [], sauces: SAUCES, maxSauces: 1 }
+    return { removable: [], sauces: SAUCES, maxSauces: 1, saucesRequired: false }
   }
   return null
 }
