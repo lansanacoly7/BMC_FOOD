@@ -58,6 +58,7 @@ export default function App() {
   const searchQuery = ''
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [trackingRef, setTrackingRef] = useState<string>('')
+  const [trackReturnPage, setTrackReturnPage] = useState<Page>('home')
   // Animation d'entrée : jouée à chaque arrivée sur le site et à chaque rechargement.
   const [isIntroDone, setIsIntroDone] = useState(false)
   // Le hero entre en scène dès que le rideau de l'intro se lève, pas à la toute fin.
@@ -77,9 +78,15 @@ export default function App() {
   // Navigation. « La carte » : la page Carte sur ordinateur ; sur téléphone, l'accueil au niveau de la carte.
   const handleNavigate = (page: Page) => {
     if (page === 'menu' && !isDesktop) {
+      setTrackingRef('')
       setCurrentPage('home')
       scrollToMenu('smooth')
       return
+    }
+    if (page === 'track' && currentPage !== 'track') {
+      setTrackReturnPage(currentPage)
+    } else if (page !== 'track') {
+      setTrackingRef('')
     }
     setMenuFocus(null)
     setCurrentPage(page)
@@ -117,8 +124,22 @@ export default function App() {
   const handleTrackOrder = (ref: string) => {
     setTrackingRef(ref)
     setIsCheckingOut(false)
-    handleNavigate('track')
+    if (currentPage !== 'track') {
+      setTrackReturnPage(currentPage)
+    }
+    setMenuFocus(null)
+    setCurrentPage('track')
+    window.scrollTo({ top: 0, behavior: 'auto' })
   }
+
+  const trackBackLabel =
+    trackReturnPage === 'profile'
+      ? 'Retour au profil'
+      : trackReturnPage === 'menu'
+        ? 'Retour à la carte'
+        : trackReturnPage === 'contact'
+          ? 'Retour au contact'
+          : "Retour à l'accueil"
 
   // Le bouton « compte » ouvre la page profil si le client est connecté, sinon la fenêtre de connexion
   const openAccount = () => {
@@ -332,7 +353,10 @@ export default function App() {
       {currentPage === 'track' && (
         <main>
           <TrackOrderView
+            key={trackingRef || 'latest'}
             initialRef={trackingRef}
+            onBack={() => handleNavigate(trackReturnPage)}
+            backLabel={trackBackLabel}
             onExploreMenu={() => handleNavigate('menu')}
           />
         </main>
