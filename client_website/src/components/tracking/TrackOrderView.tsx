@@ -1,6 +1,7 @@
 import { useEffect, useState, useTransition } from 'react'
 import {
   AlertTriangle,
+  ArrowLeft,
   ArrowRight,
   Ban,
   Check,
@@ -10,7 +11,7 @@ import {
   Package,
   Phone,
   RefreshCw,
-  Search,
+  ShoppingBag,
   Truck,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
@@ -20,7 +21,7 @@ import {
   fetchOrderTrack,
   type OrderTrackData,
 } from '../../services/tracking'
-import { loadHistory, updateOrderStatus, type OrderSummary } from '../../services/clientData'
+import { loadHistory, ORDERS_CHANGED_EVENT, updateOrderStatus, type OrderSummary } from '../../services/clientData'
 import { ConfirmDialog } from '../ui/ConfirmDialog'
 import type { OrderStatus } from '../../types'
 
@@ -29,6 +30,8 @@ const RESTAURANT_TEL = 'tel:+221778561313'
 
 interface TrackOrderViewProps {
   initialRef?: string
+  onBack?: () => void
+  backLabel?: string
   onExploreMenu?: () => void
 }
 
@@ -153,12 +156,33 @@ function getStatusDescription(status: OrderStatus, isPickup: boolean, cancelReas
   }
 }
 
-export function TrackOrderView({ initialRef = '', onExploreMenu }: TrackOrderViewProps) {
-  const [refInput, setRefInput] = useState(initialRef)
-  const [currentOrder, setCurrentOrder] = useState<OrderTrackData | null>(null)
-  const [isLoading, setIsLoading] = useState(() => Boolean(initialRef.trim()))
-  const [error, setError] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
+function getChipStatusLabel(status: OrderStatus): string {
+  switch (status) {
+    case 'pending':
+      return 'En attente'
+    case 'confirmed':
+      return 'Confirmée'
+    case 'preparing':
+      return 'En préparation'
+    case 'ready':
+      return 'Prête'
+    case 'delivering':
+      return 'En route'
+    case 'delivered':
+      return 'Livrée'
+    case 'cancelled':
+      return 'Annulée'
+    default:
+      return 'En cours'
+  }
+}
+
+export function TrackOrderView({
+  initialRef = '',
+  onBack,
+  backLabel = 'Retour',
+  onExploreMenu,
+}: TrackOrderViewProps) {
   const [recentOrders, setRecentOrders] = useState<OrderSummary[]>(() => {
     try {
       return loadHistory().slice(0, 4)
@@ -166,6 +190,19 @@ export function TrackOrderView({ initialRef = '', onExploreMenu }: TrackOrderVie
       return []
     }
   })
+  const [selectedRef, setSelectedRef] = useState<string>(() => {
+    const fromProp = initialRef.trim().toUpperCase()
+    if (fromProp) return fromProp
+    try {
+      return loadHistory()[0]?.order_ref?.trim().toUpperCase() || ''
+    } catch {
+      return ''
+    }
+  })
+  const [currentOrder, setCurrentOrder] = useState<OrderTrackData | null>(null)
+  const [isLoading, setIsLoading] = useState(() => Boolean(selectedRef))
+  const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
   const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false)
   const [isCancelling, setIsCancelling] = useState(false)
   const [cancelFeedback, setCancelFeedback] = useState<string | null>(null)
@@ -174,7 +211,7 @@ export function TrackOrderView({ initialRef = '', onExploreMenu }: TrackOrderVie
   const executeTrack = async (targetRef: string) => {
     const clean = targetRef.trim().toUpperCase()
     if (!clean) {
-      setError('Veuillez saisir votre référence de commande.')
+      setError('Aucune commande à afficher.')
       setCurrentOrder(null)
       return
     }
@@ -188,7 +225,6 @@ export function TrackOrderView({ initialRef = '', onExploreMenu }: TrackOrderVie
       updateOrderStatus(data.order_ref, data.status)
       startTransition(() => {
         setCurrentOrder(data)
-        setRefInput(clean)
         setRecentOrders(loadHistory().slice(0, 4))
       })
     } catch (err) {
@@ -199,9 +235,9 @@ export function TrackOrderView({ initialRef = '', onExploreMenu }: TrackOrderVie
     }
   }
 
-  // Si une référence initiale est fournie, recherche automatique au chargement
+  // Chargement de la commande active ou sélectionnée
   useEffect(() => {
-    const clean = initialRef.trim().toUpperCase()
+    const clean = selectedRef.trim().toUpperCase()
     if (!clean) return
 
     let cancelled = false
@@ -211,9 +247,9 @@ export function TrackOrderView({ initialRef = '', onExploreMenu }: TrackOrderVie
         updateOrderStatus(data.order_ref, data.status)
         startTransition(() => {
           setCurrentOrder(data)
-          setRefInput(clean)
-          setRecentOrders(loadHistory().slice(0, 4))
+          setError(null)
           setIsLoading(false)
+          setRecentOrders(loadHistory().slice(0, 4))
         })
       })
       .catch((err) => {
@@ -226,11 +262,83 @@ export function TrackOrderView({ initialRef = '', onExploreMenu }: TrackOrderVie
     return () => {
       cancelled = true
     }
-  }, [initialRef])
+  }, [selectedRef])
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    executeTrack(refInput)
+  // Garde la liste des commandes récentes synchronisée avec l'historique local
+  useEffect(() => {
+    const onOrdersChanged = () => {
+      startTransition(() => {
+        setRecentOrders(loadHistory().slice(0, 4))
+      })
+    }
+    window.addEventListener(ORDERS_CHANGED_EVENT, onOrdersChanged)
+    return () => window.removeEventListener(ORDERS_CHANGED_EVENT, onOrdersChanged)
+  }, [])
+
+  // Met à jour une fois les autres pastilles récentes non terminées pour afficher le vrai statut serveur
+  useEffect(() => {
+    let cancelled = false
+    const syncChips = async () => {
+      const others = loadHistory()
+        .slice(0, 4)
+        .filter((o) => o.order_ref.toUpperCase() !== selectedRef && o.status !== 'delivered' && o.status !== 'cancelled')
+        .slice(0, 3)
+      if (others.length === 0) return
+
+      await Promise.allSettled(
+        others.map(async (item) => {
+          const track = await fetchOrderTrack(item.order_ref)
+          if (!cancelled) updateOrderStatus(track.order_ref, track.status)
+        }),
+      )
+      if (!cancelled) {
+        startTransition(() => {
+          setRecentOrders(loadHistory().slice(0, 4))
+        })
+      }
+    }
+    void syncChips()
+    return () => {
+      cancelled = true
+    }
+  }, [selectedRef])
+
+  // Actualisation silencieuse en direct toutes les 20 s tant que la commande est en cours
+  const activeRef = currentOrder?.order_ref
+  const activeStatus = currentOrder?.status
+  useEffect(() => {
+    if (!activeRef || !activeStatus || activeStatus === 'delivered' || activeStatus === 'cancelled') return
+    let cancelled = false
+    const poll = async () => {
+      if (document.visibilityState !== 'visible') return
+      try {
+        const data = await fetchOrderTrack(activeRef)
+        if (cancelled) return
+        updateOrderStatus(data.order_ref, data.status)
+        startTransition(() => {
+          setCurrentOrder(data)
+          setRecentOrders(loadHistory().slice(0, 4))
+        })
+      } catch {
+        /* réseau indisponible : on garde le dernier état affiché */
+      }
+    }
+    const timer = window.setInterval(poll, 20_000)
+    document.addEventListener('visibilitychange', poll)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', poll)
+    }
+  }, [activeRef, activeStatus])
+
+  const handleSelectOrder = (ref: string) => {
+    const clean = ref.trim().toUpperCase()
+    if (!clean || clean === selectedRef) return
+    setError(null)
+    setCancelFeedback(null)
+    setIsLoading(true)
+    setSelectedRef(clean)
   }
 
   const handleCopyRef = () => {
@@ -276,97 +384,84 @@ export function TrackOrderView({ initialRef = '', onExploreMenu }: TrackOrderVie
   const isCancelled = currentOrder?.status === 'cancelled'
   const isPending = currentOrder?.status === 'pending'
   const canCancel = isPending
+  const showRecentSwitcher =
+    recentOrders.length > 1 ||
+    (recentOrders.length === 1 &&
+      Boolean(selectedRef) &&
+      recentOrders[0].order_ref.toUpperCase() !== selectedRef.toUpperCase())
 
   return (
-    <div className="min-h-[85vh] bg-zinc-950 px-3.5 py-6 sm:px-6 sm:py-10 text-zinc-100 selection:bg-bmc-gold selection:text-black">
+    <div className="min-h-[85vh] bg-zinc-950 px-3.5 py-4 sm:px-6 sm:py-8 text-zinc-100 selection:bg-bmc-gold selection:text-black">
       <div className="mx-auto w-full max-w-2xl">
-        {/* En-tête de la page */}
-        <header className="mb-6 text-center sm:mb-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-bmc-gold">
-            <Clock className="size-3.5" />
+        {/* Barre supérieure avec retour explicite */}
+        <div className="mb-5 flex items-center justify-between gap-3">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label={backLabel}
+              className="inline-flex h-10 items-center gap-2 rounded-full border border-white/15 bg-zinc-900/90 px-4 text-xs sm:text-sm font-semibold text-zinc-200 transition-colors hover:border-bmc-gold hover:text-bmc-gold focus-visible:outline-2 focus-visible:outline-bmc-gold cursor-pointer"
+            >
+              <ArrowLeft className="size-4" aria-hidden="true" />
+              <span>{backLabel}</span>
+            </button>
+          )}
+          <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-bmc-gold ml-auto">
+            <Clock className="size-3.5" aria-hidden="true" />
             <span>Suivi en temps réel</span>
           </div>
-          <h1 className="mt-3 font-display text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
+        </div>
+
+        {/* En-tête de la page */}
+        <header className="mb-5 text-center sm:mb-6">
+          <h1 className="font-display text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
             Suivre ma commande
           </h1>
-          <p className="mt-2 text-xs sm:text-sm text-zinc-400 max-w-md mx-auto leading-relaxed">
-            Entrez la référence de votre commande reçue par SMS ou à la confirmation (ex. <span className="font-mono text-zinc-300">BMC-849201</span>) pour suivre son état en direct.
+          <p className="mt-1.5 text-xs sm:text-sm text-zinc-400 max-w-md mx-auto leading-relaxed">
+            Suivez l’avancement de votre commande en direct.
           </p>
         </header>
 
-        {/* Formulaire de recherche */}
-        <div className="rounded-2xl border border-white/10 bg-zinc-900/90 p-4 sm:p-5 shadow-xl backdrop-blur-sm">
-          <form onSubmit={handleSearchSubmit} className="space-y-3">
-            <label htmlFor="order-ref-input" className="block text-xs sm:text-sm font-medium text-zinc-300">
-              Référence de commande
-            </label>
-            <div className="flex flex-col sm:flex-row gap-2.5">
-              <div className="relative flex-1">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-zinc-500 pointer-events-none" />
-                <input
-                  id="order-ref-input"
-                  type="text"
-                  value={refInput}
-                  onChange={(e) => setRefInput(e.target.value.toUpperCase())}
-                  placeholder="Ex : BMC-849201"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="characters"
-                  className="h-12 w-full rounded-xl border border-white/10 bg-zinc-950 pl-10 pr-4 font-mono text-sm sm:text-base tracking-wider text-white placeholder-zinc-600 outline-none transition-colors focus:border-bmc-gold focus:ring-1 focus:ring-bmc-gold"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading || !refInput.trim()}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-bmc-gold px-6 font-display text-sm font-bold uppercase tracking-wider text-black transition-all hover:bg-amber-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer shadow-lg shadow-amber-500/10"
-              >
-                {isLoading ? (
-                  <>
-                    <RefreshCw className="size-4 animate-spin" />
-                    <span>Recherche...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Vérifier</span>
-                    <ArrowRight className="size-4 stroke-[2.5]" />
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-
-          {/* Raccourcis commandes récentes */}
-          {recentOrders.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-white/10">
-              <p className="text-[11px] uppercase tracking-wider text-zinc-400 font-semibold mb-2">
-                Vos commandes récentes sur cet appareil :
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {recentOrders.map((order) => (
+        {/* Sélecteur rapide des commandes récentes sur cet appareil (sans champ ni bouton Vérifier) */}
+        {showRecentSwitcher && (
+          <div className="mb-5 rounded-2xl border border-white/10 bg-zinc-900/80 p-3.5 sm:p-4 shadow-xl backdrop-blur-sm">
+            <p className="text-[11px] uppercase tracking-wider text-zinc-400 font-semibold mb-2.5">
+              Vos commandes récentes sur cet appareil :
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {recentOrders.map((order) => {
+                const isSelected = selectedRef.toUpperCase() === order.order_ref.toUpperCase()
+                return (
                   <button
                     key={order.order_ref}
                     type="button"
-                    onClick={() => {
-                      setRefInput(order.order_ref)
-                      executeTrack(order.order_ref)
-                    }}
-                    className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-mono transition-all cursor-pointer ${
-                      currentOrder?.order_ref.toUpperCase() === order.order_ref.toUpperCase()
+                    onClick={() => handleSelectOrder(order.order_ref)}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-mono transition-all cursor-pointer ${
+                      isSelected
                         ? 'border-bmc-gold bg-bmc-gold/15 text-bmc-gold font-bold'
                         : 'border-white/10 bg-zinc-950/80 text-zinc-300 hover:border-white/30 hover:text-white'
                     }`}
                   >
                     <span>{order.order_ref}</span>
                     <span className="text-[10px] text-zinc-400 font-sans">
-                      ({order.status === 'delivered' ? 'Livrée' : order.status === 'cancelled' ? 'Annulée' : 'En cours'})
+                      ({getChipStatusLabel(order.status)})
                     </span>
                   </button>
-                ))}
-              </div>
+                )
+              })}
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* État de chargement initial */}
+        {isLoading && !currentOrder && (
+          <div className="rounded-2xl border border-white/10 bg-zinc-900/90 p-8 text-center shadow-xl">
+            <RefreshCw className="mx-auto size-6 animate-spin text-bmc-gold" />
+            <p className="mt-3 text-sm font-medium text-zinc-300">
+              Chargement de votre commande...
+            </p>
+          </div>
+        )}
 
         {/* Message d'erreur clair */}
         <AnimatePresence>
@@ -376,22 +471,59 @@ export function TrackOrderView({ initialRef = '', onExploreMenu }: TrackOrderVie
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               role="alert"
-              className="mt-4 flex items-start gap-3 rounded-xl border border-red-500/40 bg-red-950/50 p-4 text-xs sm:text-sm text-red-200"
+              className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-red-500/40 bg-red-950/50 p-4 text-xs sm:text-sm text-red-200"
             >
-              <AlertTriangle className="size-5 shrink-0 text-red-400 mt-0.5" />
-              <div className="space-y-1">
-                <p className="font-semibold text-red-100">{error}</p>
-                <p className="text-[11px] text-red-300/80">
-                  Besoin d'aide ? Contactez notre restaurant au{' '}
-                  <a href={RESTAURANT_TEL} className="underline font-bold text-white hover:text-bmc-gold">
-                    {RESTAURANT_PHONE}
-                  </a>
-                  .
-                </p>
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="size-5 shrink-0 text-red-400 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-semibold text-red-100">{error}</p>
+                  <p className="text-[11px] text-red-300/80">
+                    Besoin d'aide ? Contactez notre restaurant au{' '}
+                    <a href={RESTAURANT_TEL} className="underline font-bold text-white hover:text-bmc-gold">
+                      {RESTAURANT_PHONE}
+                    </a>
+                    .
+                  </p>
+                </div>
               </div>
+              {selectedRef && (
+                <button
+                  type="button"
+                  onClick={() => executeTrack(selectedRef)}
+                  className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-red-400/40 bg-red-950/80 px-3 text-xs font-semibold text-red-100 hover:bg-red-900 transition-colors cursor-pointer"
+                >
+                  <RefreshCw className="size-3.5" />
+                  <span>Réessayer</span>
+                </button>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* État vide : aucune commande enregistrée sur cet appareil */}
+        {!isLoading && !currentOrder && !error && (
+          <div className="rounded-2xl border border-white/10 bg-zinc-900/90 p-6 sm:p-8 text-center shadow-xl">
+            <div className="mx-auto grid size-12 place-items-center rounded-2xl border border-amber-500/25 bg-amber-500/10 text-bmc-gold">
+              <ShoppingBag className="size-6" />
+            </div>
+            <h2 className="mt-4 font-display text-lg sm:text-xl font-bold text-white">
+              Aucune commande en cours sur cet appareil
+            </h2>
+            <p className="mt-1.5 text-xs sm:text-sm text-zinc-400 max-w-sm mx-auto leading-relaxed">
+              Passez commande sur la carte pour suivre sa préparation et sa livraison ici en direct.
+            </p>
+            {onExploreMenu && (
+              <button
+                type="button"
+                onClick={onExploreMenu}
+                className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-bmc-gold px-5 font-display text-sm font-bold text-black transition-all hover:bg-amber-400 active:scale-95 cursor-pointer"
+              >
+                <span>Découvrir la carte</span>
+                <ArrowRight className="size-4" />
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Message de succès après annulation */}
         <AnimatePresence>
